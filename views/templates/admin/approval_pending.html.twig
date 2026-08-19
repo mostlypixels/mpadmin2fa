@@ -1,0 +1,15 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+<div class="row justify-content-center"><div class="col-xl-7">
+  <div class="card">
+    <h3 class="card-header">Enrollment approval required</h3>
+    <div class="card-body">
+      <div class="alert alert-warning">A different, freshly verified SuperAdmin must approve your first enrollment. You cannot access other back-office pages until approval is granted.</div>
+      <p>Your request is pending. Refresh this page after an administrator approves it.</p>
+      <a class="btn btn-outline-secondary" href="{{ path('mpadmin2fa_enroll') }}">Check again</a>
+      <a class="btn btn-link" href="{{ path('admin_logout') }}">Log out</a>
+    </div>
+  </div>
+</div></div>
+{% endblock %}
