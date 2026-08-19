@@ -1,0 +1,69 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  PrestaShop\PrestaShop\Core\ConfigurationInterface:
+    alias: prestashop.adapter.legacy.configuration
+
+  Mpadmin2fa\Command\KeyHealthCommand:
+    class: Mpadmin2fa\Command\KeyHealthCommand
+    tags: ['console.command']
+
+  Mpadmin2fa\Command\KeyRotationCommand:
+    class: Mpadmin2fa\Command\KeyRotationCommand
+    tags: ['console.command']
+
+  Mpadmin2fa\Command\PruneAuditCommand:
+    class: Mpadmin2fa\Command\PruneAuditCommand
+    tags: ['console.command']
+
+  Mpadmin2fa\Command\ResetFactorCommand:
+    class: Mpadmin2fa\Command\ResetFactorCommand
+    tags: ['console.command']
+
+  Mpadmin2fa\EventSubscriber\AdminMfaSubscriber:
+    class: Mpadmin2fa\EventSubscriber\AdminMfaSubscriber
+    tags: ['kernel.event_subscriber']
+
+  Mpadmin2fa\Repository\SecurityRepository:
+    class: Mpadmin2fa\Repository\SecurityRepository
+    arguments:
+      $connection: '@doctrine.dbal.default_connection'
+      $dbPrefix: '%database_prefix%'
+
+  Mpadmin2fa\Security\CookieKeyProvider:
+    class: Mpadmin2fa\Security\CookieKeyProvider
+
+  Mpadmin2fa\Security\KeyManager:
+    class: Mpadmin2fa\Security\KeyManager
+
+  Mpadmin2fa\Security\MfaManager:
+    class: Mpadmin2fa\Security\MfaManager
+
+  Mpadmin2fa\Security\Policy:
+    class: Mpadmin2fa\Security\Policy
+
+  Mpadmin2fa\Security\RateLimiter:
+    class: Mpadmin2fa\Security\RateLimiter
+
+  Mpadmin2fa\Security\RecoveryCodeService:
+    class: Mpadmin2fa\Security\RecoveryCodeService
+
+  Mpadmin2fa\Security\ReturnTargetPolicy:
+    class: Mpadmin2fa\Security\ReturnTargetPolicy
+
+  Mpadmin2fa\Security\SecurityAlertService:
+    class: Mpadmin2fa\Security\SecurityAlertService
+
+  Mpadmin2fa\Security\SessionState:
+    class: Mpadmin2fa\Security\SessionState
+
+  Mpadmin2fa\Security\TotpService:
+    class: Mpadmin2fa\Security\TotpService
+
+  Mpadmin2fa\Controller\Admin\MfaController:
+    class: Mpadmin2fa\Controller\Admin\MfaController
+    public: true
+    tags: ['controller.service_arguments']

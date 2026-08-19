@@ -1,0 +1,18 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+<div class="row justify-content-center"><div class="col-xl-7">
+  <div class="card">
+    <h3 class="card-header">Save your recovery codes</h3>
+    <div class="card-body">
+      <div class="alert alert-warning">Each code works once. These codes will not be shown again.</div>
+      <ul class="list-unstyled">{% for code in recovery_codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul>
+      <form method="post">
+        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_recovery_ack') }}">
+        <label><input type="checkbox" name="saved" value="1" required> I saved these codes securely.</label>
+        <div class="mt-3"><button class="btn btn-primary" type="submit">Continue</button></div>
+      </form>
+    </div>
+  </div>
+</div></div>
+{% endblock %}
