@@ -1,0 +1,59 @@
+mpadmin2fa_challenge:
+  path: /mpadmin2fa/challenge
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::challenge'
+
+mpadmin2fa_enroll:
+  path: /mpadmin2fa/enroll
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::enroll'
+
+mpadmin2fa_recovery_codes:
+  path: /mpadmin2fa/recovery-codes
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::recoveryCodes'
+
+mpadmin2fa_replace:
+  path: /mpadmin2fa/factor/replace
+  methods: [POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::replace'
+
+mpadmin2fa_disable:
+  path: /mpadmin2fa/factor/disable
+  methods: [POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::disable'
+
+mpadmin2fa_recovery_regenerate:
+  path: /mpadmin2fa/recovery-codes/regenerate
+  methods: [POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::regenerateRecoveryCodes'
+
+mpadmin2fa_settings:
+  path: /mpadmin2fa/settings
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::settings'
+    _legacy_controller: AdminMpAdmin2fa
+    _legacy_link: AdminMpAdmin2fa
+
+mpadmin2fa_admin_reset:
+  path: /mpadmin2fa/employees/{employeeId}/reset
+  methods: [POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::adminReset'
+  requirements:
+    employeeId: '\d+'
+
+mpadmin2fa_approve:
+  path: /mpadmin2fa/employees/{employeeId}/approve
+  methods: [POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::approveEnrollment'
+  requirements:
+    employeeId: '\d+'

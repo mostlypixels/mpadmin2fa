@@ -1,0 +1,22 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Mpadmin2fa\:
+    resource: '../../src/*'
+    exclude:
+      - '../../src/Controller/'
+      - '../../src/Install/'
+      - '../../src/index.php'
+
+  Mpadmin2fa\Controller\Admin\:
+    resource: '../../src/Controller/Admin/*'
+    public: true
+    tags: ['controller.service_arguments']
+
+  Mpadmin2fa\Repository\SecurityRepository:
+    arguments:
+      $connection: '@doctrine.dbal.default_connection'
+      $dbPrefix: '%database_prefix%'

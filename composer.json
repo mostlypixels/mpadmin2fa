@@ -1,0 +1,36 @@
+{
+  "name": "mpadmin2fa/mpadmin2fa",
+  "description": "TOTP two-factor authentication and protected-operation step-up verification for PrestaShop back-office employees.",
+  "type": "prestashop-module",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Cindy Durand"
+    }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "bacon/bacon-qr-code": "^3.0",
+    "defuse/php-encryption": "^2.4",
+    "pragmarx/google2fa": "^9.0"
+  },
+  "require-dev": {
+    "humbug/php-scoper": "^0.17.7",
+    "phpunit/phpunit": "^10.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Mpadmin2fa\\": "src/"
+    }
+  },
+  "config": {
+    "allow-plugins": {},
+    "preferred-install": "dist",
+    "optimize-autoloader": false,
+    "prepend-autoloader": false
+  },
+  "scripts": {
+    "build:scoped": "@php tools/build-scoped.php",
+    "test": "@php vendor/bin/phpunit"
+  }
+}
