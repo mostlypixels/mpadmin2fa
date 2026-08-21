@@ -23,10 +23,57 @@ class Mpadmin2fa extends Module
     {
         $this->name = 'mpadmin2fa';
         $this->tab = 'administration';
-        $this->version = '0.1.0';
+        $this->version = '0.2.0';
         $this->author = 'Cindy Durand';
         $this->need_instance = 0;
         $this->bootstrap = true;
+
+        $tabNames = [];
+        foreach (Language::getLanguages(true) as $language) {
+            $locale = (string) $language['locale'];
+            $tabNames['parent'][$locale] = $this->trans('Admin 2FA', [], 'Modules.Mpadmin2fa.Admin', $locale);
+            $tabNames['authenticator'][$locale] = $this->trans('Your authenticator', [], 'Modules.Mpadmin2fa.Admin', $locale);
+            $tabNames['enrollment'][$locale] = $this->trans('Enrollment', [], 'Modules.Mpadmin2fa.Admin', $locale);
+            $tabNames['security'][$locale] = $this->trans('Security', [], 'Modules.Mpadmin2fa.Admin', $locale);
+        }
+        $this->tabs = [
+            [
+                'route_name' => 'mpadmin2fa_settings',
+                'class_name' => 'AdminMpAdmin2fa',
+                'visible' => true,
+                'name' => $tabNames['parent'],
+                'icon' => 'security',
+                'wording' => 'Admin 2FA',
+                'wording_domain' => 'Modules.Mpadmin2fa.Admin',
+            ],
+            [
+                'route_name' => 'mpadmin2fa_authenticator',
+                'class_name' => 'AdminMpAdmin2faAuthenticator',
+                'visible' => true,
+                'name' => $tabNames['authenticator'],
+                'parent_class_name' => 'AdminMpAdmin2fa',
+                'wording' => 'Your authenticator',
+                'wording_domain' => 'Modules.Mpadmin2fa.Admin',
+            ],
+            [
+                'route_name' => 'mpadmin2fa_enrollment_employees',
+                'class_name' => 'AdminMpAdmin2faEnrollment',
+                'visible' => true,
+                'name' => $tabNames['enrollment'],
+                'parent_class_name' => 'AdminMpAdmin2fa',
+                'wording' => 'Enrollment',
+                'wording_domain' => 'Modules.Mpadmin2fa.Admin',
+            ],
+            [
+                'route_name' => 'mpadmin2fa_security_policy',
+                'class_name' => 'AdminMpAdmin2faSecurity',
+                'visible' => true,
+                'name' => $tabNames['security'],
+                'parent_class_name' => 'AdminMpAdmin2fa',
+                'wording' => 'Security',
+                'wording_domain' => 'Modules.Mpadmin2fa.Admin',
+            ],
+        ];
 
         parent::__construct();
 
@@ -75,6 +122,11 @@ class Mpadmin2fa extends Module
         return $installed;
     }
 
+    public function postInstall(): bool
+    {
+        return $this->grantDefaultTabAccess();
+    }
+
     public function uninstall(): bool
     {
         $cleaned = (new Mpadmin2fa\Install\SchemaInstaller())->uninstall();
@@ -93,10 +145,67 @@ class Mpadmin2fa extends Module
         return $cleaned && parent::uninstall();
     }
 
+    /**
+     * Reconcile the visible tab hierarchy when upgrading an existing installation.
+     */
+    public function upgradeAdminTabs(): bool
+    {
+        foreach ($this->tabs as $definition) {
+            $tabId = (int) Tab::getIdFromClassName($definition['class_name']);
+            $tab = $tabId > 0 ? new Tab($tabId) : new Tab();
+            $tab->active = (bool) $definition['visible'];
+            $tab->enabled = true;
+            $tab->class_name = $definition['class_name'];
+            $tab->route_name = $definition['route_name'];
+            $tab->module = $this->name;
+            $tab->icon = $definition['icon'] ?? null;
+            $tab->wording = $definition['wording'];
+            $tab->wording_domain = $definition['wording_domain'];
+            $tab->id_parent = isset($definition['parent_class_name'])
+                ? (int) Tab::getIdFromClassName($definition['parent_class_name'])
+                : 0;
+
+            $localizedNames = $definition['name'];
+            $fallbackName = reset($localizedNames);
+            foreach (Language::getLanguages(false) as $language) {
+                $tab->name[(int) $language['id_lang']] = $localizedNames[$language['locale']] ?? $fallbackName;
+            }
+
+            if (!($tabId > 0 ? $tab->save() : $tab->add())) {
+                return false;
+            }
+        }
+
+        return $this->grantDefaultTabAccess();
+    }
+
     public function getContent(): string
     {
         Tools::redirectAdmin($this->get('router')->generate('mpadmin2fa_settings'));
 
         return '';
+    }
+
+    private function grantDefaultTabAccess(): bool
+    {
+        $tabIds = [
+            (int) Tab::getIdFromClassName('AdminMpAdmin2fa'),
+            (int) Tab::getIdFromClassName('AdminMpAdmin2faAuthenticator'),
+        ];
+        if (in_array(0, $tabIds, true)) {
+            return false;
+        }
+
+        $access = new Access();
+        $languageId = (int) Configuration::get('PS_LANG_DEFAULT');
+        foreach (Profile::getProfiles($languageId) as $profile) {
+            foreach ($tabIds as $tabId) {
+                if ('ok' !== $access->updateLgcAccess((int) $profile['id_profile'], $tabId, 'view', true, false)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

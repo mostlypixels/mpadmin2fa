@@ -1,0 +1,20 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+<div class="row"><div class="col-xl-10">
+  <div class="card">
+    <h3 class="card-header">Security</h3>
+    <div class="card-body">
+      <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link {{ app.request.attributes.get('_route') == 'mpadmin2fa_security_policy' ? 'active' }}" href="{{ path('mpadmin2fa_security_policy') }}">Policy</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {{ app.request.attributes.get('_route') == 'mpadmin2fa_security_activity' ? 'active' }}" href="{{ path('mpadmin2fa_security_activity') }}">Activity log</a>
+        </li>
+      </ul>
+      {% block security_content %}{% endblock %}
+    </div>
+  </div>
+</div></div>
+{% endblock %}

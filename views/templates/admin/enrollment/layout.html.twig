@@ -1,0 +1,20 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+<div class="row"><div class="col-xl-10">
+  <div class="card">
+    <h3 class="card-header">Enrollment</h3>
+    <div class="card-body">
+      <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link {{ app.request.attributes.get('_route') == 'mpadmin2fa_enrollment_employees' ? 'active' }}" href="{{ path('mpadmin2fa_enrollment_employees') }}">Employees</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {{ app.request.attributes.get('_route') == 'mpadmin2fa_enrollment_approvals' ? 'active' }}" href="{{ path('mpadmin2fa_enrollment_approvals') }}">Pending approvals</a>
+        </li>
+      </ul>
+      {% block enrollment_content %}{% endblock %}
+    </div>
+  </div>
+</div></div>
+{% endblock %}

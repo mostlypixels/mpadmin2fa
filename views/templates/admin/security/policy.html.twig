@@ -1,0 +1,48 @@
+{% extends '@Modules/mpadmin2fa/views/templates/admin/security/layout.html.twig' %}
+
+{% block security_content %}
+{% if not can_update %}
+  <div class="alert alert-info">You can view this policy, but your profile cannot change it.</div>
+{% endif %}
+<form method="post" action="{{ path('mpadmin2fa_security_policy_update') }}">
+  {% if can_update %}<input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_policy') }}">{% endif %}
+  <fieldset{% if not can_update %} disabled{% endif %}>
+    <div class="form-group">
+      <label for="mp2fa-policy-mode">Login enforcement</label>
+      <select id="mp2fa-policy-mode" class="form-control" name="mode">
+        <option value="superadmins" {{ mode == 'superadmins' ? 'selected' }}>SuperAdmins</option>
+        <option value="profiles" {{ mode == 'profiles' ? 'selected' }}>Selected profile IDs</option>
+        <option value="all" {{ mode == 'all' ? 'selected' }}>All employees</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="mp2fa-policy-profiles">Profile IDs</label>
+      <input id="mp2fa-policy-profiles" class="form-control" name="profiles" value="{{ profiles }}" aria-describedby="mp2fa-policy-profiles-help">
+      <small id="mp2fa-policy-profiles-help" class="form-text text-muted">Separate multiple profile IDs with commas.</small>
+    </div>
+    <div class="form-group">
+      <label for="mp2fa-policy-step-up">Fresh verification lifetime (seconds)</label>
+      <input id="mp2fa-policy-step-up" class="form-control" type="number" min="60" name="step_up_seconds" value="{{ step_up_seconds }}">
+    </div>
+    <div class="form-group">
+      <label for="mp2fa-policy-password-age">Password-authentication maximum age (seconds)</label>
+      <input id="mp2fa-policy-password-age" class="form-control" type="number" min="60" name="password_max_age" value="{{ password_max_age }}">
+    </div>
+    <div class="form-group">
+      <label for="mp2fa-policy-approval-profiles">Profiles requiring first-enrollment approval</label>
+      <input id="mp2fa-policy-approval-profiles" class="form-control" name="approval_profiles" value="{{ approval_profiles }}" aria-describedby="mp2fa-policy-approval-profiles-help">
+      <small id="mp2fa-policy-approval-profiles-help" class="form-text text-muted">Separate multiple profile IDs with commas.</small>
+    </div>
+    <div class="form-group">
+      <label for="mp2fa-policy-audit-days">Activity-log retention (days)</label>
+      <input id="mp2fa-policy-audit-days" class="form-control" type="number" min="1" name="audit_days" value="{{ audit_days }}">
+    </div>
+    <div class="form-group">
+      <label for="mp2fa-policy-recipients">Security alert recipients</label>
+      <input id="mp2fa-policy-recipients" class="form-control" name="security_recipients" value="{{ security_recipients }}" aria-describedby="mp2fa-policy-recipients-help">
+      <small id="mp2fa-policy-recipients-help" class="form-text text-muted">Separate multiple email addresses with commas.</small>
+    </div>
+    {% if can_update %}<button class="btn btn-primary">Save policy</button>{% endif %}
+  </fieldset>
+</form>
+{% endblock %}
