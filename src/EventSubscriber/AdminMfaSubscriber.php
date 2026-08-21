@@ -40,9 +40,9 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         'admin_module_manage_update_all',
         'admin_themes_enable',
         'admin_themes_import',
-        'mpadmin2fa_settings',
-        'mpadmin2fa_approve',
         'mpadmin2fa_admin_reset',
+        'mpadmin2fa_approve',
+        'mpadmin2fa_security_policy_update',
     ];
 
     public function __construct(

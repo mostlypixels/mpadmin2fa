@@ -286,19 +286,23 @@ final class SecurityRepository
         return false === $id ? null : (int) $id;
     }
 
-    public function employeeStatuses(): array
+    public function employeeStatuses(int $languageId): array
     {
         return $this->connection->fetchAllAssociative(
-            'SELECT e.id_employee, e.email, e.firstname, e.lastname, e.id_profile, f.status, f.confirmed_at '
+            'SELECT e.id_employee, e.email, e.firstname, e.lastname, pl.name AS profile_name, f.status, f.confirmed_at '
             . 'FROM ' . $this->dbPrefix . 'employee e LEFT JOIN ' . $this->table('employee')
-            . ' f ON f.id_employee = e.id_employee ORDER BY e.lastname, e.firstname'
+            . ' f ON f.id_employee = e.id_employee LEFT JOIN ' . $this->dbPrefix
+            . 'profile_lang pl ON pl.id_profile = e.id_profile AND pl.id_lang = ? ORDER BY e.lastname, e.firstname',
+            [$languageId]
         );
     }
 
     public function auditEvents(int $limit = 100): array
     {
         return $this->connection->fetchAllAssociative(
-            'SELECT * FROM ' . $this->table('audit') . ' ORDER BY id_audit DESC LIMIT ' . max(1, min(500, $limit))
+            'SELECT a.*, e.firstname, e.lastname FROM ' . $this->table('audit') . ' a LEFT JOIN '
+            . $this->dbPrefix . 'employee e ON e.id_employee = a.id_employee ORDER BY a.id_audit DESC LIMIT '
+            . max(1, min(500, $limit))
         );
     }
 
