@@ -85,7 +85,7 @@ mpadmin2fa_security_activity:
   methods: [GET]
   defaults:
     _controller: 'Mpadmin2fa\Controller\Admin\MfaController::securityActivity'
-    _legacy_controller: AdminMpAdmin2faSecurity
+    _legacy_controller: AdminMpAdmin2faSecurityActivity
 
 mpadmin2fa_admin_reset:
   path: /mpadmin2fa/employees/{employeeId}/reset
@@ -104,3 +104,30 @@ mpadmin2fa_approve:
     _legacy_controller: AdminMpAdmin2faEnrollment
   requirements:
     employeeId: '\d+'
+
+mpadmin2fa_enrollment_employees_search:
+  path: /mpadmin2fa/enrollment
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle\Controller\Admin\CommonController::searchGridAction'
+    gridDefinitionFactoryServiceId: 'Mpadmin2fa\Grid\Definition\Factory\EmployeeFactorGridDefinitionFactory'
+    redirectRoute: mpadmin2fa_enrollment_employees
+    _legacy_controller: AdminMpAdmin2faEnrollment
+
+mpadmin2fa_enrollment_approvals_search:
+  path: /mpadmin2fa/enrollment/pending-approvals
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle\Controller\Admin\CommonController::searchGridAction'
+    gridDefinitionFactoryServiceId: 'Mpadmin2fa\Grid\Definition\Factory\PendingApprovalGridDefinitionFactory'
+    redirectRoute: mpadmin2fa_enrollment_approvals
+    _legacy_controller: AdminMpAdmin2faEnrollment
+
+mpadmin2fa_security_activity_search:
+  path: /mpadmin2fa/security/activity-log
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle\Controller\Admin\CommonController::searchGridAction'
+    gridDefinitionFactoryServiceId: 'Mpadmin2fa\Grid\Definition\Factory\AuditEventGridDefinitionFactory'
+    redirectRoute: mpadmin2fa_security_activity
+    _legacy_controller: AdminMpAdmin2faSecurityActivity

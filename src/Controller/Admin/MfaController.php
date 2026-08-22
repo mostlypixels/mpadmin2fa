@@ -5,105 +5,130 @@ declare(strict_types=1);
 namespace Mpadmin2fa\Controller\Admin;
 
 use Mpadmin2fa\Exception\MfaSecurityException;
+use Mpadmin2fa\Form\DisableFactorType;
+use Mpadmin2fa\Form\OneTimeCodeType;
+use Mpadmin2fa\Form\RecoveryCodeAcknowledgementType;
+use Mpadmin2fa\Form\RecoveryCodeChallengeType;
+use Mpadmin2fa\Form\RegenerateRecoveryCodesType;
+use Mpadmin2fa\Form\ReplaceFactorType;
+use Mpadmin2fa\Grid\Filters\AuditEventFilters;
+use Mpadmin2fa\Grid\Filters\EmployeeFactorFilters;
+use Mpadmin2fa\Grid\Filters\PendingApprovalFilters;
 use Mpadmin2fa\Repository\SecurityRepository;
+use Mpadmin2fa\Security\FactorConfirmationService;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
 use Mpadmin2fa\Security\SessionState;
 use Mpadmin2fa\Security\TotpService;
-use PrestaShop\PrestaShop\Core\ConfigurationInterface;
+use PrestaShop\PrestaShop\Core\Form\FormHandlerInterface;
+use PrestaShop\PrestaShop\Core\Grid\GridFactoryInterface;
 use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
 use PrestaShopBundle\Entity\Employee\Employee;
 use PrestaShopBundle\Security\Attribute\AdminSecurity;
 use PrestaShopBundle\Security\Attribute\DemoRestricted;
 use RuntimeException;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class MfaController extends PrestaShopAdminController
 {
-    public function __construct(
-        private readonly Security $security,
-        private readonly RouterInterface $router,
-        private readonly MfaManager $mfa,
-        private readonly TotpService $totp,
-        private readonly SessionState $sessionState,
-        private readonly Policy $policy,
-        private readonly SecurityRepository $repository,
-        private readonly ConfigurationInterface $configuration,
-        private readonly UserPasswordHasherInterface $passwordHasher,
-    ) {
-    }
-
-    public function challenge(Request $request): Response
-    {
-        $employee = $this->employee();
-        if (!$this->mfa->active($employee->getId())) {
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function challenge(
+        Request $request,
+        Security $security,
+        MfaManager $mfa,
+        SessionState $sessionState,
+        RouterInterface $router,
+    ): Response {
+        $employee = $this->employee($security);
+        if (!$mfa->active($employee->getId())) {
             return $this->redirectToRoute('mpadmin2fa_enroll');
         }
 
-        $error = null;
-        if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('mp2fa_challenge', (string) $request->request->get('mp2fa_csrf_token'))) {
-                throw $this->createAccessDeniedException('Invalid CSRF token.');
+        $totpForm = $this->createForm(OneTimeCodeType::class, null, [
+            'autofocus' => true,
+            'csrf_token_id' => 'mp2fa_challenge_totp',
+        ]);
+        $recoveryForm = $this->createForm(RecoveryCodeChallengeType::class);
+        $totpForm->handleRequest($request);
+        $recoveryForm->handleRequest($request);
+
+        try {
+            if ($recoveryForm->isSubmitted() && $recoveryForm->isValid()) {
+                if ($mfa->useRecoveryCode(
+                    $employee->getId(),
+                    (string) $recoveryForm->getData()['recovery_code'],
+                    $request->getClientIp()
+                )) {
+                    $sessionState->markVerified($employee->getId(), true);
+
+                    return $this->redirectToRoute('mpadmin2fa_enroll');
+                }
+
+                $this->addFlash('error', 'The supplied recovery code is invalid or has already been used.');
             }
 
-            try {
-                $recoveryCode = trim((string) $request->request->get('recovery_code'));
-                if ('' !== $recoveryCode) {
-                    if ($this->mfa->useRecoveryCode($employee->getId(), $recoveryCode, $request->getClientIp())) {
-                        $this->sessionState->markVerified($employee->getId(), true);
-
-                        return $this->redirectToRoute('mpadmin2fa_enroll');
-                    }
-                } elseif ($this->mfa->verifyTotp(
+            if ($totpForm->isSubmitted() && $totpForm->isValid()) {
+                if ($mfa->verifyTotp(
                     $employee->getId(),
-                    (string) $request->request->get('code'),
+                    (string) $totpForm->getData()['code'],
                     $request->getClientIp(),
                     $request->query->getBoolean('step_up') ? 'step_up' : 'challenge'
                 )) {
-                    $this->sessionState->markVerified($employee->getId());
+                    $sessionState->markVerified($employee->getId());
 
-                    return new RedirectResponse($this->sessionState->consumeReturnTarget()
-                        ?? $this->dashboardUrl());
+                    return new RedirectResponse($sessionState->consumeReturnTarget()
+                        ?? $this->dashboardUrl($router));
                 }
-                $error = 'The supplied authentication code is invalid or has already been used.';
-            } catch (MfaSecurityException|RuntimeException $exception) {
-                $error = $exception->getMessage();
+
+                $this->addFlash('error', 'The supplied authentication code is invalid or has already been used.');
             }
+        } catch (MfaSecurityException|RuntimeException $exception) {
+            $this->addFlash('error', $exception->getMessage());
         }
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/challenge.html.twig', [
-            'error' => $error,
             'layoutTitle' => 'Two-factor authentication',
+            'recovery_form' => $recoveryForm->createView(),
             'step_up' => $request->query->getBoolean('step_up'),
+            'totp_form' => $totpForm->createView(),
         ]);
     }
 
-    public function enroll(Request $request): Response
-    {
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function enroll(
+        Request $request,
+        Security $security,
+        MfaManager $mfa,
+        TotpService $totp,
+        SessionState $sessionState,
+        Policy $policy,
+        SecurityRepository $repository,
+    ): Response {
         $this->requireHttps($request);
-        $employee = $this->employee();
-        $recoveryReplacement = $this->sessionState->isRecoveryRestricted($employee->getId());
+        $employee = $this->employee($security);
+        $recoveryReplacement = $sessionState->isRecoveryRestricted($employee->getId());
         $authorizedReplacement = $recoveryReplacement
-            || $this->sessionState->isEnrollmentReplacementAuthorized($employee->getId());
+            || $sessionState->isEnrollmentReplacementAuthorized($employee->getId());
 
         if (!$authorizedReplacement
-            && $this->policy->requiresEnrollmentApproval($employee)
-            && $this->repository->hasActiveSuperAdminFactor(defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1)
-            && 'approved' !== $this->repository->enrollmentApprovalStatus($employee->getId())
+            && $policy->requiresEnrollmentApproval($employee)
+            && $repository->hasActiveSuperAdminFactor(defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1)
+            && 'approved' !== $repository->enrollmentApprovalStatus($employee->getId())
         ) {
-            $this->repository->requestEnrollmentApproval($employee->getId());
+            $repository->requestEnrollmentApproval($employee->getId());
 
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/approval_pending.html.twig', [
                 'layoutTitle' => 'Enrollment approval required',
             ]);
         }
 
-        if ($this->mfa->active($employee->getId()) && !$recoveryReplacement) {
+        if ($mfa->active($employee->getId()) && !$recoveryReplacement) {
             $this->addFlash('info', 'Your authenticator is already active.');
 
             return $this->redirectToRoute('mpadmin2fa_authenticator');
@@ -111,23 +136,26 @@ final class MfaController extends PrestaShopAdminController
 
         try {
             try {
-                $secret = $this->mfa->pendingSecret($employee->getId());
+                $secret = $mfa->pendingSecret($employee->getId());
             } catch (MfaSecurityException) {
-                $secret = $this->mfa->beginEnrollment($employee->getId());
+                $secret = $mfa->beginEnrollment($employee->getId());
             }
 
-            if ($request->isMethod('POST')) {
-                if (!$this->isCsrfTokenValid('mp2fa_enroll', (string) $request->request->get('mp2fa_csrf_token'))) {
-                    throw $this->createAccessDeniedException('Invalid CSRF token.');
-                }
-                $codes = $this->mfa->confirmEnrollment(
+            $form = $this->createForm(OneTimeCodeType::class, null, [
+                'code_label' => 'Six-digit code',
+                'csrf_token_id' => 'mp2fa_enroll',
+                'submit_label' => 'Confirm and activate',
+            ]);
+            $form->handleRequest($request);
+            if ($form->isSubmitted() && $form->isValid()) {
+                $codes = $mfa->confirmEnrollment(
                     $employee->getId(),
-                    (string) $request->request->get('code'),
+                    (string) $form->getData()['code'],
                     $request->getClientIp()
                 );
                 $request->getSession()->set('mp2fa_recovery_plaintext', $codes);
-                $this->sessionState->markVerified($employee->getId());
-                $this->sessionState->clearEnrollmentReplacementAuthorization();
+                $sessionState->markVerified($employee->getId());
+                $sessionState->clearEnrollmentReplacementAuthorization();
 
                 return $this->redirectToRoute('mpadmin2fa_recovery_codes');
             }
@@ -137,241 +165,284 @@ final class MfaController extends PrestaShopAdminController
             return $this->redirectToRoute('mpadmin2fa_enroll');
         }
 
-        $uri = $this->totp->provisioningUri('PrestaShop Admin', $employee->getEmail(), $secret);
+        $uri = $totp->provisioningUri('PrestaShop Admin', $employee->getEmail(), $secret);
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enroll.html.twig', [
+            'confirmation_form' => $form->createView(),
             'layoutTitle' => 'Set up two-factor authentication',
+            'qr_data_uri' => $totp->qrDataUri($uri),
             'secret' => $secret,
-            'qr_data_uri' => $this->totp->qrDataUri($uri),
         ]);
     }
 
-    public function recoveryCodes(Request $request): Response
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function recoveryCodes(Request $request, RouterInterface $router): Response
     {
-        $employee = $this->employee();
         $codes = $request->getSession()->get('mp2fa_recovery_plaintext');
         if (!is_array($codes)) {
             return $this->redirectToRoute('mpadmin2fa_authenticator');
         }
 
-        if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('mp2fa_recovery_ack', (string) $request->request->get('mp2fa_csrf_token'))) {
-                throw $this->createAccessDeniedException('Invalid CSRF token.');
-            }
-            if ('1' !== $request->request->get('saved')) {
-                $this->addFlash('error', 'Confirm that the recovery codes were saved before continuing.');
-
-                return $this->redirectToRoute('mpadmin2fa_recovery_codes');
-            }
+        $form = $this->createForm(RecoveryCodeAcknowledgementType::class);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
             $request->getSession()->remove('mp2fa_recovery_plaintext');
 
-            return new RedirectResponse($this->dashboardUrl());
+            return new RedirectResponse($this->dashboardUrl($router));
         }
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/recovery_codes.html.twig', [
+            'acknowledgement_form' => $form->createView(),
             'layoutTitle' => 'Save your recovery codes',
             'recovery_codes' => $codes,
         ]);
     }
 
-    public function replace(Request $request): Response
-    {
-        $employee = $this->employee();
-        $this->requirePostAndCsrf($request, 'mp2fa_replace');
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function replace(
+        Request $request,
+        Security $security,
+        FactorConfirmationService $confirmation,
+        MfaManager $mfa,
+        SessionState $sessionState,
+    ): Response {
+        $employee = $this->employee($security);
+        $form = $this->createForm(ReplaceFactorType::class, null, [
+            'password_required' => $confirmation->passwordRequired($employee),
+        ]);
+        $form->handleRequest($request);
 
-        if (!$this->passwordStepSatisfied($employee, $request)
-            || !$this->mfa->verifyTotp($employee->getId(), (string) $request->request->get('code'), $request->getClientIp(), 'factor_change')
-        ) {
-            $this->addFlash('error', 'The password or authentication code was invalid.');
+        try {
+            if (!$form->isSubmitted() || !$form->isValid()
+                || !$confirmation->verify($employee, $form->getData(), $request->getClientIp())
+            ) {
+                return $this->renderAuthenticator($employee, $confirmation, ['replace_form' => $form]);
+            }
 
-            return $this->redirectToRoute('mpadmin2fa_authenticator');
+            $sessionState->authorizeEnrollmentReplacement();
+            $mfa->beginEnrollment($employee->getId());
+            $sessionState->markVerified($employee->getId());
+
+            return $this->redirectToRoute('mpadmin2fa_enroll');
+        } catch (MfaSecurityException|RuntimeException $exception) {
+            $this->addFlash('error', $exception->getMessage());
+
+            return $this->renderAuthenticator($employee, $confirmation, ['replace_form' => $form]);
         }
-
-        $this->sessionState->authorizeEnrollmentReplacement();
-        $this->mfa->beginEnrollment($employee->getId());
-        $this->sessionState->markVerified($employee->getId());
-
-        return $this->redirectToRoute('mpadmin2fa_enroll');
     }
 
-    public function disable(Request $request): Response
-    {
-        $employee = $this->employee();
-        $this->requirePostAndCsrf($request, 'mp2fa_disable');
-        if ($this->policy->requiresLoginMfa($employee)) {
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function disable(
+        Request $request,
+        Security $security,
+        FactorConfirmationService $confirmation,
+        Policy $policy,
+        MfaManager $mfa,
+        SessionState $sessionState,
+    ): Response {
+        $employee = $this->employee($security);
+        if ($policy->requiresLoginMfa($employee)) {
             $this->addFlash('error', 'Policy requires two-factor authentication for your account.');
 
             return $this->redirectToRoute('mpadmin2fa_authenticator');
         }
 
-        if (!$this->passwordStepSatisfied($employee, $request)
-            || !$this->mfa->verifyTotp($employee->getId(), (string) $request->request->get('code'), $request->getClientIp(), 'factor_change')
-        ) {
-            $this->addFlash('error', 'The password or authentication code was invalid.');
-
-            return $this->redirectToRoute('mpadmin2fa_authenticator');
-        }
-
-        $this->mfa->reset($employee->getId(), $employee->getId(), $request->getClientIp(), 'self-disable');
-        $this->sessionState->clear();
-
-        return $this->redirectToRoute('admin_logout');
-    }
-
-    public function regenerateRecoveryCodes(Request $request): Response
-    {
-        $employee = $this->employee();
-        $this->requirePostAndCsrf($request, 'mp2fa_recovery_regenerate');
+        $form = $this->createForm(DisableFactorType::class, null, [
+            'password_required' => $confirmation->passwordRequired($employee),
+        ]);
+        $form->handleRequest($request);
 
         try {
-            if (!$this->passwordStepSatisfied($employee, $request)
-                || !$this->mfa->verifyTotp(
-                    $employee->getId(),
-                    (string) $request->request->get('code'),
-                    $request->getClientIp(),
-                    'factor_change'
-                )
+            if (!$form->isSubmitted() || !$form->isValid()
+                || !$confirmation->verify($employee, $form->getData(), $request->getClientIp())
             ) {
-                $this->addFlash('error', 'The password or authentication code was invalid.');
-
-                return $this->redirectToRoute('mpadmin2fa_authenticator');
+                return $this->renderAuthenticator($employee, $confirmation, ['disable_form' => $form]);
             }
-            $codes = $this->mfa->regenerateRecoveryCodes($employee->getId(), $request->getClientIp());
-        } catch (RuntimeException $exception) {
+
+            $mfa->reset($employee->getId(), $employee->getId(), $request->getClientIp(), 'self-disable');
+            $sessionState->clear();
+
+            return $this->redirectToRoute('admin_logout');
+        } catch (MfaSecurityException|RuntimeException $exception) {
             $this->addFlash('error', $exception->getMessage());
 
-            return $this->redirectToRoute('mpadmin2fa_authenticator');
+            return $this->renderAuthenticator($employee, $confirmation, ['disable_form' => $form]);
         }
-
-        $request->getSession()->set('mp2fa_recovery_plaintext', $codes);
-        $this->sessionState->markVerified($employee->getId());
-
-        return $this->redirectToRoute('mpadmin2fa_recovery_codes');
     }
 
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    public function settings(): Response
-    {
-        foreach ([
-            'AdminMpAdmin2faAuthenticator' => 'mpadmin2fa_authenticator',
-            'AdminMpAdmin2faEnrollment' => 'mpadmin2fa_enrollment_employees',
-            'AdminMpAdmin2faSecurity' => 'mpadmin2fa_security_policy',
-        ] as $legacyController => $routeName) {
-            if ($this->isGranted('read', $legacyController)) {
-                return $this->redirectToRoute($routeName);
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function regenerateRecoveryCodes(
+        Request $request,
+        Security $security,
+        FactorConfirmationService $confirmation,
+        MfaManager $mfa,
+        SessionState $sessionState,
+    ): Response {
+        $employee = $this->employee($security);
+        $form = $this->createForm(RegenerateRecoveryCodesType::class, null, [
+            'password_required' => $confirmation->passwordRequired($employee),
+        ]);
+        $form->handleRequest($request);
+
+        try {
+            if (!$form->isSubmitted() || !$form->isValid()
+                || !$confirmation->verify($employee, $form->getData(), $request->getClientIp())
+            ) {
+                return $this->renderAuthenticator($employee, $confirmation, ['recovery_form' => $form]);
             }
+
+            $codes = $mfa->regenerateRecoveryCodes($employee->getId(), $request->getClientIp());
+            $request->getSession()->set('mp2fa_recovery_plaintext', $codes);
+            $sessionState->markVerified($employee->getId());
+
+            return $this->redirectToRoute('mpadmin2fa_recovery_codes');
+        } catch (MfaSecurityException|RuntimeException $exception) {
+            $this->addFlash('error', $exception->getMessage());
+
+            return $this->renderAuthenticator($employee, $confirmation, ['recovery_form' => $form]);
+        }
+    }
+
+    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    public function settings(Security $security, MfaManager $mfa): Response
+    {
+        $employee = $this->employee($security);
+
+        return $this->render('@Modules/mpadmin2fa/views/templates/admin/settings.html.twig', [
+            'layoutTitle' => 'Admin 2FA',
+            'authenticator_active' => $mfa->active($employee->getId()),
+            'can_open_authenticator' => $this->isGranted('read', 'AdminMpAdmin2faAuthenticator'),
+            'can_open_enrollment' => $this->isGranted('read', 'AdminMpAdmin2faEnrollment'),
+            'can_open_security' => $this->isGranted('read', 'AdminMpAdmin2faSecurity'),
+        ]);
+    }
+
+    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    public function authenticator(
+        Security $security,
+        FactorConfirmationService $confirmation,
+        MfaManager $mfa,
+    ): Response {
+        $employee = $this->employee($security);
+        if (!$mfa->active($employee->getId())) {
+            return $this->render('@Modules/mpadmin2fa/views/templates/admin/authenticator.html.twig', [
+                'active' => false,
+                'layoutTitle' => 'Your authenticator',
+            ]);
         }
 
-        throw $this->createAccessDeniedException('No Admin 2FA section is available for your profile.');
+        return $this->renderAuthenticator($employee, $confirmation);
     }
 
     #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    public function authenticator(): Response
-    {
-        $employee = $this->employee();
-
-        return $this->render('@Modules/mpadmin2fa/views/templates/admin/authenticator.html.twig', [
-            'layoutTitle' => 'Your authenticator',
-            'active' => $this->mfa->active($employee->getId()),
-            'password_required' => !$this->nativePasswordAuthenticationFresh($employee),
-        ]);
-    }
-
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    public function enrollmentEmployees(): Response
-    {
-        $employee = $this->employee();
-
+    public function enrollmentEmployees(
+        EmployeeFactorFilters $filters,
+        #[Autowire(service: 'mpadmin2fa.grid.factory.employee_factor')]
+        GridFactoryInterface $gridFactory,
+    ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/employees.html.twig', [
+            'employeeFactorGrid' => $this->presentGrid($gridFactory->getGrid($filters)),
             'layoutTitle' => 'Enrollment',
-            'employees' => $this->repository->employeeStatuses(
-                $employee->getDefaultLanguage()?->getId() ?? (int) $this->configuration->get('PS_LANG_DEFAULT')
-            ),
-            'can_reset' => $this->isGranted('delete', 'AdminMpAdmin2faEnrollment'),
         ]);
     }
 
     #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    public function enrollmentApprovals(): Response
-    {
+    public function enrollmentApprovals(
+        PendingApprovalFilters $filters,
+        #[Autowire(service: 'mpadmin2fa.grid.factory.pending_approval')]
+        GridFactoryInterface $gridFactory,
+    ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/approvals.html.twig', [
             'layoutTitle' => 'Enrollment',
-            'pending_approvals' => $this->repository->pendingApprovals(),
-            'can_approve' => $this->isGranted('update', 'AdminMpAdmin2faEnrollment'),
+            'pendingApprovalGrid' => $this->presentGrid($gridFactory->getGrid($filters)),
         ]);
     }
 
     #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    public function securityPolicy(): Response
-    {
+    public function securityPolicy(
+        #[Autowire(service: 'mpadmin2fa.security_policy.form_handler')]
+        FormHandlerInterface $formHandler,
+    ): Response {
+        $form = $formHandler->getForm();
+
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
             'layoutTitle' => 'Security',
-            'mode' => (string) ($this->configuration->get(Policy::CONFIG_MODE) ?: 'superadmins'),
-            'profiles' => (string) $this->configuration->get(Policy::CONFIG_PROFILES),
-            'step_up_seconds' => $this->policy->stepUpSeconds(),
-            'password_max_age' => $this->policy->passwordMaximumAge(),
-            'audit_days' => $this->policy->auditDays(),
-            'approval_profiles' => (string) $this->configuration->get(Policy::CONFIG_APPROVAL_PROFILES),
-            'security_recipients' => (string) $this->configuration->get(Policy::CONFIG_SECURITY_RECIPIENTS),
+            'policy_form' => $form->createView(),
             'can_update' => $this->isGranted('update', 'AdminMpAdmin2faSecurity'),
         ]);
     }
 
     #[AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
     #[DemoRestricted(redirectRoute: 'mpadmin2fa_security_policy')]
-    public function updateSecurityPolicy(Request $request): Response
-    {
-        $employee = $this->employee();
-        $this->assertFreshVerification($employee);
-        $this->requirePostAndCsrf($request, 'mp2fa_policy');
-
-        $mode = (string) $request->request->get('mode');
-        if (!in_array($mode, ['superadmins', 'profiles', 'all'], true)) {
-            throw $this->createAccessDeniedException('Invalid enforcement mode.');
+    public function updateSecurityPolicy(
+        Request $request,
+        Security $security,
+        SecurityRepository $repository,
+        Policy $policy,
+        SessionState $sessionState,
+        #[Autowire(service: 'mpadmin2fa.security_policy.form_handler')]
+        FormHandlerInterface $formHandler,
+    ): Response {
+        $employee = $this->employee($security);
+        $this->assertFreshVerification($employee, $sessionState, $policy);
+        $form = $formHandler->getForm();
+        $form->handleRequest($request);
+        if (!$form->isSubmitted() || !$form->isValid()) {
+            return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
+                'layoutTitle' => 'Security',
+                'policy_form' => $form->createView(),
+                'can_update' => true,
+            ]);
         }
 
-        $profiles = implode(',', array_unique(array_filter(array_map(
-            'intval',
-            preg_split('/[^0-9]+/', (string) $request->request->get('profiles')) ?: []
-        ))));
-        $this->configuration->set(Policy::CONFIG_MODE, $mode);
-        $this->configuration->set(Policy::CONFIG_PROFILES, $profiles);
-        $this->configuration->set(Policy::CONFIG_STEP_UP_SECONDS, max(60, (int) $request->request->get('step_up_seconds')));
-        $this->configuration->set(Policy::CONFIG_PASSWORD_MAX_AGE, max(60, (int) $request->request->get('password_max_age')));
-        $this->configuration->set(Policy::CONFIG_AUDIT_DAYS, max(1, (int) $request->request->get('audit_days')));
-        $this->configuration->set(Policy::CONFIG_APPROVAL_PROFILES, implode(',', array_unique(array_filter(array_map(
-            'intval',
-            preg_split('/[^0-9]+/', (string) $request->request->get('approval_profiles')) ?: []
-        )))));
-        $this->configuration->set(Policy::CONFIG_SECURITY_RECIPIENTS, trim((string) $request->request->get('security_recipients')));
-        $this->repository->audit($employee->getId(), 'policy.updated', $request->getClientIp());
+        $errors = $formHandler->save($form->getData());
+        if (!empty($errors)) {
+            $this->addFlashErrors($errors);
+
+            return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
+                'layoutTitle' => 'Security',
+                'policy_form' => $form->createView(),
+                'can_update' => true,
+            ]);
+        }
+
+        $repository->audit($employee->getId(), 'policy.updated', $request->getClientIp());
         $this->addFlash('success', 'Two-factor authentication policy updated.');
 
         return $this->redirectToRoute('mpadmin2fa_security_policy');
     }
 
     #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    public function securityActivity(): Response
-    {
+    public function securityActivity(
+        AuditEventFilters $filters,
+        #[Autowire(service: 'mpadmin2fa.grid.factory.audit_event')]
+        GridFactoryInterface $gridFactory,
+    ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/activity.html.twig', [
+            'auditEventGrid' => $this->presentGrid($gridFactory->getGrid($filters)),
             'layoutTitle' => 'Security',
-            'audit_events' => $this->repository->auditEvents(),
         ]);
     }
 
     #[AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
     #[DemoRestricted(redirectRoute: 'mpadmin2fa_enrollment_approvals')]
-    public function approveEnrollment(Request $request, int $employeeId): Response
-    {
-        $actor = $this->employee();
-        $this->assertFreshVerification($actor);
+    public function approveEnrollment(
+        Request $request,
+        int $employeeId,
+        Security $security,
+        SecurityRepository $repository,
+        SessionState $sessionState,
+        Policy $policy,
+    ): Response {
+        $actor = $this->employee($security);
+        $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_approve_' . $employeeId);
         if ($actor->getId() === $employeeId) {
             throw $this->createAccessDeniedException('An employee cannot approve their own enrollment.');
         }
 
-        $this->repository->approveEnrollment($employeeId, $actor->getId());
-        $this->repository->audit($actor->getId(), 'enrollment.approved', $request->getClientIp(), [
+        $repository->approveEnrollment($employeeId, $actor->getId());
+        $repository->audit($actor->getId(), 'enrollment.approved', $request->getClientIp(), [
             'target_employee_id' => $employeeId,
         ]);
         $this->addFlash('success', 'Enrollment approved.');
@@ -381,51 +452,66 @@ final class MfaController extends PrestaShopAdminController
 
     #[AdminSecurity("is_granted('delete', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
     #[DemoRestricted(redirectRoute: 'mpadmin2fa_enrollment_employees')]
-    public function adminReset(Request $request, int $employeeId): Response
-    {
-        $actor = $this->employee();
-        $this->assertFreshVerification($actor);
+    public function adminReset(
+        Request $request,
+        int $employeeId,
+        Security $security,
+        MfaManager $mfa,
+        SessionState $sessionState,
+        Policy $policy,
+    ): Response {
+        $actor = $this->employee($security);
+        $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_admin_reset_' . $employeeId);
         if ($actor->getId() === $employeeId) {
             throw $this->createAccessDeniedException('An employee cannot use the administrative reset on their own factor.');
         }
 
-        $this->mfa->reset($employeeId, $actor->getId(), $request->getClientIp(), 'superadmin-reset');
+        $mfa->reset($employeeId, $actor->getId(), $request->getClientIp(), 'superadmin-reset');
         $this->addFlash('success', 'The employee factor was reset.');
 
         return $this->redirectToRoute('mpadmin2fa_enrollment_employees');
     }
 
-    private function passwordStepSatisfied(Employee $employee, Request $request): bool
-    {
-        if ($this->nativePasswordAuthenticationFresh($employee)) {
-            return true;
-        }
+    private function renderAuthenticator(
+        Employee $employee,
+        FactorConfirmationService $confirmation,
+        array $forms = [],
+    ): Response {
+        $passwordRequired = $confirmation->passwordRequired($employee);
+        $replaceForm = $forms['replace_form'] ?? $this->createForm(ReplaceFactorType::class, null, [
+            'password_required' => $passwordRequired,
+        ]);
+        $recoveryForm = $forms['recovery_form'] ?? $this->createForm(RegenerateRecoveryCodesType::class, null, [
+            'password_required' => $passwordRequired,
+        ]);
+        $disableForm = $forms['disable_form'] ?? $this->createForm(DisableFactorType::class, null, [
+            'password_required' => $passwordRequired,
+        ]);
 
-        return $this->passwordHasher->isPasswordValid($employee, (string) $request->request->get('password'));
+        return $this->render('@Modules/mpadmin2fa/views/templates/admin/authenticator.html.twig', [
+            'active' => true,
+            'disable_form' => $disableForm->createView(),
+            'layoutTitle' => 'Your authenticator',
+            'recovery_form' => $recoveryForm->createView(),
+            'replace_form' => $replaceForm->createView(),
+        ]);
     }
 
-    private function nativePasswordAuthenticationFresh(Employee $employee): bool
-    {
-        $authenticatedAt = $this->sessionState->authenticatedAt($employee->getId());
-
-        return is_int($authenticatedAt) && $authenticatedAt >= time() - $this->policy->passwordMaximumAge();
-    }
-
-    private function dashboardUrl(): string
+    private function dashboardUrl(RouterInterface $router): string
     {
         foreach (['admin_dashboard_index', 'admin_dashboard'] as $routeName) {
-            if (null !== $this->router->getRouteCollection()->get($routeName)) {
-                return $this->router->generate($routeName);
+            if (null !== $router->getRouteCollection()->get($routeName)) {
+                return $router->generate($routeName);
             }
         }
 
         throw new RuntimeException('No supported PrestaShop dashboard route is available.');
     }
 
-    private function employee(): Employee
+    private function employee(Security $security): Employee
     {
-        $employee = $this->security->getUser();
+        $employee = $security->getUser();
         if (!$employee instanceof Employee) {
             throw $this->createAccessDeniedException();
         }
@@ -443,15 +529,21 @@ final class MfaController extends PrestaShopAdminController
     private function requirePostAndCsrf(Request $request, string $tokenId): void
     {
         if (!$request->isMethod('POST')
-            || !$this->isCsrfTokenValid($tokenId, (string) $request->request->get('mp2fa_csrf_token'))
+            || !$this->isCsrfTokenValid(
+                $tokenId,
+                (string) ($request->request->get('mp2fa_csrf_token') ?: $request->query->get('token'))
+            )
         ) {
             throw $this->createAccessDeniedException('Invalid request.');
         }
     }
 
-    private function assertFreshVerification(Employee $employee): void
-    {
-        if (!$this->sessionState->hasFreshVerification($employee->getId(), $this->policy->stepUpSeconds())) {
+    private function assertFreshVerification(
+        Employee $employee,
+        SessionState $sessionState,
+        Policy $policy,
+    ): void {
+        if (!$sessionState->hasFreshVerification($employee->getId(), $policy->stepUpSeconds())) {
             throw $this->createAccessDeniedException('A fresh two-factor authentication verification is required.');
         }
     }

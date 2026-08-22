@@ -1,20 +1,5 @@
 {% extends '@Modules/mpadmin2fa/views/templates/admin/enrollment/layout.html.twig' %}
 
 {% block enrollment_content %}
-<div class="table-responsive"><table class="table mb-0">
-  <thead><tr><th>Employee</th><th>Profile</th><th>Status</th>{% if can_reset %}<th>Action</th>{% endif %}</tr></thead>
-  <tbody>{% for item in employees %}<tr>
-    <td>{{ item.id_employee }} - {{ item.firstname }} {{ item.lastname }}<br><small>{{ item.email }}</small></td>
-    <td>{{ item.profile_name|default('Unknown profile') }}</td>
-    <td>{{ item.status|default('not enrolled') }}</td>
-    {% if can_reset %}<td>{% if item.status and item.id_employee != app.user.id %}
-      <form method="post" action="{{ path('mpadmin2fa_admin_reset', {employeeId: item.id_employee}) }}">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_admin_reset_' ~ item.id_employee) }}">
-        <button class="btn btn-sm btn-outline-danger">Reset factor</button>
-      </form>
-    {% endif %}</td>{% endif %}
-  </tr>{% else %}
-    <tr><td colspan="{{ can_reset ? 4 : 3 }}">No employees were found.</td></tr>
-  {% endfor %}</tbody>
-</table></div>
+  {{ include('@PrestaShop/Admin/Common/Grid/grid_panel.html.twig', {grid: employeeFactorGrid}) }}
 {% endblock %}
