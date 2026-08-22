@@ -33,6 +33,10 @@ final class EmployeeFactorQueryBuilder extends AbstractDoctrineQueryBuilder
                 'e.email',
                 'COALESCE(pl.name, "Unknown profile") AS profile_name',
                 'COALESCE(f.status, "not_enrolled") AS status',
+                'CASE COALESCE(f.status, "not_enrolled")'
+                    . ' WHEN "active" THEN "Active"'
+                    . ' WHEN "pending" THEN "Pending"'
+                    . ' ELSE "Not enrolled" END AS status_label',
                 'f.confirmed_at',
                 'CASE WHEN f.id_employee IS NULL THEN 0 ELSE 1 END AS has_factor',
                 'CASE WHEN e.id_employee = :current_employee_id THEN 1 ELSE 0 END AS is_current_employee'

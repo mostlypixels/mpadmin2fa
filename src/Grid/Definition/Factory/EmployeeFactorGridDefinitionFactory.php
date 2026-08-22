@@ -57,7 +57,7 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
                 ->setOptions(['field' => 'profile_name']))
             ->add((new DataColumn('status'))
                 ->setName($this->trans('Status', [], 'Admin.Global'))
-                ->setOptions(['field' => 'status']))
+                ->setOptions(['field' => 'status_label']))
             ->add((new DateTimeColumn('confirmed_at'))
                 ->setName($this->trans('Confirmed', [], 'Modules.Mpadmin2fa.Admin'))
                 ->setOptions(['field' => 'confirmed_at', 'format' => 'Y-m-d H:i:s']))

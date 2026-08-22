@@ -8,9 +8,38 @@
   {% endif %}
 
   {{ form_start(policy_form, {action: path('mpadmin2fa_security_policy_update')}) }}
-    <div class="form-wrapper">
-      {{ form_errors(policy_form) }}
-      {{ form_widget(policy_form) }}
+    {{ form_errors(policy_form) }}
+
+    <div class="card mb-3">
+      <h3 class="card-header">Profile enforcement</h3>
+      <div class="card-body">
+        <div class="form-wrapper">
+          {{ form_row(policy_form.mode) }}
+          {{ form_row(policy_form.profiles) }}
+          {{ form_row(policy_form.approval_profiles) }}
+        </div>
+      </div>
     </div>
-  {{ form_end(policy_form) }}
+
+    <div class="card">
+      <h3 class="card-header">Operational settings</h3>
+      <div class="card-body">
+        <div class="form-wrapper">
+          {{ form_row(policy_form.step_up_seconds) }}
+          {{ form_row(policy_form.password_max_age) }}
+          {{ form_row(policy_form.audit_days) }}
+          {{ form_row(policy_form.security_recipients) }}
+        </div>
+      </div>
+      {% if policy_form.save is defined %}
+        <div class="card-footer">
+          <div class="d-flex justify-content-end">
+            {{ form_widget(policy_form.save) }}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    {{ form_rest(policy_form) }}
+  {{ form_end(policy_form, {render_rest: false}) }}
 {% endblock %}
