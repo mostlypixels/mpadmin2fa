@@ -304,7 +304,7 @@ final class MfaController extends PrestaShopAdminController
     }
 
     #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    public function settings(Security $security, MfaManager $mfa): Response
+    public function settings(Request $request, Security $security, MfaManager $mfa): Response
     {
         $employee = $this->employee($security);
 
@@ -314,6 +314,8 @@ final class MfaController extends PrestaShopAdminController
             'can_open_authenticator' => $this->isGranted('read', 'AdminMpAdmin2faAuthenticator'),
             'can_open_enrollment' => $this->isGranted('read', 'AdminMpAdmin2faEnrollment'),
             'can_open_security' => $this->isGranted('read', 'AdminMpAdmin2faSecurity'),
+            'https_active' => $request->isSecure(),
+            'https_configured' => 1 === (int) $this->getConfiguration()->get('PS_SSL_ENABLED'),
         ]);
     }
 

@@ -29,6 +29,12 @@ final class GridDefinitionFactoryTest extends TestCase
 
         self::assertSame(EmployeeFactorGridDefinitionFactory::GRID_ID, $definition->getId());
         self::assertCount(7, $definition->getColumns());
+
+        $statusColumn = array_values(array_filter(
+            $definition->getColumns()->toArray(),
+            static fn (array $column): bool => 'status' === $column['id']
+        ))[0];
+        self::assertSame('status_label', $statusColumn['options']['field']);
     }
 
     public function testPendingApprovalDefinitionCanBeBuilt(): void

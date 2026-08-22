@@ -16,6 +16,12 @@ final class SecurityPolicyTypeTest extends TypeTestCase
     public function testValidPolicyIsAccepted(): void
     {
         $form = $this->createPolicyForm();
+
+        self::assertSame(
+            'Profiles requiring enrollment',
+            $form->get('profiles')->getConfig()->getOption('label')
+        );
+
         $form->submit($this->validPolicy());
 
         self::assertTrue($form->isSubmitted());

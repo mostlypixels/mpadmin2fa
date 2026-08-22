@@ -21,29 +21,35 @@
       </p>
 
       {% if active %}
-        <section class="mb-4">
-          <h4>Set up a new authenticator</h4>
-          <p>Use this to move to a new phone or authenticator app. Confirm your identity, then connect the new authenticator.</p>
-          {{ form_start(replace_form, {action: path('mpadmin2fa_replace')}) }}
-            <div class="form-wrapper">{{ form_widget(replace_form) }}</div>
-          {{ form_end(replace_form) }}
-        </section>
+        <div class="card mb-3">
+          <h3 class="card-header">Set up a new authenticator</h3>
+          <div class="card-body">
+            <p>Use this to move to a new phone or authenticator app. Confirm your identity, then connect the new authenticator.</p>
+            {{ form_start(replace_form, {action: path('mpadmin2fa_replace')}) }}
+              <div class="form-wrapper">{{ form_widget(replace_form) }}</div>
+            {{ form_end(replace_form) }}
+          </div>
+        </div>
 
-        <section class="mb-4">
-          <h4>Create new recovery codes</h4>
-          <p>Creating new recovery codes immediately invalidates all existing recovery codes.</p>
-          {{ form_start(recovery_form, {action: path('mpadmin2fa_recovery_regenerate')}) }}
-            <div class="form-wrapper">{{ form_widget(recovery_form) }}</div>
-          {{ form_end(recovery_form) }}
-        </section>
+        <div class="card mb-3">
+          <h3 class="card-header">Create new recovery codes</h3>
+          <div class="card-body">
+            <p>Creating new recovery codes immediately invalidates all existing recovery codes.</p>
+            {{ form_start(recovery_form, {action: path('mpadmin2fa_recovery_regenerate')}) }}
+              <div class="form-wrapper">{{ form_widget(recovery_form) }}</div>
+            {{ form_end(recovery_form) }}
+          </div>
+        </div>
 
-        <section>
-          <h4>Turn off two-factor authentication</h4>
-          <p>This removes the extra sign-in protection and signs you out. You cannot turn it off when policy requires it.</p>
-          {{ form_start(disable_form, {action: path('mpadmin2fa_disable')}) }}
-            <div class="form-wrapper">{{ form_widget(disable_form) }}</div>
-          {{ form_end(disable_form) }}
-        </section>
+        <div class="card mb-3">
+          <h3 class="card-header">Turn off two-factor authentication</h3>
+          <div class="card-body">
+            <p>This removes the extra sign-in protection and signs you out. You cannot turn it off when policy requires it.</p>
+            {{ form_start(disable_form, {action: path('mpadmin2fa_disable')}) }}
+              <div class="form-wrapper">{{ form_widget(disable_form) }}</div>
+            {{ form_end(disable_form) }}
+          </div>
+        </div>
       {% else %}
         <a class="btn btn-primary" href="{{ path('mpadmin2fa_enroll') }}">Set up authenticator</a>
       {% endif %}

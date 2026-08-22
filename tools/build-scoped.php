@@ -17,7 +17,25 @@ if (dirname($buildRoot) !== $moduleRoot || 'build' !== basename($buildRoot)) {
 
 removeTree($buildRoot);
 mkdir($stageRoot, 0775, true);
-copyTree($moduleRoot, $stageRoot, ['.git', 'build', 'tests', 'tools', 'vendor', '.phpunit.cache', 'php-scoper.inc.php', 'phpunit.xml.dist', 'NUL']);
+copyTree($moduleRoot, $stageRoot, [
+    '.git',
+    '.github',
+    '.gitignore',
+    '.phpunit.cache',
+    'build',
+    'dist',
+    'docs',
+    'documentation',
+    'HANDOFF.md',
+    'IMPLEMENTATION.md',
+    'NUL',
+    'php-scoper.inc.php',
+    'phpunit.xml.dist',
+    'spec.md',
+    'tests',
+    'tools',
+    'vendor',
+]);
 
 run('composer install --no-dev --prefer-dist --no-interaction --no-progress', $stageRoot);
 

@@ -6,22 +6,26 @@
     <h3 class="card-header">Admin 2FA</h3>
     <div class="card-body">
       <p class="lead">Protect back-office accounts with an authenticator app, recovery codes, and fresh verification before sensitive operations.</p>
-      <p>
-        Your authenticator status:
-        <span class="badge {{ authenticator_active ? 'badge-success' : 'badge-secondary' }}">
-          {{ authenticator_active ? 'Active' : 'Not set up' }}
-        </span>
-      </p>
+      <div class="alert {{ authenticator_active ? 'alert-success' : 'alert-danger' }}" role="alert">
+        Your authenticator status: <strong>{{ authenticator_active ? 'Active' : 'Not set up' }}</strong>
+      </div>
 
-      <h4 class="mt-4">Get started</h4>
+      <h4 class="mt-4">{{ authenticator_active ? 'Manage and strengthen 2FA' : 'Get started' }}</h4>
       <div class="row">
         <div class="col-lg-4 mb-3">
-          <div class="card h-100">
+          <div class="card d-flex flex-column h-100">
             <div class="card-body">
-              <h4>1. Protect your account</h4>
-              <p>Connect an authenticator app, verify the first code, and save the recovery codes when they are shown.</p>
+              {% if authenticator_active %}
+                <h4>1. Your account is protected</h4>
+                <p>Your authenticator is connected. Open it to manage your authenticator and recovery codes.</p>
+              {% else %}
+                <h4>1. Protect your account</h4>
+                <p>Connect an authenticator app, verify the first code, and save the recovery codes when they are shown.</p>
+              {% endif %}
+            </div>
+            <div class="card-footer d-flex justify-content-end mt-auto">
               {% if can_open_authenticator %}
-                <a class="btn btn-primary" href="{{ path('mpadmin2fa_authenticator') }}">Open your authenticator</a>
+                <a class="btn btn-primary" href="{{ path('mpadmin2fa_authenticator') }}">{{ authenticator_active ? 'Manage your authenticator' : 'Set up your authenticator' }}</a>
               {% else %}
                 <span class="text-muted">This section is not available to your profile.</span>
               {% endif %}
@@ -29,10 +33,12 @@
           </div>
         </div>
         <div class="col-lg-4 mb-3">
-          <div class="card h-100">
+          <div class="card d-flex flex-column h-100">
             <div class="card-body">
               <h4>2. Prepare the rollout</h4>
               <p>Review employee enrollment, approve requests when required, and make sure another trusted administrator can recover access.</p>
+            </div>
+            <div class="card-footer d-flex justify-content-end mt-auto">
               {% if can_open_enrollment %}
                 <a class="btn btn-outline-primary" href="{{ path('mpadmin2fa_enrollment_employees') }}">Review enrollment</a>
               {% else %}
@@ -42,10 +48,12 @@
           </div>
         </div>
         <div class="col-lg-4 mb-3">
-          <div class="card h-100">
+          <div class="card d-flex flex-column h-100">
             <div class="card-body">
               <h4>3. Choose a policy</h4>
               <p>Decide who must use 2FA, configure fresh-verification timing, and review the security activity log.</p>
+            </div>
+            <div class="card-footer d-flex justify-content-end mt-auto">
               {% if can_open_security %}
                 <a class="btn btn-outline-primary" href="{{ path('mpadmin2fa_security_policy') }}">Configure security</a>
               {% else %}
@@ -56,13 +64,24 @@
         </div>
       </div>
 
+      {% if not https_configured or not https_active %}
+        <div class="alert alert-danger mt-3" role="alert">
+          <h4 class="alert-heading">HTTPS needs attention</h4>
+          {% if not https_configured %}
+            <p class="mb-0">HTTPS is not enabled in PrestaShop settings. Enable SSL under Shop Parameters &gt; General before enforcing 2FA.</p>
+          {% else %}
+            <p class="mb-0">HTTPS is enabled in PrestaShop settings, but this back-office request is not secure. Check your web server or trusted proxy configuration before enforcing 2FA.</p>
+          {% endif %}
+        </div>
+      {% endif %}
+
       <div class="alert alert-warning mt-3">
         <h4 class="alert-heading">Before enforcing 2FA</h4>
         <ul class="mb-0">
           <li>Enroll at least two trusted super administrators so one person can recover the other.</li>
           <li>Store recovery codes somewhere secure outside PrestaShop. They are shown only once.</li>
           <li>Test a complete sign-in in a private browser window before rolling the policy out.</li>
-          <li>Confirm the back-office uses HTTPS and the server clock is synchronized.</li>
+          <li>Keep the server clock synchronized; authenticator codes depend on accurate time.</li>
         </ul>
       </div>
 

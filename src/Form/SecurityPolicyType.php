@@ -47,7 +47,7 @@ final class SecurityPolicyType extends AbstractType
                 'constraints' => [new NotBlank()],
             ])
             ->add('profiles', ChoiceType::class, [
-                'label' => 'Profiles',
+                'label' => 'Profiles requiring enrollment',
                 'choices' => $profileChoices,
                 'multiple' => true,
                 'expanded' => true,

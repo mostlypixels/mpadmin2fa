@@ -79,6 +79,81 @@ final class AdminNavigationSecurityTest extends TestCase
         self::assertStringContainsString("path('mpadmin2fa_authenticator')", $template);
         self::assertStringContainsString("path('mpadmin2fa_enrollment_employees')", $template);
         self::assertStringContainsString("path('mpadmin2fa_security_policy')", $template);
+        self::assertSame(3, substr_count($template, 'class="card d-flex flex-column h-100"'));
+        self::assertSame(3, substr_count($template, 'class="card-footer d-flex justify-content-end mt-auto"'));
+    }
+
+    public function testOverviewDisplaysAuthenticatorStatusAsAContextualAlert(): void
+    {
+        $template = file_get_contents(dirname(__DIR__, 2) . '/views/templates/admin/settings.html.twig');
+
+        self::assertIsString($template);
+        self::assertStringContainsString(
+            "authenticator_active ? 'alert-success' : 'alert-danger'",
+            $template
+        );
+        self::assertStringContainsString(
+            "authenticator_active ? 'Active' : 'Not set up'",
+            $template
+        );
+        self::assertStringContainsString(
+            "authenticator_active ? 'Manage and strengthen 2FA' : 'Get started'",
+            $template
+        );
+        self::assertStringContainsString('1. Your account is protected', $template);
+        self::assertStringContainsString(
+            "authenticator_active ? 'Manage your authenticator' : 'Set up your authenticator'",
+            $template
+        );
+    }
+
+    public function testOverviewWarnsWhenHttpsIsNotFullyEnabled(): void
+    {
+        $controller = file_get_contents(dirname(__DIR__, 2) . '/src/Controller/Admin/MfaController.php');
+        $template = file_get_contents(dirname(__DIR__, 2) . '/views/templates/admin/settings.html.twig');
+
+        self::assertIsString($controller);
+        self::assertIsString($template);
+        self::assertStringContainsString("get('PS_SSL_ENABLED')", $controller);
+        self::assertStringContainsString("'https_active' => \$request->isSecure()", $controller);
+        self::assertStringContainsString('{% if not https_configured or not https_active %}', $template);
+        self::assertStringContainsString('HTTPS needs attention', $template);
+    }
+
+    public function testAuthenticatorFormsUseSeparateCards(): void
+    {
+        $template = file_get_contents(dirname(__DIR__, 2) . '/views/templates/admin/authenticator.html.twig');
+
+        self::assertIsString($template);
+        self::assertSame(3, substr_count($template, 'class="card mb-3"'));
+        self::assertStringContainsString('<h3 class="card-header">Set up a new authenticator</h3>', $template);
+        self::assertStringContainsString('<h3 class="card-header">Create new recovery codes</h3>', $template);
+        self::assertStringContainsString('<h3 class="card-header">Turn off two-factor authentication</h3>', $template);
+    }
+
+    public function testEnrollmentUsesNativeHeaderTabs(): void
+    {
+        $layout = file_get_contents(dirname(__DIR__, 2) . '/views/templates/admin/enrollment/layout.html.twig');
+
+        self::assertIsString($layout);
+        self::assertStringContainsString('{% set headerTabContent = [enrollmentTabs] %}', $layout);
+        self::assertStringContainsString('class="nav nav-pills"', $layout);
+        self::assertStringContainsString("'active current'", $layout);
+        self::assertStringNotContainsString('nav-tabs', $layout);
+    }
+
+    public function testSecurityPolicyGroupsFieldsIntoCoherentSections(): void
+    {
+        $template = file_get_contents(dirname(__DIR__, 2) . '/views/templates/admin/security/policy.html.twig');
+
+        self::assertIsString($template);
+        self::assertStringContainsString('<h3 class="card-header">Profile enforcement</h3>', $template);
+        self::assertStringContainsString('<h3 class="card-header">Operational settings</h3>', $template);
+        self::assertLessThan(
+            strpos($template, 'policy_form.step_up_seconds'),
+            strpos($template, 'policy_form.approval_profiles')
+        );
+        self::assertStringNotContainsString('form_widget(policy_form)', $template);
     }
 
     public function testSecurityNavigationUsesRegisteredAdminTabs(): void

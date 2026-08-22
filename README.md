@@ -7,7 +7,10 @@ Security-focused TOTP authentication for PrestaShop back-office employees. The m
 
 This work-in-progress branch targets PrestaShop 9.0 through 9.2 and PHP 8.1+. It is not ready for production.
 
-See [IMPLEMENTATION.md](IMPLEMENTATION.md) for the implemented architecture and [SECURITY.md](SECURITY.md) for reporting and threat-model details. The older `spec.md` and `HANDOFF.md` files are historical design records.
+Start with the [documentation index](documentation/README.md). See
+[IMPLEMENTATION.md](IMPLEMENTATION.md) for the implemented architecture and
+[SECURITY.md](SECURITY.md) for reporting and threat-model details. The older
+`spec.md` and `HANDOFF.md` files are historical design records.
 
 ## Install
 
@@ -30,5 +33,18 @@ composer build:scoped
 ```
 
 The scoped release is written to `build/mpadmin2fa` with an SBOM and SHA-256 checksums. Build with PHP 8.1–8.4.
+
+## Release
+
+Each PrestaShop compatibility branch has its own module major version. Read the
+[release strategy](documentation/release-strategy.md) before changing versions
+or pushing tags. Pushing a valid `v*` tag is the publication trigger; routine
+branch pushes do not create releases.
+
+To produce and verify release artifacts locally without publishing them:
+
+```bash
+php tools/release.php <matching-tag>
+```
 
 License: MIT.
