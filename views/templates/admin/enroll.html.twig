@@ -1,5 +1,7 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
+{% form_theme confirmation_form '@PrestaShop/Admin/TwigTemplateForm/prestashop_ui_kit.html.twig' %}
+
 {% block content %}
 <div class="row justify-content-center"><div class="col-xl-7">
   <div class="card">
@@ -8,14 +10,10 @@
       <div class="alert alert-info">Scan this code with your authenticator app. The secret never leaves this site.</div>
       <div class="text-center mb-3"><img src="{{ qr_data_uri }}" alt="TOTP enrollment QR code" width="260" height="260"></div>
       <p><strong>Manual key:</strong> <code>{{ secret }}</code></p>
-      <form method="post">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_enroll') }}">
-        <div class="form-group">
-          <label for="mp2fa-code">Six-digit code</label>
-          <input id="mp2fa-code" class="form-control" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required>
-        </div>
-        <button class="btn btn-primary" type="submit">Confirm and activate</button>
-      </form>
+
+      {{ form_start(confirmation_form) }}
+        <div class="form-wrapper">{{ form_widget(confirmation_form) }}</div>
+      {{ form_end(confirmation_form) }}
     </div>
   </div>
 </div></div>

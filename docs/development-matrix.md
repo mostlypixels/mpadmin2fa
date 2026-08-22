@@ -6,13 +6,14 @@ they can remain online at the same time.
 
 | Line | PrestaShop baseline | Module branch | Store | Back office | MySQL |
 | --- | --- | --- | --- | --- | --- |
-| 3.x | 9.x development tree | `main` | http://localhost:8001/ | http://localhost:8001/admin-dev/ | localhost:3306 |
+| 3.x | 9.x development tree | `main` | https://localhost:9002/ | https://localhost:9002/admin-dev/ | localhost:3396 |
 | 2.x | 8.2.8 | `2.x-ps8` | https://localhost:8102/ | https://localhost:8102/admin-dev/ | localhost:3316 |
 | 1.x | 1.7.8.11 | `1.x-ps17` | https://localhost:8202/ | https://localhost:8202/admin-dev/ | localhost:3326 |
 
-The existing 9.x stack uses HTTP on port 8001. The compatibility stacks also
-expose HTTP on ports 8101 and 8201. Their HTTPS ports use disposable self-signed
-certificates, so a browser warning is expected.
+The 9.x stack also exposes HTTP on port 9001 and MailDev on
+http://localhost:9080/. The compatibility stacks expose HTTP on ports 8101 and
+8201. The local HTTPS endpoints use the development certificate installed for
+`localhost`.
 
 ## Worktrees
 

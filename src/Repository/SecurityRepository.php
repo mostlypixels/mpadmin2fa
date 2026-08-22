@@ -257,15 +257,6 @@ final class SecurityRepository
         }
     }
 
-    public function pendingApprovals(): array
-    {
-        return $this->connection->fetchAllAssociative(
-            'SELECT a.id_employee, a.date_add, e.email, e.firstname, e.lastname, e.id_profile'
-            . ' FROM ' . $this->table('approval') . ' a INNER JOIN ' . $this->dbPrefix
-            . 'employee e ON e.id_employee = a.id_employee WHERE a.status = "pending" ORDER BY a.date_add'
-        );
-    }
-
     public function employeeEmail(int $employeeId): ?string
     {
         $email = $this->connection->fetchOne(
@@ -286,24 +277,26 @@ final class SecurityRepository
         return false === $id ? null : (int) $id;
     }
 
-    public function employeeStatuses(int $languageId): array
+    /**
+     * @return array<string, int>
+     */
+    public function profileChoices(int $languageId): array
     {
-        return $this->connection->fetchAllAssociative(
-            'SELECT e.id_employee, e.email, e.firstname, e.lastname, pl.name AS profile_name, f.status, f.confirmed_at '
-            . 'FROM ' . $this->dbPrefix . 'employee e LEFT JOIN ' . $this->table('employee')
-            . ' f ON f.id_employee = e.id_employee LEFT JOIN ' . $this->dbPrefix
-            . 'profile_lang pl ON pl.id_profile = e.id_profile AND pl.id_lang = ? ORDER BY e.lastname, e.firstname',
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT p.id_profile, pl.name FROM ' . $this->dbPrefix . 'profile p INNER JOIN '
+            . $this->dbPrefix . 'profile_lang pl ON pl.id_profile = p.id_profile AND pl.id_lang = ? ORDER BY pl.name',
             [$languageId]
         );
-    }
+        $choices = [];
+        foreach ($rows as $row) {
+            $label = (string) $row['name'];
+            if (array_key_exists($label, $choices)) {
+                $label .= ' (#' . (int) $row['id_profile'] . ')';
+            }
+            $choices[$label] = (int) $row['id_profile'];
+        }
 
-    public function auditEvents(int $limit = 100): array
-    {
-        return $this->connection->fetchAllAssociative(
-            'SELECT a.*, e.firstname, e.lastname FROM ' . $this->table('audit') . ' a LEFT JOIN '
-            . $this->dbPrefix . 'employee e ON e.id_employee = a.id_employee ORDER BY a.id_audit DESC LIMIT '
-            . max(1, min(500, $limit))
-        );
+        return $choices;
     }
 
     private function table(string $suffix): string

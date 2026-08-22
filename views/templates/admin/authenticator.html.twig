@@ -1,5 +1,11 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
+{% if active %}
+  {% form_theme replace_form '@PrestaShop/Admin/TwigTemplateForm/prestashop_ui_kit.html.twig' %}
+  {% form_theme recovery_form '@PrestaShop/Admin/TwigTemplateForm/prestashop_ui_kit.html.twig' %}
+  {% form_theme disable_form '@PrestaShop/Admin/TwigTemplateForm/prestashop_ui_kit.html.twig' %}
+{% endif %}
+
 {% block content %}
 <div class="row"><div class="col-xl-8">
   <div class="card">
@@ -13,55 +19,31 @@
           Add an authenticator app to protect your account with a code in addition to your password.
         {% endif %}
       </p>
+
       {% if active %}
-      <form method="post" action="{{ path('mpadmin2fa_replace') }}" class="mb-4">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_replace') }}">
-        <h4>Set up a new authenticator</h4>
-        <p>Use this to move to a new phone or authenticator app. First confirm your identity below, then you can connect the new authenticator.</p>
-        <div class="form-group">
-          <label for="mp2fa-replace-password">Your PrestaShop password{% if not password_required %} (optional){% endif %}</label>
-          <input id="mp2fa-replace-password" class="form-control" type="password" name="password" {% if password_required %}required {% endif %}autocomplete="current-password"{% if not password_required %} aria-describedby="mp2fa-replace-password-help"{% endif %}>
-          {% if not password_required %}<small id="mp2fa-replace-password-help" class="form-text text-muted">You do not need to enter it again because you signed in recently.</small>{% endif %}
-        </div>
-        <div class="form-group">
-          <label for="mp2fa-replace-code">Code from your current authenticator app</label>
-          <input id="mp2fa-replace-code" class="form-control" name="code" required inputmode="numeric" autocomplete="one-time-code" aria-describedby="mp2fa-replace-code-help">
-          <small id="mp2fa-replace-code-help" class="form-text text-muted">Enter the six-digit code currently shown in your app.</small>
-        </div>
-        <button class="btn btn-outline-primary">Continue to new authenticator setup</button>
-      </form>
-      <form method="post" action="{{ path('mpadmin2fa_recovery_regenerate') }}" class="mb-4">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_recovery_regenerate') }}">
-        <h4>Create new recovery codes</h4>
-        <p>Recovery codes let you sign in if you cannot use your authenticator app. Creating new ones makes all of your existing recovery codes stop working immediately.</p>
-        <div class="form-group">
-          <label for="mp2fa-recovery-password">Your PrestaShop password{% if not password_required %} (optional){% endif %}</label>
-          <input id="mp2fa-recovery-password" class="form-control" type="password" name="password" {% if password_required %}required {% endif %}autocomplete="current-password"{% if not password_required %} aria-describedby="mp2fa-recovery-password-help"{% endif %}>
-          {% if not password_required %}<small id="mp2fa-recovery-password-help" class="form-text text-muted">You do not need to enter it again because you signed in recently.</small>{% endif %}
-        </div>
-        <div class="form-group">
-          <label for="mp2fa-recovery-code">Code from your authenticator app</label>
-          <input id="mp2fa-recovery-code" class="form-control" name="code" required inputmode="numeric" autocomplete="one-time-code" aria-describedby="mp2fa-recovery-code-help">
-          <small id="mp2fa-recovery-code-help" class="form-text text-muted">Enter the six-digit code currently shown in your app.</small>
-        </div>
-        <button class="btn btn-outline-primary">Create new recovery codes</button>
-      </form>
-      <form method="post" action="{{ path('mpadmin2fa_disable') }}">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_disable') }}">
-        <h4>Turn off two-factor authentication</h4>
-        <p>This removes the extra sign-in protection from your account and signs you out. You cannot turn it off if your administrator requires it.</p>
-        <div class="form-group">
-          <label for="mp2fa-disable-password">Your PrestaShop password{% if not password_required %} (optional){% endif %}</label>
-          <input id="mp2fa-disable-password" class="form-control" type="password" name="password" {% if password_required %}required {% endif %}autocomplete="current-password"{% if not password_required %} aria-describedby="mp2fa-disable-password-help"{% endif %}>
-          {% if not password_required %}<small id="mp2fa-disable-password-help" class="form-text text-muted">You do not need to enter it again because you signed in recently.</small>{% endif %}
-        </div>
-        <div class="form-group">
-          <label for="mp2fa-disable-code">Code from your authenticator app</label>
-          <input id="mp2fa-disable-code" class="form-control" name="code" required inputmode="numeric" autocomplete="one-time-code" aria-describedby="mp2fa-disable-code-help">
-          <small id="mp2fa-disable-code-help" class="form-text text-muted">Enter the six-digit code currently shown in your app.</small>
-        </div>
-        <button class="btn btn-outline-danger">Turn off two-factor authentication</button>
-      </form>
+        <section class="mb-4">
+          <h4>Set up a new authenticator</h4>
+          <p>Use this to move to a new phone or authenticator app. Confirm your identity, then connect the new authenticator.</p>
+          {{ form_start(replace_form, {action: path('mpadmin2fa_replace')}) }}
+            <div class="form-wrapper">{{ form_widget(replace_form) }}</div>
+          {{ form_end(replace_form) }}
+        </section>
+
+        <section class="mb-4">
+          <h4>Create new recovery codes</h4>
+          <p>Creating new recovery codes immediately invalidates all existing recovery codes.</p>
+          {{ form_start(recovery_form, {action: path('mpadmin2fa_recovery_regenerate')}) }}
+            <div class="form-wrapper">{{ form_widget(recovery_form) }}</div>
+          {{ form_end(recovery_form) }}
+        </section>
+
+        <section>
+          <h4>Turn off two-factor authentication</h4>
+          <p>This removes the extra sign-in protection and signs you out. You cannot turn it off when policy requires it.</p>
+          {{ form_start(disable_form, {action: path('mpadmin2fa_disable')}) }}
+            <div class="form-wrapper">{{ form_widget(disable_form) }}</div>
+          {{ form_end(disable_form) }}
+        </section>
       {% else %}
         <a class="btn btn-primary" href="{{ path('mpadmin2fa_enroll') }}">Set up authenticator</a>
       {% endif %}

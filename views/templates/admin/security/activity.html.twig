@@ -1,21 +1,10 @@
-{% extends '@Modules/mpadmin2fa/views/templates/admin/security/layout.html.twig' %}
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
 
-{% block security_content %}
-<div class="table-responsive"><table class="table mb-0">
-  <thead><tr><th>Time</th><th>Employee</th><th>Event</th><th>IP</th></tr></thead>
-  <tbody>{% for event in audit_events %}<tr>
-    <td>{{ event.date_add }}</td>
-    <td>
-      {% if event.id_employee %}
-        {{ event.id_employee }} - {% if event.firstname or event.lastname %}{{ event.firstname }} {{ event.lastname }}{% else %}Deleted employee{% endif %}
-      {% else %}
-        System
-      {% endif %}
-    </td>
-    <td>{{ event.event }}</td>
-    <td>{{ event.ip }}</td>
-  </tr>{% else %}
-    <tr><td colspan="4">No security activity has been recorded.</td></tr>
-  {% endfor %}</tbody>
-</table></div>
+{% block content %}
+  {{ include('@PrestaShop/Admin/Common/Grid/grid_panel.html.twig', {grid: auditEventGrid}) }}
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script src="{{ asset('themes/default/js/bundle/pagination.js') }}"></script>
 {% endblock %}
