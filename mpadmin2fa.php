@@ -37,7 +37,7 @@ class Mpadmin2fa extends Module
             $locale = (string) $language['locale'];
             $tabNames['parent'][$locale] = $this->trans('Admin 2FA', [], 'Modules.Mpadmin2fa.Admin', $locale);
             $tabNames['authenticator'][$locale] = $this->trans('Your authenticator', [], 'Modules.Mpadmin2fa.Admin', $locale);
-            $tabNames['enrollment'][$locale] = $this->trans('Enrollment', [], 'Modules.Mpadmin2fa.Admin', $locale);
+            $tabNames['enrollment'][$locale] = $this->trans('Employee 2FA', [], 'Modules.Mpadmin2fa.Admin', $locale);
             $tabNames['security'][$locale] = $this->trans('Security', [], 'Modules.Mpadmin2fa.Admin', $locale);
             $tabNames['activity'][$locale] = $this->trans('Activity log', [], 'Modules.Mpadmin2fa.Admin', $locale);
         }
@@ -66,7 +66,7 @@ class Mpadmin2fa extends Module
                 'visible' => true,
                 'name' => $tabNames['enrollment'],
                 'parent_class_name' => 'AdminMpAdmin2fa',
-                'wording' => 'Enrollment',
+                'wording' => 'Employee 2FA',
                 'wording_domain' => 'Modules.Mpadmin2fa.Admin',
             ],
             [

@@ -34,7 +34,7 @@ final class MfaManager
     {
         $factor = $this->repository->factor($employeeId);
         if (!$factor || 'pending' !== $factor['status']) {
-            throw new MfaSecurityException('No pending enrollment exists.');
+            throw new MfaSecurityException('No authenticator setup is waiting to be confirmed. Start the setup again.');
         }
 
         return $this->keys->decrypt((string) $factor['secret_ciphertext'], (int) $factor['key_version']);
@@ -45,7 +45,7 @@ final class MfaManager
         $this->rateLimiter->assertAllowed('enrollment', $employeeId, $ip);
         $factor = $this->repository->factor($employeeId);
         if (!$factor || 'pending' !== $factor['status']) {
-            throw new MfaSecurityException('No pending enrollment exists.');
+            throw new MfaSecurityException('No authenticator setup is waiting to be confirmed. Start the setup again.');
         }
 
         $secret = $this->keys->decrypt((string) $factor['secret_ciphertext'], (int) $factor['key_version']);
@@ -54,7 +54,7 @@ final class MfaManager
             $failures = $this->rateLimiter->failure('enrollment', $employeeId, $ip);
             $this->notifyRepeatedFailures($employeeId, 'enrollment', $failures);
             $this->repository->audit($employeeId, 'enrollment.failed', $ip);
-            throw new MfaSecurityException('The authentication code is invalid.');
+            throw new MfaSecurityException('That authenticator code is incorrect. Check the app and try again.');
         }
 
         $codes = $this->recoveryCodes->generate();
@@ -71,7 +71,7 @@ final class MfaManager
         $this->rateLimiter->assertAllowed($scope, $employeeId, $ip);
         $factor = $this->repository->factor($employeeId);
         if (!$factor || 'active' !== $factor['status']) {
-            throw new MfaSecurityException('TOTP is not active for this employee.');
+            throw new MfaSecurityException('Two-factor authentication is not active for this employee.');
         }
 
         $secret = $this->keys->decrypt((string) $factor['secret_ciphertext'], (int) $factor['key_version']);

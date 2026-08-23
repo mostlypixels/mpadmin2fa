@@ -3,10 +3,10 @@
 {% block content %}
 <div class="row justify-content-center"><div class="col-xl-7">
   <div class="card">
-    <h3 class="card-header">Enrollment approval required</h3>
+    <h3 class="card-header">Waiting for approval</h3>
     <div class="card-body">
-      <div class="alert alert-warning">A different, freshly verified SuperAdmin must approve your first enrollment. You cannot access other back-office pages until approval is granted.</div>
-      <p>Your request is pending. Refresh this page after an administrator approves it.</p>
+      <div class="alert alert-warning">Another SuperAdmin must approve your first 2FA setup. They may be asked to confirm their own 2FA first. You cannot access other back-office pages until they approve it.</div>
+      <p>Your request is waiting for approval. Select "Check again" after a SuperAdmin approves it.</p>
       <a class="btn btn-outline-secondary" href="{{ path('mpadmin2fa_enroll') }}">Check again</a>
       <a class="btn btn-link" href="{{ path('admin_logout') }}">Log out</a>
     </div>

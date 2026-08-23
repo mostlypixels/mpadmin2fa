@@ -71,7 +71,7 @@ final class MfaController extends PrestaShopAdminController
                     return $this->redirectToRoute('mpadmin2fa_enroll');
                 }
 
-                $this->addFlash('error', 'The supplied recovery code is invalid or has already been used.');
+                $this->addFlash('error', 'That recovery code is incorrect or has already been used.');
             }
 
             if ($totpForm->isSubmitted() && $totpForm->isValid()) {
@@ -87,7 +87,7 @@ final class MfaController extends PrestaShopAdminController
                         ?? $this->dashboardUrl($router));
                 }
 
-                $this->addFlash('error', 'The supplied authentication code is invalid or has already been used.');
+                $this->addFlash('error', 'That authenticator code is incorrect or has already been used.');
             }
         } catch (MfaSecurityException|RuntimeException $exception) {
             $this->addFlash('error', $exception->getMessage());
@@ -125,7 +125,7 @@ final class MfaController extends PrestaShopAdminController
             $repository->requestEnrollmentApproval($employee->getId());
 
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/approval_pending.html.twig', [
-                'layoutTitle' => 'Enrollment approval required',
+                'layoutTitle' => 'Waiting for approval',
             ]);
         }
 
@@ -243,7 +243,7 @@ final class MfaController extends PrestaShopAdminController
     ): Response {
         $employee = $this->employee($security);
         if ($policy->requiresLoginMfa($employee)) {
-            $this->addFlash('error', 'Policy requires two-factor authentication for your account.');
+            $this->addFlash('error', "Your shop's security settings require two-factor authentication, so you cannot turn it off.");
 
             return $this->redirectToRoute('mpadmin2fa_authenticator');
         }
@@ -350,7 +350,7 @@ final class MfaController extends PrestaShopAdminController
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/employees.html.twig', [
             'employeeFactorGrid' => $this->presentGrid($gridFactory->getGrid($filters)),
-            'layoutTitle' => 'Enrollment',
+            'layoutTitle' => 'Employee 2FA',
         ]);
     }
 
@@ -361,7 +361,7 @@ final class MfaController extends PrestaShopAdminController
         GridFactoryInterface $gridFactory,
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/approvals.html.twig', [
-            'layoutTitle' => 'Enrollment',
+            'layoutTitle' => 'Employee 2FA',
             'pendingApprovalGrid' => $this->presentGrid($gridFactory->getGrid($filters)),
         ]);
     }
@@ -415,7 +415,7 @@ final class MfaController extends PrestaShopAdminController
         }
 
         $repository->audit($employee->getId(), 'policy.updated', $request->getClientIp());
-        $this->addFlash('success', 'Two-factor authentication policy updated.');
+        $this->addFlash('success', 'Two-factor authentication settings saved.');
 
         return $this->redirectToRoute('mpadmin2fa_security_policy');
     }
@@ -446,14 +446,14 @@ final class MfaController extends PrestaShopAdminController
         $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_approve_' . $employeeId);
         if ($actor->getId() === $employeeId) {
-            throw $this->createAccessDeniedException('An employee cannot approve their own enrollment.');
+            throw $this->createAccessDeniedException('Employees cannot approve their own 2FA setup.');
         }
 
         $repository->approveEnrollment($employeeId, $actor->getId());
         $repository->audit($actor->getId(), 'enrollment.approved', $request->getClientIp(), [
             'target_employee_id' => $employeeId,
         ]);
-        $this->addFlash('success', 'Enrollment approved.');
+        $this->addFlash('success', "The employee's 2FA setup was approved.");
 
         return $this->redirectToRoute('mpadmin2fa_enrollment_approvals');
     }
@@ -472,11 +472,11 @@ final class MfaController extends PrestaShopAdminController
         $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_admin_reset_' . $employeeId);
         if ($actor->getId() === $employeeId) {
-            throw $this->createAccessDeniedException('An employee cannot use the administrative reset on their own factor.');
+            throw $this->createAccessDeniedException('Employees cannot reset their own two-factor authentication from the employee list.');
         }
 
         $mfa->reset($employeeId, $actor->getId(), $request->getClientIp(), 'superadmin-reset');
-        $this->addFlash('success', 'The employee factor was reset.');
+        $this->addFlash('success', 'Two-factor authentication was reset for this employee.');
 
         return $this->redirectToRoute('mpadmin2fa_enrollment_employees');
     }
@@ -530,7 +530,7 @@ final class MfaController extends PrestaShopAdminController
     private function requireHttps(Request $request): void
     {
         if (!$request->isSecure()) {
-            throw $this->createAccessDeniedException('HTTPS is required for authenticator enrollment.');
+            throw $this->createAccessDeniedException('You need a secure HTTPS connection to set up an authenticator.');
         }
     }
 
@@ -552,7 +552,7 @@ final class MfaController extends PrestaShopAdminController
         Policy $policy,
     ): void {
         if (!$sessionState->hasFreshVerification($employee->getId(), $policy->stepUpSeconds())) {
-            throw $this->createAccessDeniedException('A fresh two-factor authentication verification is required.');
+            throw $this->createAccessDeniedException('Confirm your identity with two-factor authentication again before continuing.');
         }
     }
 }

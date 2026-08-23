@@ -11,6 +11,7 @@ use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\AbstractGridDefinitionFac
 use PrestaShop\PrestaShop\Core\Grid\Filter\Filter;
 use PrestaShop\PrestaShop\Core\Grid\Filter\FilterCollection;
 use PrestaShopBundle\Form\Admin\Type\SearchAndResetType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 
 final class AuditEventGridDefinitionFactory extends AbstractGridDefinitionFactory
@@ -40,8 +41,8 @@ final class AuditEventGridDefinitionFactory extends AbstractGridDefinitionFactor
                 ->setName($this->trans('Employee', [], 'Admin.Global'))
                 ->setOptions(['field' => 'employee']))
             ->add((new DataColumn('event'))
-                ->setName($this->trans('Event', [], 'Modules.Mpadmin2fa.Admin'))
-                ->setOptions(['field' => 'event']))
+                ->setName($this->trans('What happened', [], 'Modules.Mpadmin2fa.Admin'))
+                ->setOptions(['field' => 'event_label']))
             ->add((new DataColumn('ip'))
                 ->setName($this->trans('IP address', [], 'Admin.Global'))
                 ->setOptions(['field' => 'ip']));
@@ -56,8 +57,27 @@ final class AuditEventGridDefinitionFactory extends AbstractGridDefinitionFactor
             ->add((new Filter('employee', TextType::class))
                 ->setTypeOptions(['required' => false])
                 ->setAssociatedColumn('employee'))
-            ->add((new Filter('event', TextType::class))
-                ->setTypeOptions(['required' => false])
+            ->add((new Filter('event', ChoiceType::class))
+                ->setTypeOptions([
+                    'choices' => [
+                        '2FA setup approved' => 'enrollment.approved',
+                        'Authenticator set up' => 'enrollment.confirmed',
+                        'Authenticator setup failed' => 'enrollment.failed',
+                        'Authenticator settings confirmed' => 'factor_change.verified',
+                        'Authenticator-settings check failed' => 'factor_change.failed',
+                        'Recovery code rejected' => 'recovery.failed',
+                        'Recovery code used' => 'recovery.used',
+                        'Recovery codes replaced' => 'recovery.regenerated',
+                        'Security-change 2FA confirmed' => 'step_up.verified',
+                        'Security-change 2FA failed' => 'step_up.failed',
+                        'Sign-in 2FA confirmed' => 'challenge.verified',
+                        'Sign-in 2FA failed' => 'challenge.failed',
+                        'Two-factor authentication reset' => 'factor.reset',
+                        'Two-factor authentication settings changed' => 'policy.updated',
+                    ],
+                    'placeholder' => 'All',
+                    'required' => false,
+                ])
                 ->setAssociatedColumn('event'))
             ->add((new Filter('ip', TextType::class))
                 ->setTypeOptions(['required' => false])

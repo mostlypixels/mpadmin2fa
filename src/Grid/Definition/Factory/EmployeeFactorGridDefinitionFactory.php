@@ -59,14 +59,14 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
                 ->setName($this->trans('Status', [], 'Admin.Global'))
                 ->setOptions(['field' => 'status_label']))
             ->add((new DateTimeColumn('confirmed_at'))
-                ->setName($this->trans('Confirmed', [], 'Modules.Mpadmin2fa.Admin'))
+                ->setName($this->trans('Set up on', [], 'Modules.Mpadmin2fa.Admin'))
                 ->setOptions(['field' => 'confirmed_at', 'format' => 'Y-m-d H:i:s']))
             ->add((new ActionColumn('actions'))
                 ->setName($this->trans('Actions', [], 'Admin.Global'))
                 ->setOptions([
                     'actions' => (new RowActionCollection())
                         ->add((new SubmitRowAction('reset_factor'))
-                            ->setName($this->trans('Reset factor', [], 'Modules.Mpadmin2fa.Admin'))
+                            ->setName($this->trans('Reset two-factor authentication', [], 'Modules.Mpadmin2fa.Admin'))
                             ->setIcon('delete')
                             ->setOptions([
                                 'accessibility_checker' => fn (array $record): bool => !empty($record['has_factor'])
@@ -76,7 +76,7 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
                                         'AdminMpAdmin2faEnrollment'
                                     ),
                                 'confirm_message' => $this->trans(
-                                    'Reset this employee authentication factor?',
+                                    'Reset two-factor authentication for this employee? They will need to set it up again.',
                                     [],
                                     'Modules.Mpadmin2fa.Admin'
                                 ),
@@ -107,8 +107,8 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
                 ->setTypeOptions([
                     'choices' => [
                         'Active' => 'active',
-                        'Pending' => 'pending',
-                        'Not enrolled' => 'not_enrolled',
+                        'Waiting for approval' => 'pending',
+                        'Not set up' => 'not_enrolled',
                     ],
                     'placeholder' => 'All',
                     'required' => false,

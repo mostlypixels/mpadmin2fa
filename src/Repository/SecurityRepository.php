@@ -90,7 +90,7 @@ final class SecurityRepository
                 [$counter, $this->now(), $this->now(), $employeeId]
             );
             if (1 !== $updated) {
-                throw new MfaSecurityException('The enrollment is no longer pending.');
+                throw new MfaSecurityException('This 2FA setup is no longer waiting for approval.');
             }
 
             $this->connection->delete($this->tableName('recovery_code'), ['id_employee' => $employeeId]);
@@ -272,7 +272,7 @@ final class SecurityRepository
             [$approverId, $this->now(), $employeeId]
         );
         if (1 !== $updated) {
-            throw new MfaSecurityException('No pending enrollment approval was found.');
+            throw new MfaSecurityException('No 2FA setup waiting for approval was found.');
         }
     }
 

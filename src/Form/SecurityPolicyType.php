@@ -38,7 +38,8 @@ final class SecurityPolicyType extends AbstractType
 
         $builder
             ->add('mode', ChoiceType::class, [
-                'label' => 'Login enforcement',
+                'label' => 'Who must use two-factor authentication',
+                'help' => 'Choose which employees must set up and use two-factor authentication to access the back office.',
                 'choices' => [
                     'SuperAdmins' => 'superadmins',
                     'Selected profiles' => 'profiles',
@@ -47,39 +48,43 @@ final class SecurityPolicyType extends AbstractType
                 'constraints' => [new NotBlank()],
             ])
             ->add('profiles', ChoiceType::class, [
-                'label' => 'Profiles requiring enrollment',
+                'label' => 'Profiles required to use two-factor authentication',
                 'choices' => $profileChoices,
                 'multiple' => true,
                 'expanded' => true,
                 'required' => false,
-                'help' => 'Employees in these profiles must use two-factor authentication when selected-profile enforcement is enabled.',
+                'help' => 'Used only when "Selected profiles" is chosen above. Employees in these profiles must set up and use two-factor authentication to access the back office.',
             ])
             ->add('step_up_seconds', IntegerType::class, [
-                'label' => 'Fresh verification lifetime (seconds)',
+                'label' => 'How long a 2FA check stays valid (seconds)',
+                'help' => 'How long a successful 2FA check stays valid for important security changes. For example, 300 seconds is 5 minutes.',
                 'attr' => ['min' => 60],
                 'constraints' => [new NotBlank(), new Range(min: 60)],
             ])
             ->add('password_max_age', IntegerType::class, [
-                'label' => 'Password-authentication maximum age (seconds)',
+                'label' => 'How long a recent sign-in counts (seconds)',
+                'help' => 'How long employees can manage their own two-factor authentication after signing in without entering their password again. For example, 900 seconds is 15 minutes.',
                 'attr' => ['min' => 60],
                 'constraints' => [new NotBlank(), new Range(min: 60)],
             ])
             ->add('approval_profiles', ChoiceType::class, [
-                'label' => 'Profiles requiring first-enrollment approval',
+                'label' => 'Profiles whose first 2FA setup needs approval',
                 'choices' => $profileChoices,
                 'multiple' => true,
                 'expanded' => true,
                 'required' => false,
+                'help' => 'Employees in these profiles need approval from another SuperAdmin who recently confirmed their own 2FA. SuperAdmin accounts also use this approval.',
             ])
             ->add('audit_days', IntegerType::class, [
-                'label' => 'Activity-log retention (days)',
+                'label' => 'Keep security activity for (days)',
+                'help' => 'How many days to keep 2FA security activity in the log. For example, enter 90 to keep three months of activity.',
                 'attr' => ['min' => 1],
                 'constraints' => [new NotBlank(), new Positive()],
             ])
             ->add('security_recipients', TextType::class, [
                 'label' => 'Security alert recipients',
                 'required' => false,
-                'help' => 'Separate multiple email addresses with commas.',
+                'help' => 'Enter the people who should receive 2FA security alerts. Separate multiple email addresses with commas, for example owner@example.com, security@example.com.',
                 'constraints' => [
                     new Length(max: 1000),
                     new Callback(self::validateCommaSeparatedEmails(...)),
@@ -89,14 +94,14 @@ final class SecurityPolicyType extends AbstractType
                 $data = $event->getData();
                 if (is_array($data) && 'profiles' === ($data['mode'] ?? null) && empty($data['profiles'])) {
                     $event->getForm()->get('profiles')->addError(new FormError(
-                        'Select at least one profile when selected-profile enforcement is enabled.'
+                        'Select at least one profile when "Selected profiles" is chosen.'
                     ));
                 }
             });
 
         if ($options['show_submit']) {
             $builder->add('save', SubmitType::class, [
-                'label' => 'Save policy',
+                'label' => 'Save security settings',
                 'attr' => ['class' => 'btn-primary'],
             ]);
         }
