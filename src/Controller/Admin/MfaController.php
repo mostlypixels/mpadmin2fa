@@ -18,6 +18,7 @@ use Mpadmin2fa\Repository\SecurityRepository;
 use Mpadmin2fa\Security\FactorConfirmationService;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
+use Mpadmin2fa\Security\SecurityAlertCatalog;
 use Mpadmin2fa\Security\SessionState;
 use Mpadmin2fa\Security\TotpService;
 use PrestaShop\PrestaShop\Core\Form\FormHandlerInterface;
@@ -304,8 +305,12 @@ final class MfaController extends PrestaShopAdminController
     }
 
     #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    public function settings(Request $request, Security $security, MfaManager $mfa): Response
-    {
+    public function settings(
+        Request $request,
+        Security $security,
+        MfaManager $mfa,
+        SecurityAlertCatalog $alertCatalog,
+    ): Response {
         $employee = $this->employee($security);
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/settings.html.twig', [
@@ -316,6 +321,7 @@ final class MfaController extends PrestaShopAdminController
             'can_open_security' => $this->isGranted('read', 'AdminMpAdmin2faSecurity'),
             'https_active' => $request->isSecure(),
             'https_configured' => 1 === (int) $this->getConfiguration()->get('PS_SSL_ENABLED'),
+            'security_alerts' => $alertCatalog->all(),
         ]);
     }
 

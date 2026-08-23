@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
-/**
+use Mpadmin2fa\Mail\MailThemeLayoutRegistrar;
+use PrestaShop\PrestaShop\Core\MailTemplate\ThemeCatalogInterface;
+use PrestaShop\PrestaShop\Core\MailTemplate\ThemeCollectionInterface;
+
+/*
  * Mpadmin2fa
  *
  * @license MIT
@@ -23,7 +27,7 @@ class Mpadmin2fa extends Module
     {
         $this->name = 'mpadmin2fa';
         $this->tab = 'administration';
-        $this->version = '0.2.3';
+        $this->version = '0.2.4';
         $this->author = 'Cindy Durand';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -112,6 +116,7 @@ class Mpadmin2fa extends Module
         try {
             $installed = parent::install()
                 && $this->registerHook('actionObjectProfileDeleteAfter')
+                && $this->registerHook(ThemeCatalogInterface::LIST_MAIL_THEMES_HOOK)
                 && (new Mpadmin2fa\Install\SchemaInstaller())->install()
                 && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_MODE, 'superadmins')
                 && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_PROFILES, '')
@@ -227,6 +232,21 @@ class Mpadmin2fa extends Module
                 Configuration::updateValue($configurationKey, $cleanedValue);
             }
         }
+    }
+
+    /**
+     * Add the Admin 2FA alert layout to PrestaShop's built-in mail themes.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function hookActionListMailThemes(array $params): void
+    {
+        $themes = $params['mailThemes'] ?? null;
+        if (!$themes instanceof ThemeCollectionInterface) {
+            return;
+        }
+
+        (new MailThemeLayoutRegistrar())->register($themes, $this->name);
     }
 
     private function grantDefaultTabAccess(): bool
