@@ -18,7 +18,7 @@ final class SecurityPolicyTypeTest extends TypeTestCase
         $form = $this->createPolicyForm();
 
         self::assertSame(
-            'Profiles requiring enrollment',
+            'Profiles required to use two-factor authentication',
             $form->get('profiles')->getConfig()->getOption('label')
         );
 
@@ -27,6 +27,46 @@ final class SecurityPolicyTypeTest extends TypeTestCase
         self::assertTrue($form->isSubmitted());
         self::assertTrue($form->isValid());
         self::assertSame([1, 2], $form->getData()['profiles']);
+    }
+
+    public function testOperationalSettingsExplainTheirValues(): void
+    {
+        $form = $this->createPolicyForm();
+
+        self::assertSame(
+            'How long a successful 2FA check stays valid for important security changes. For example, 300 seconds is 5 minutes.',
+            $form->get('step_up_seconds')->getConfig()->getOption('help')
+        );
+        self::assertSame(
+            'How long employees can manage their own two-factor authentication after signing in without entering their password again. For example, 900 seconds is 15 minutes.',
+            $form->get('password_max_age')->getConfig()->getOption('help')
+        );
+        self::assertSame(
+            'How many days to keep 2FA security activity in the log. For example, enter 90 to keep three months of activity.',
+            $form->get('audit_days')->getConfig()->getOption('help')
+        );
+        self::assertSame(
+            'Enter the people who should receive 2FA security alerts. Separate multiple email addresses with commas, for example owner@example.com, security@example.com.',
+            $form->get('security_recipients')->getConfig()->getOption('help')
+        );
+    }
+
+    public function testProfileEnforcementSettingsExplainTheirValues(): void
+    {
+        $form = $this->createPolicyForm();
+
+        self::assertSame(
+            'Choose which employees must set up and use two-factor authentication to access the back office.',
+            $form->get('mode')->getConfig()->getOption('help')
+        );
+        self::assertSame(
+            'Used only when "Selected profiles" is chosen above. Employees in these profiles must set up and use two-factor authentication to access the back office.',
+            $form->get('profiles')->getConfig()->getOption('help')
+        );
+        self::assertSame(
+            'Employees in these profiles need approval from another SuperAdmin who recently confirmed their own 2FA. SuperAdmin accounts also use this approval.',
+            $form->get('approval_profiles')->getConfig()->getOption('help')
+        );
     }
 
     public function testUnknownProfileIdsAreRejected(): void
@@ -49,7 +89,7 @@ final class SecurityPolicyTypeTest extends TypeTestCase
 
         self::assertFalse($form->isValid());
         self::assertSame(
-            'Select at least one profile when selected-profile enforcement is enabled.',
+            'Select at least one profile when "Selected profiles" is chosen.',
             $form->get('profiles')->getErrors()[0]->getMessage()
         );
     }

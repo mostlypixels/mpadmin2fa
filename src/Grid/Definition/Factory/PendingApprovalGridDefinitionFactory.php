@@ -36,7 +36,7 @@ final class PendingApprovalGridDefinitionFactory extends AbstractGridDefinitionF
 
     protected function getName(): string
     {
-        return $this->trans('Pending enrollment approvals', [], 'Modules.Mpadmin2fa.Admin');
+        return $this->trans('2FA setups waiting for approval', [], 'Modules.Mpadmin2fa.Admin');
     }
 
     protected function getColumns(): ColumnCollection

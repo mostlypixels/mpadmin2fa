@@ -7,7 +7,7 @@
   <div class="card">
     <h3 class="card-header">Save your recovery codes</h3>
     <div class="card-body">
-      <div class="alert alert-warning">Each code works once. These codes will not be shown again.</div>
+      <div class="alert alert-warning">Copy these codes to a secure place, such as a password manager. Each code works once, and they will not be shown again.</div>
       <ul class="list-unstyled">{% for code in recovery_codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul>
 
       {{ form_start(acknowledgement_form) }}

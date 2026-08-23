@@ -5,7 +5,7 @@
   <div class="card">
     <h3 class="card-header">Admin 2FA</h3>
     <div class="card-body">
-      <p class="lead">Protect back-office accounts with an authenticator app, recovery codes, and fresh verification before sensitive operations.</p>
+      <p class="lead">Protect back-office accounts with an authenticator app, recovery codes, and another 2FA check before important security changes.</p>
       <div class="alert {{ authenticator_active ? 'alert-success' : 'alert-danger' }}" role="alert">
         Your authenticator status: <strong>{{ authenticator_active ? 'Active' : 'Not set up' }}</strong>
       </div>
@@ -36,11 +36,11 @@
           <div class="card d-flex flex-column h-100">
             <div class="card-body">
               <h4>2. Prepare the rollout</h4>
-              <p>Review employee enrollment, approve requests when required, and make sure another trusted administrator can recover access.</p>
+              <p>Review employee 2FA setup, approve requests when required, and make sure another trusted administrator can recover access.</p>
             </div>
             <div class="card-footer d-flex justify-content-end mt-auto">
               {% if can_open_enrollment %}
-                <a class="btn btn-outline-primary" href="{{ path('mpadmin2fa_enrollment_employees') }}">Review enrollment</a>
+                <a class="btn btn-outline-primary" href="{{ path('mpadmin2fa_enrollment_employees') }}">Review employee 2FA</a>
               {% else %}
                 <span class="text-muted">This section is not available to your profile.</span>
               {% endif %}
@@ -50,12 +50,12 @@
         <div class="col-lg-4 mb-3">
           <div class="card d-flex flex-column h-100">
             <div class="card-body">
-              <h4>3. Choose a policy</h4>
-              <p>Decide who must use 2FA, configure fresh-verification timing, and review the security activity log.</p>
+              <h4>3. Set the security rules</h4>
+              <p>Decide who must use 2FA, choose how long confirmations stay valid, and review the security activity log.</p>
             </div>
             <div class="card-footer d-flex justify-content-end mt-auto">
               {% if can_open_security %}
-                <a class="btn btn-outline-primary" href="{{ path('mpadmin2fa_security_policy') }}">Configure security</a>
+                <a class="btn btn-outline-primary" href="{{ path('mpadmin2fa_security_policy') }}">Configure 2FA rules</a>
               {% else %}
                 <span class="text-muted">This section is not available to your profile.</span>
               {% endif %}
@@ -68,25 +68,25 @@
         <div class="alert alert-danger mt-3" role="alert">
           <h4 class="alert-heading">HTTPS needs attention</h4>
           {% if not https_configured %}
-            <p class="mb-0">HTTPS is not enabled in PrestaShop settings. Enable SSL under Shop Parameters &gt; General before enforcing 2FA.</p>
+            <p class="mb-0">HTTPS is not enabled in PrestaShop settings. Enable SSL under Shop Parameters &gt; General before requiring 2FA.</p>
           {% else %}
-            <p class="mb-0">HTTPS is enabled in PrestaShop settings, but this back-office request is not secure. Check your web server or trusted proxy configuration before enforcing 2FA.</p>
+            <p class="mb-0">HTTPS is enabled in PrestaShop, but this back-office page is not secure. Ask your hosting provider or technical contact to check the web server or proxy before requiring 2FA.</p>
           {% endif %}
         </div>
       {% endif %}
 
       <div class="alert alert-warning mt-3">
-        <h4 class="alert-heading">Before enforcing 2FA</h4>
+        <h4 class="alert-heading">Before requiring 2FA</h4>
         <ul class="mb-0">
-          <li>Enroll at least two trusted super administrators so one person can recover the other.</li>
+          <li>Set up 2FA for at least two trusted SuperAdmins so one person can recover the other.</li>
           <li>Store recovery codes somewhere secure outside PrestaShop. They are shown only once.</li>
-          <li>Test a complete sign-in in a private browser window before rolling the policy out.</li>
-          <li>Keep the server clock synchronized; authenticator codes depend on accurate time.</li>
+          <li>Test a complete sign-in in a private browser window before requiring 2FA for employees.</li>
+          <li>Ask your hosting provider to keep the server time automatic and accurate; authenticator codes depend on it.</li>
         </ul>
       </div>
 
-      <h4 class="mt-4">What changes after enrollment?</h4>
-      <p class="mb-0">After the password step, protected employees enter the current six-digit code from their authenticator app. Sensitive module and theme operations can require another recent verification. Relevant 2FA and protected-operation events appear in the activity log.</p>
+      <h4 class="mt-4">What changes after 2FA is set up?</h4>
+      <p>After entering their password, protected employees also enter the current six-digit code from their authenticator app. Important module and theme changes may ask for another 2FA code. These checks appear in the security activity log.</p>
 
       <h4 class="mt-4">Security emails: what to do</h4>
       <p>Most security emails go to the affected employee and the addresses entered under Security alert recipients. The urgent successful-login alert goes only to the Security alert recipients.</p>

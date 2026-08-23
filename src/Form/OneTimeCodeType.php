@@ -19,6 +19,7 @@ final class OneTimeCodeType extends AbstractType
         $builder
             ->add('code', TextType::class, [
                 'label' => $options['code_label'],
+                'help' => 'Enter the six-digit code currently shown in your authenticator app.',
                 'attr' => [
                     'autocomplete' => 'one-time-code',
                     'autofocus' => $options['autofocus'],
@@ -43,7 +44,7 @@ final class OneTimeCodeType extends AbstractType
         $resolver
             ->setDefaults([
                 'autofocus' => false,
-                'code_label' => 'Authentication code',
+                'code_label' => 'Authenticator app code',
                 'csrf_token_id' => 'mp2fa_code',
                 'submit_class' => 'btn-primary',
                 'submit_label' => 'Verify',

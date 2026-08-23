@@ -62,6 +62,13 @@ final class GridDefinitionFactoryTest extends TestCase
 
         self::assertSame(AuditEventGridDefinitionFactory::GRID_ID, $definition->getId());
         self::assertCount(5, $definition->getColumns());
+
+        $eventColumn = array_values(array_filter(
+            $definition->getColumns()->toArray(),
+            static fn (array $column): bool => 'event' === $column['id']
+        ))[0];
+        self::assertSame('What happened', $eventColumn['name']);
+        self::assertSame('event_label', $eventColumn['options']['field']);
     }
 
     private function prepareFactory(AbstractGridDefinitionFactory $factory): void

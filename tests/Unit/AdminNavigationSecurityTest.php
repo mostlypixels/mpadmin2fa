@@ -147,8 +147,8 @@ final class AdminNavigationSecurityTest extends TestCase
         $template = file_get_contents(dirname(__DIR__, 2) . '/views/templates/admin/security/policy.html.twig');
 
         self::assertIsString($template);
-        self::assertStringContainsString('<h3 class="card-header">Profile enforcement</h3>', $template);
-        self::assertStringContainsString('<h3 class="card-header">Operational settings</h3>', $template);
+        self::assertStringContainsString('<h3 class="card-header">Who must use two-factor authentication</h3>', $template);
+        self::assertStringContainsString('<h3 class="card-header">Other security settings</h3>', $template);
         self::assertLessThan(
             strpos($template, 'policy_form.step_up_seconds'),
             strpos($template, 'policy_form.approval_profiles')

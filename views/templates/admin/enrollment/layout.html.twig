@@ -1,7 +1,7 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% set enrollmentTabs %}
-  <ul class="nav nav-pills" role="navigation" aria-label="Enrollment sections">
+  <ul class="nav nav-pills" role="navigation" aria-label="Employee 2FA sections">
     <li class="nav-item">
       <a class="nav-link tab {{ app.request.attributes.get('_route') == 'mpadmin2fa_enrollment_employees' ? 'active current' }}" href="{{ path('mpadmin2fa_enrollment_employees') }}">Employees</a>
     </li>

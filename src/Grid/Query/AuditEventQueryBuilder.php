@@ -31,7 +31,22 @@ final class AuditEventQueryBuilder extends AbstractDoctrineQueryBuilder
                 . ' WHEN e.id_employee IS NULL THEN CONCAT(a.id_employee, " - Deleted employee")'
                 . ' ELSE CONCAT(a.id_employee, " - ", e.firstname, " ", e.lastname)'
                 . ' END AS employee',
-                'a.event',
+                'CASE a.event'
+                . ' WHEN "enrollment.failed" THEN "Authenticator setup failed"'
+                . ' WHEN "enrollment.confirmed" THEN "Authenticator set up"'
+                . ' WHEN "enrollment.approved" THEN "2FA setup approved"'
+                . ' WHEN "challenge.failed" THEN "Sign-in 2FA failed"'
+                . ' WHEN "challenge.verified" THEN "Sign-in 2FA confirmed"'
+                . ' WHEN "step_up.failed" THEN "Security-change 2FA failed"'
+                . ' WHEN "step_up.verified" THEN "Security-change 2FA confirmed"'
+                . ' WHEN "factor_change.failed" THEN "Authenticator-settings check failed"'
+                . ' WHEN "factor_change.verified" THEN "Authenticator settings confirmed"'
+                . ' WHEN "recovery.failed" THEN "Recovery code rejected"'
+                . ' WHEN "recovery.used" THEN "Recovery code used"'
+                . ' WHEN "recovery.regenerated" THEN "Recovery codes replaced"'
+                . ' WHEN "factor.reset" THEN "Two-factor authentication reset"'
+                . ' WHEN "policy.updated" THEN "Two-factor authentication settings changed"'
+                . ' ELSE a.event END AS event_label',
                 'a.ip'
             );
 
@@ -61,7 +76,7 @@ final class AuditEventQueryBuilder extends AbstractDoctrineQueryBuilder
                     ->andWhere('CONCAT(COALESCE(e.firstname, ""), " ", COALESCE(e.lastname, ""), " ", COALESCE(e.email, "")) LIKE :employee')
                     ->setParameter('employee', '%' . $value . '%');
             } elseif ('event' === $name) {
-                $queryBuilder->andWhere('a.event LIKE :event')->setParameter('event', '%' . $value . '%');
+                $queryBuilder->andWhere('a.event = :event')->setParameter('event', $value);
             } elseif ('ip' === $name) {
                 $queryBuilder->andWhere('a.ip LIKE :ip')->setParameter('ip', '%' . $value . '%');
             }

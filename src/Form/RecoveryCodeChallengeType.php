@@ -19,6 +19,7 @@ final class RecoveryCodeChallengeType extends AbstractType
         $builder
             ->add('recovery_code', TextType::class, [
                 'label' => 'Recovery code',
+                'help' => 'Enter one of the recovery codes you saved when you set up two-factor authentication.',
                 'attr' => ['autocomplete' => 'one-time-code'],
                 'constraints' => [
                     new NotBlank(),

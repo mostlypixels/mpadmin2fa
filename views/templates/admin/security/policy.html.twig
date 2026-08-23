@@ -4,14 +4,14 @@
 
 {% block security_content %}
   {% if not can_update %}
-    <div class="alert alert-info">You can view this policy, but your profile cannot change it.</div>
+    <div class="alert alert-info">You can view these settings, but your employee profile cannot change them.</div>
   {% endif %}
 
   {{ form_start(policy_form, {action: path('mpadmin2fa_security_policy_update')}) }}
     {{ form_errors(policy_form) }}
 
     <div class="card mb-3">
-      <h3 class="card-header">Profile enforcement</h3>
+      <h3 class="card-header">Who must use two-factor authentication</h3>
       <div class="card-body">
         <div class="form-wrapper">
           {{ form_row(policy_form.mode) }}
@@ -22,7 +22,7 @@
     </div>
 
     <div class="card">
-      <h3 class="card-header">Operational settings</h3>
+      <h3 class="card-header">Other security settings</h3>
       <div class="card-body">
         <div class="form-wrapper">
           {{ form_row(policy_form.step_up_seconds) }}
