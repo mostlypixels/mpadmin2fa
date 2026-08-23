@@ -200,6 +200,25 @@ final class SecurityRepository
         ]);
     }
 
+    /**
+     * @return array{failures: int, first_failure_at: string|null}
+     */
+    public function challengeFailuresSinceLastSuccess(int $employeeId): array
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT COUNT(*) AS failures, MIN(date_add) AS first_failure_at FROM ' . $this->table('audit')
+            . ' WHERE id_employee = ? AND event = ? AND id_audit > COALESCE(('
+            . 'SELECT MAX(id_audit) FROM ' . $this->table('audit') . ' WHERE id_employee = ? AND event = ?'
+            . '), 0)',
+            [$employeeId, 'challenge.failed', $employeeId, 'challenge.verified']
+        );
+
+        return [
+            'failures' => (int) ($row['failures'] ?? 0),
+            'first_failure_at' => isset($row['first_failure_at']) ? (string) $row['first_failure_at'] : null,
+        ];
+    }
+
     public function pruneAudit(int $days): int
     {
         return $this->connection->executeStatement(
@@ -265,6 +284,27 @@ final class SecurityRepository
         );
 
         return false === $email ? null : (string) $email;
+    }
+
+    /**
+     * @return array{name: string, email: string}|null
+     */
+    public function employeeIdentity(int $employeeId): ?array
+    {
+        $employee = $this->connection->fetchAssociative(
+            'SELECT firstname, lastname, email FROM ' . $this->dbPrefix . 'employee WHERE id_employee = ?',
+            [$employeeId]
+        );
+        if (false === $employee) {
+            return null;
+        }
+
+        $name = trim((string) $employee['firstname'] . ' ' . (string) $employee['lastname']);
+
+        return [
+            'name' => '' !== $name ? $name : 'Employee #' . $employeeId,
+            'email' => (string) $employee['email'],
+        ];
     }
 
     public function employeeIdByEmail(string $email): ?int

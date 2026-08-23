@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
-/**
+use Mpadmin2fa\Mail\MailThemeLayoutRegistrar;
+use PrestaShop\PrestaShop\Core\MailTemplate\ThemeCatalogInterface;
+use PrestaShop\PrestaShop\Core\MailTemplate\ThemeCollectionInterface;
+
+/*
  * Mpadmin2fa
  *
  * @license MIT
@@ -23,7 +27,7 @@ class Mpadmin2fa extends Module
     {
         $this->name = 'mpadmin2fa';
         $this->tab = 'administration';
-        $this->version = '0.2.0';
+        $this->version = '0.2.4';
         $this->author = 'Cindy Durand';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -35,6 +39,7 @@ class Mpadmin2fa extends Module
             $tabNames['authenticator'][$locale] = $this->trans('Your authenticator', [], 'Modules.Mpadmin2fa.Admin', $locale);
             $tabNames['enrollment'][$locale] = $this->trans('Enrollment', [], 'Modules.Mpadmin2fa.Admin', $locale);
             $tabNames['security'][$locale] = $this->trans('Security', [], 'Modules.Mpadmin2fa.Admin', $locale);
+            $tabNames['activity'][$locale] = $this->trans('Activity log', [], 'Modules.Mpadmin2fa.Admin', $locale);
         }
         $this->tabs = [
             [
@@ -73,6 +78,15 @@ class Mpadmin2fa extends Module
                 'wording' => 'Security',
                 'wording_domain' => 'Modules.Mpadmin2fa.Admin',
             ],
+            [
+                'route_name' => 'mpadmin2fa_security_activity',
+                'class_name' => 'AdminMpAdmin2faSecurityActivity',
+                'visible' => true,
+                'name' => $tabNames['activity'],
+                'parent_class_name' => 'AdminMpAdmin2faSecurity',
+                'wording' => 'Activity log',
+                'wording_domain' => 'Modules.Mpadmin2fa.Admin',
+            ],
         ];
 
         parent::__construct();
@@ -88,7 +102,7 @@ class Mpadmin2fa extends Module
             [],
             'Modules.Mpadmin2fa.Admin'
         );
-        $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => '8.99.99'];
+        $this->ps_versions_compliancy = ['min' => '9.0.0', 'max' => '9.2.99'];
     }
 
     public function install(): bool
@@ -101,6 +115,8 @@ class Mpadmin2fa extends Module
 
         try {
             $installed = parent::install()
+                && $this->registerHook('actionObjectProfileDeleteAfter')
+                && $this->registerHook(ThemeCatalogInterface::LIST_MAIL_THEMES_HOOK)
                 && (new Mpadmin2fa\Install\SchemaInstaller())->install()
                 && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_MODE, 'superadmins')
                 && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_PROFILES, '')
@@ -150,7 +166,14 @@ class Mpadmin2fa extends Module
      */
     public function upgradeAdminTabs(): bool
     {
-        foreach ($this->tabs as $definition) {
+        $definitions = (new Mpadmin2fa\Install\AdminTabHierarchy())->buildUpgradeDefinitions($this->tabs);
+
+        foreach ($definitions as $definition) {
+            $parentId = (int) Tab::getIdFromClassName($definition['parent_class_name']);
+            if ($parentId <= 0) {
+                return false;
+            }
+
             $tabId = (int) Tab::getIdFromClassName($definition['class_name']);
             $tab = $tabId > 0 ? new Tab($tabId) : new Tab();
             $tab->active = (bool) $definition['visible'];
@@ -161,9 +184,7 @@ class Mpadmin2fa extends Module
             $tab->icon = $definition['icon'] ?? null;
             $tab->wording = $definition['wording'];
             $tab->wording_domain = $definition['wording_domain'];
-            $tab->id_parent = isset($definition['parent_class_name'])
-                ? (int) Tab::getIdFromClassName($definition['parent_class_name'])
-                : 0;
+            $tab->id_parent = $parentId;
 
             $localizedNames = $definition['name'];
             $fallbackName = reset($localizedNames);
@@ -186,9 +207,52 @@ class Mpadmin2fa extends Module
         return '';
     }
 
+    /**
+     * Remove deleted profile IDs from the 2FA policy settings.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function hookActionObjectProfileDeleteAfter(array $params): void
+    {
+        $profile = $params['object'] ?? null;
+        if (!$profile instanceof Profile || (int) $profile->id <= 0) {
+            return;
+        }
+
+        foreach ([
+            Mpadmin2fa\Security\Policy::CONFIG_PROFILES,
+            Mpadmin2fa\Security\Policy::CONFIG_APPROVAL_PROFILES,
+        ] as $configurationKey) {
+            $currentValue = (string) Configuration::get($configurationKey);
+            $cleanedValue = Mpadmin2fa\Security\ProfilePolicyCleaner::removeFromList(
+                $currentValue,
+                (int) $profile->id
+            );
+            if ($cleanedValue !== $currentValue) {
+                Configuration::updateValue($configurationKey, $cleanedValue);
+            }
+        }
+    }
+
+    /**
+     * Add the Admin 2FA alert layout to PrestaShop's built-in mail themes.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function hookActionListMailThemes(array $params): void
+    {
+        $themes = $params['mailThemes'] ?? null;
+        if (!$themes instanceof ThemeCollectionInterface) {
+            return;
+        }
+
+        (new MailThemeLayoutRegistrar())->register($themes, $this->name);
+    }
+
     private function grantDefaultTabAccess(): bool
     {
         $tabIds = [
+            (int) Tab::getIdFromClassName('AdminMpAdmin2fa_MTR'),
             (int) Tab::getIdFromClassName('AdminMpAdmin2fa'),
             (int) Tab::getIdFromClassName('AdminMpAdmin2faAuthenticator'),
         ];

@@ -87,6 +87,31 @@
 
       <h4 class="mt-4">What changes after enrollment?</h4>
       <p class="mb-0">After the password step, protected employees enter the current six-digit code from their authenticator app. Sensitive module and theme operations can require another recent verification. Relevant 2FA and protected-operation events appear in the activity log.</p>
+
+      <h4 class="mt-4">Security emails: what to do</h4>
+      <p>Most security emails go to the affected employee and the addresses entered under Security alert recipients. The urgent successful-login alert goes only to the Security alert recipients.</p>
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Priority</th>
+              <th scope="col">What it means</th>
+              <th scope="col">What to do</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for alert in security_alerts %}
+            <tr>
+              <td><strong>{{ alert.title }}</strong></td>
+              <td><span class="badge {{ alert.badge_class }}">{{ alert.priority }}</span></td>
+              <td>{{ alert.meaning }}</td>
+              <td>{{ alert.action }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div></div>

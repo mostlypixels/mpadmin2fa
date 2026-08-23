@@ -9,6 +9,8 @@ use Mpadmin2fa\Repository\SecurityRepository;
 
 final class MfaManager
 {
+    private const SECURITY_ALERT_FAILURE_THRESHOLD = 5;
+
     public function __construct(
         private readonly SecurityRepository $repository,
         private readonly KeyManager $keys,
@@ -83,8 +85,23 @@ final class MfaManager
             return false;
         }
 
+        $challengeFailures = 'challenge' === $scope
+            ? $this->repository->challengeFailuresSinceLastSuccess($employeeId)
+            : null;
         $this->rateLimiter->success($scope, $employeeId, $ip);
         $this->repository->audit($employeeId, $scope . '.verified', $ip);
+        if (null !== $challengeFailures
+            && $challengeFailures['failures'] >= self::SECURITY_ALERT_FAILURE_THRESHOLD
+            && null !== $challengeFailures['first_failure_at']
+        ) {
+            $firstFailureAt = strtotime($challengeFailures['first_failure_at']);
+            $this->alerts->notifySecurityRecipients($employeeId, 'authentication.succeeded_after_failures', [
+                'elapsed_seconds' => false === $firstFailureAt ? 0 : max(0, time() - $firstFailureAt),
+                'failures' => $challengeFailures['failures'],
+                'first_failure_at' => $challengeFailures['first_failure_at'],
+                'ip' => $ip,
+            ]);
+        }
 
         return true;
     }
@@ -135,7 +152,9 @@ final class MfaManager
 
     private function notifyRepeatedFailures(int $employeeId, string $scope, int $failures): void
     {
-        if (5 === $failures || ($failures > 5 && 0 === $failures % 3)) {
+        if (self::SECURITY_ALERT_FAILURE_THRESHOLD === $failures
+            || ($failures > self::SECURITY_ALERT_FAILURE_THRESHOLD && 0 === $failures % 3)
+        ) {
             $this->alerts->notify($employeeId, 'authentication.repeated_failures', [
                 'scope' => $scope,
                 'failures' => $failures,
