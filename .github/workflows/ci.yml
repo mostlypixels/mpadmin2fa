@@ -29,8 +29,15 @@ jobs:
           - '8.4'
 
     steps:
-      - name: Check out the code
-        uses: actions/checkout@v4
+      - name: Check out the module
+        uses: actions/checkout@v5
+
+      - name: Check out PrestaShop
+        uses: actions/checkout@v5
+        with:
+          repository: PrestaShop/PrestaShop
+          ref: 9.0.2
+          path: prestashop
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -40,14 +47,31 @@ jobs:
           tools: composer:v2
           coverage: none
 
+      - name: Install PrestaShop dependencies
+        run: composer install --working-dir=prestashop --no-dev --prefer-dist --no-interaction --no-progress --no-scripts
+
+      - name: Place the module inside PrestaShop
+        run: |
+          mkdir -p prestashop/modules/mpadmin2fa
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='build/' \
+            --exclude='prestashop/' \
+            --exclude='vendor/' \
+            ./ prestashop/modules/mpadmin2fa/
+
       - name: Validate Composer metadata
+        working-directory: prestashop/modules/mpadmin2fa
         run: composer validate --strict
 
-      - name: Install dependencies
+      - name: Install module dependencies
+        working-directory: prestashop/modules/mpadmin2fa
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Run unit tests
+        working-directory: prestashop/modules/mpadmin2fa
         run: composer test
 
       - name: Verify the scoped release build
+        working-directory: prestashop/modules/mpadmin2fa
         run: composer build:scoped
