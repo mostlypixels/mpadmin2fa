@@ -1,0 +1,53 @@
+<section id="mpadmin2fa-dashboard" class="card mb-3">
+  <h3 class="card-header">
+    <i class="material-icons" aria-hidden="true">security</i>
+    {{ title }}
+  </h3>
+  <div class="card-body">
+    <p class="alert {{ has_unenrolled ? 'alert-warning' : 'alert-success' }} mb-0" role="status">
+      {{ message_prefix }}
+      <a class="alert-link" href="{{ enrollment_url }}">{{ enrollment_link_label }}</a>.
+    </p>
+    {% if can_view_security_activity %}
+      <div class="mt-4">
+        <h4 class="mb-3">
+          {{ security_activity_title }}
+        </h4>
+        {% if security_events %}
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm mb-0">
+              <thead class="sr-only">
+                <tr>
+                  <th scope="col">{{ security_event_column_label }}</th>
+                  <th scope="col">{{ security_occurrences_column_label }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for event in security_events %}
+                  <tr>
+                    <td>
+                      <strong>{{ event.event_label }}</strong>
+                      <small class="text-muted d-block">
+                        {{ event.employee }} · {{ event.date_add }}
+                      </small>
+                    </td>
+                    <td class="text-right text-nowrap align-middle" style="width: 1%;">
+                      {% if event.occurrence_label %}<span class="text-muted">{{ event.occurrence_label }}</span>{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="text-right mt-3">
+            <a class="btn btn-outline-secondary btn-sm" href="{{ security_activity_url }}">
+              {{ security_activity_see_all }}
+            </a>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">{{ security_activity_empty }}</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>

@@ -83,24 +83,17 @@ final class AdminNavigationSecurityTest extends TestCase
         self::assertSame(3, substr_count($template, 'class="card-footer d-flex justify-content-end mt-auto"'));
     }
 
-    public function testOverviewDisplaysAuthenticatorStatusAsAContextualAlert(): void
+    public function testOverviewDisplaysAuthenticatorStatusAsContextualGuidance(): void
     {
         $template = file_get_contents(dirname(__DIR__, 2) . '/views/templates/admin/settings.html.twig');
 
         self::assertIsString($template);
         self::assertStringContainsString(
-            "authenticator_active ? 'alert-success' : 'alert-danger'",
-            $template
-        );
-        self::assertStringContainsString(
-            "authenticator_active ? 'Active' : 'Not set up'",
-            $template
-        );
-        self::assertStringContainsString(
             "authenticator_active ? 'Manage and strengthen 2FA' : 'Get started'",
             $template
         );
         self::assertStringContainsString('1. Your account is protected', $template);
+        self::assertStringContainsString('1. Protect your account', $template);
         self::assertStringContainsString(
             "authenticator_active ? 'Manage your authenticator' : 'Set up your authenticator'",
             $template

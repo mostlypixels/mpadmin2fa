@@ -17,9 +17,13 @@ services:
     tags: ['controller.service_arguments']
 
   Mpadmin2fa\Repository\SecurityRepository:
+    public: true
     arguments:
       $connection: '@doctrine.dbal.default_connection'
       $dbPrefix: '%database_prefix%'
+
+  Mpadmin2fa\Security\SecurityActivityAccess:
+    public: true
 
   Mpadmin2fa\Form\SecurityPolicyFormDataProvider:
     arguments:

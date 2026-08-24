@@ -4,11 +4,26 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Repository;
 
+use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Mpadmin2fa\Exception\MfaSecurityException;
 
 final class SecurityRepository
 {
+    private const IMPORTANT_DASHBOARD_EVENTS = [
+        'enrollment.failed',
+        'enrollment.approved',
+        'challenge.failed',
+        'step_up.failed',
+        'factor_change.failed',
+        'recovery.failed',
+        'recovery.used',
+        'factor.reset',
+        'policy.updated',
+    ];
+
     public function __construct(
         private readonly Connection $connection,
         private readonly string $dbPrefix,
@@ -234,6 +249,80 @@ final class SecurityRepository
             . 'employee e ON e.id_employee = f.id_employee WHERE f.status = "active" AND e.id_profile = ? LIMIT 1',
             [$superAdminProfileId]
         );
+    }
+
+    /**
+     * @return array{not_enrolled: int, total: int}
+     */
+    public function activeEmployeeEnrollmentSummary(): array
+    {
+        $employeeTable = $this->connection->quoteIdentifier($this->dbPrefix . 'employee');
+        $row = $this->connection->fetchAssociative(
+            'SELECT COUNT(e.id_employee) AS total, '
+            . 'COALESCE(SUM(CASE WHEN f.status = "active" THEN 0 ELSE 1 END), 0) AS not_enrolled '
+            . 'FROM ' . $employeeTable . ' e LEFT JOIN ' . $this->table('employee') . ' f '
+            . 'ON f.id_employee = e.id_employee WHERE e.active = 1'
+        );
+
+        return [
+            'not_enrolled' => (int) ($row['not_enrolled'] ?? 0),
+            'total' => (int) ($row['total'] ?? 0),
+        ];
+    }
+
+    /**
+     * Return grouped security-significant audit events for the dashboard.
+     *
+     * Events are identical when their event, employee, and metadata match.
+     *
+     * @return list<array{
+     *     date_add: string,
+     *     employee: string,
+     *     event_label: string,
+     *     occurrences: int
+     * }>
+     */
+    public function importantDashboardEventsSince(DateTimeInterface $since): array
+    {
+        $employeeTable = $this->connection->quoteIdentifier($this->dbPrefix . 'employee');
+        $placeholders = implode(', ', array_fill(0, count(self::IMPORTANT_DASHBOARD_EVENTS), '?'));
+        $utcSince = DateTimeImmutable::createFromInterface($since)
+            ->setTimezone(new DateTimeZone('UTC'))
+            ->format('Y-m-d H:i:s');
+
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT MAX(a.date_add) AS date_add, '
+            . 'CASE'
+            . ' WHEN a.id_employee IS NULL THEN "System"'
+            . ' WHEN e.id_employee IS NULL THEN CONCAT(a.id_employee, " - Deleted employee")'
+            . ' ELSE CONCAT(e.firstname, " ", e.lastname)'
+            . ' END AS employee, '
+            . 'CASE a.event'
+            . ' WHEN "enrollment.failed" THEN "Authenticator setup failed"'
+            . ' WHEN "enrollment.approved" THEN "2FA setup approved"'
+            . ' WHEN "challenge.failed" THEN "Sign-in 2FA failed"'
+            . ' WHEN "step_up.failed" THEN "Security-change 2FA failed"'
+            . ' WHEN "factor_change.failed" THEN "Authenticator-settings check failed"'
+            . ' WHEN "recovery.failed" THEN "Recovery code rejected"'
+            . ' WHEN "recovery.used" THEN "Recovery code used"'
+            . ' WHEN "factor.reset" THEN "Two-factor authentication reset"'
+            . ' WHEN "policy.updated" THEN "Two-factor authentication settings changed"'
+            . ' ELSE a.event END AS event_label, '
+            . 'COUNT(*) AS occurrences '
+            . 'FROM ' . $this->table('audit') . ' a '
+            . 'LEFT JOIN ' . $employeeTable . ' e ON e.id_employee = a.id_employee '
+            . 'WHERE a.date_add >= ? AND a.event IN (' . $placeholders . ') '
+            . 'GROUP BY a.id_employee, a.event, a.metadata_json, e.id_employee, e.firstname, e.lastname '
+            . 'ORDER BY date_add DESC',
+            array_merge([$utcSince], self::IMPORTANT_DASHBOARD_EVENTS)
+        );
+
+        return array_map(static fn (array $row): array => [
+            'date_add' => (string) $row['date_add'],
+            'employee' => (string) $row['employee'],
+            'event_label' => (string) $row['event_label'],
+            'occurrences' => (int) $row['occurrences'],
+        ], $rows);
     }
 
     public function enrollmentApprovalStatus(int $employeeId): ?string
