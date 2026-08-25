@@ -14,7 +14,16 @@ services:
   Mpadmin2fa\Controller\Admin\:
     resource: '../../src/Controller/Admin/*'
     public: true
+    bind:
+      $employeeFactorGridFactory: '@mpadmin2fa.grid.factory.employee_factor'
+      $pendingApprovalGridFactory: '@mpadmin2fa.grid.factory.pending_approval'
+      $auditEventGridFactory: '@mpadmin2fa.grid.factory.audit_event'
+      $securityPolicyFormHandler: '@mpadmin2fa.security_policy.form_handler'
     tags: ['controller.service_arguments']
+
+  Mpadmin2fa\Security\FactorConfirmationService:
+    arguments:
+      $passwordEncoder: '@security.password_encoder'
 
   Mpadmin2fa\Repository\SecurityRepository:
     public: true
@@ -29,6 +38,10 @@ services:
     arguments:
       $dataConfiguration: '@Mpadmin2fa\Configuration\SecurityPolicyConfiguration'
 
+  Mpadmin2fa\Form\ProfileChoicesProvider:
+    arguments:
+      $languageId: '@=service("prestashop.adapter.legacy.context").getContext().language.id'
+
   mpadmin2fa.security_policy.form_handler:
     class: 'PrestaShop\PrestaShop\Core\Form\Handler'
     public: true
@@ -41,35 +54,50 @@ services:
       - 'mpadmin2fa-security-policy'
 
   Mpadmin2fa\Grid\Definition\Factory\EmployeeFactorGridDefinitionFactory:
-    parent: 'PrestaShop\PrestaShop\Core\Grid\Definition\Factory\AbstractGridDefinitionFactory'
+    parent: 'prestashop.core.grid.definition.factory.abstract_grid_definition'
+    autowire: false
+    autoconfigure: false
+    public: false
     arguments:
       $authorizationChecker: '@security.authorization_checker'
     tags: ['core.grid_definition_factory']
 
   Mpadmin2fa\Grid\Definition\Factory\PendingApprovalGridDefinitionFactory:
-    parent: 'PrestaShop\PrestaShop\Core\Grid\Definition\Factory\AbstractGridDefinitionFactory'
+    parent: 'prestashop.core.grid.definition.factory.abstract_grid_definition'
+    autowire: false
+    autoconfigure: false
+    public: false
     arguments:
       $authorizationChecker: '@security.authorization_checker'
     tags: ['core.grid_definition_factory']
 
   Mpadmin2fa\Grid\Definition\Factory\AuditEventGridDefinitionFactory:
-    parent: 'PrestaShop\PrestaShop\Core\Grid\Definition\Factory\AbstractGridDefinitionFactory'
+    parent: 'prestashop.core.grid.definition.factory.abstract_grid_definition'
+    autowire: false
+    autoconfigure: false
+    public: false
     tags: ['core.grid_definition_factory']
 
   Mpadmin2fa\Grid\Query\EmployeeFactorQueryBuilder:
     arguments:
       $connection: '@doctrine.dbal.default_connection'
       $dbPrefix: '%database_prefix%'
+      $searchCriteriaApplicator: '@prestashop.core.query.doctrine_search_criteria_applicator'
+      $languageId: '@=service("prestashop.adapter.legacy.context").getContext().language.id'
+      $currentEmployeeId: '@=service("prestashop.adapter.legacy.context").getContext().employee.id'
 
   Mpadmin2fa\Grid\Query\PendingApprovalQueryBuilder:
     arguments:
       $connection: '@doctrine.dbal.default_connection'
       $dbPrefix: '%database_prefix%'
+      $searchCriteriaApplicator: '@prestashop.core.query.doctrine_search_criteria_applicator'
+      $currentEmployeeId: '@=service("prestashop.adapter.legacy.context").getContext().employee.id'
 
   Mpadmin2fa\Grid\Query\AuditEventQueryBuilder:
     arguments:
       $connection: '@doctrine.dbal.default_connection'
       $dbPrefix: '%database_prefix%'
+      $searchCriteriaApplicator: '@prestashop.core.query.doctrine_search_criteria_applicator'
 
   mpadmin2fa.grid.data_factory.employee_factor.inner:
     class: 'PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory'

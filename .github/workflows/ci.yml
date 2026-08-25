@@ -3,10 +3,10 @@ name: Continuous integration
 on:
   push:
     branches:
-      - main
+      - 2.x-ps8
   pull_request:
     branches:
-      - main
+      - 2.x-ps8
 
 permissions:
   contents: read
@@ -17,16 +17,18 @@ concurrency:
 
 jobs:
   test:
-    name: PHP ${{ matrix.php }}
+    name: PrestaShop ${{ matrix.prestashop }} / PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php:
-          - '8.1'
-          - '8.2'
-          - '8.3'
-          - '8.4'
+        include:
+          - prestashop: 8.0.5
+            php: '8.1'
+          - prestashop: 8.2.8
+            php: '8.1'
+          - prestashop: 8.2.8
+            php: '8.4'
 
     steps:
       - name: Check out the module
@@ -36,7 +38,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: PrestaShop/PrestaShop
-          ref: 9.0.2
+          ref: ${{ matrix.prestashop }}
           path: prestashop
 
       - name: Set up PHP

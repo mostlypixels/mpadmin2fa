@@ -105,7 +105,7 @@ class Mpadmin2fa extends Module
             [],
             'Modules.Mpadmin2fa.Admin'
         );
-        $this->ps_versions_compliancy = ['min' => '9.0.0', 'max' => '9.2.99'];
+        $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => '8.2.99'];
     }
 
     public function install(): bool

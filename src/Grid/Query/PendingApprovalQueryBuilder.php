@@ -6,7 +6,6 @@ namespace Mpadmin2fa\Grid\Query;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
-use PrestaShop\PrestaShop\Core\Context\EmployeeContext;
 use PrestaShop\PrestaShop\Core\Grid\Query\AbstractDoctrineQueryBuilder;
 use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineSearchCriteriaApplicatorInterface;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
@@ -17,7 +16,7 @@ final class PendingApprovalQueryBuilder extends AbstractDoctrineQueryBuilder
         Connection $connection,
         string $dbPrefix,
         private readonly DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator,
-        private readonly EmployeeContext $employeeContext,
+        private readonly int $currentEmployeeId,
     ) {
         parent::__construct($connection, $dbPrefix);
     }
@@ -33,9 +32,7 @@ final class PendingApprovalQueryBuilder extends AbstractDoctrineQueryBuilder
                 'CASE WHEN e.id_employee = :current_employee_id THEN 1 ELSE 0 END AS is_current_employee'
             )
             ->setParameter(
-                'current_employee_id',
-                $this->employeeContext->getEmployee()?->getId() ?? 0
-            );
+                'current_employee_id', $this->currentEmployeeId);
 
         $this->searchCriteriaApplicator
             ->applyPagination($searchCriteria, $queryBuilder)

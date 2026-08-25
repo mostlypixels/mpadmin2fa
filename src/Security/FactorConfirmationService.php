@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Security;
 
-use PrestaShopBundle\Entity\Employee\Employee;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use PrestaShopBundle\Security\Admin\Employee;
+use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 
 final class FactorConfirmationService
 {
     public function __construct(
-        private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly UserPasswordEncoderInterface $passwordEncoder,
         private readonly SessionState $sessionState,
         private readonly Policy $policy,
         private readonly MfaManager $mfa,
@@ -23,7 +23,7 @@ final class FactorConfirmationService
     public function verify(Employee $employee, array $data, ?string $ip): bool
     {
         if ($this->passwordRequired($employee)
-            && !$this->passwordHasher->isPasswordValid($employee, (string) ($data['password'] ?? ''))
+            && !$this->passwordEncoder->isPasswordValid($employee, (string) ($data['password'] ?? ''))
         ) {
             return false;
         }

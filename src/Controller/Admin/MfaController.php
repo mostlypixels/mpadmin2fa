@@ -23,30 +23,31 @@ use Mpadmin2fa\Security\SessionState;
 use Mpadmin2fa\Security\TotpService;
 use PrestaShop\PrestaShop\Core\Form\FormHandlerInterface;
 use PrestaShop\PrestaShop\Core\Grid\GridFactoryInterface;
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Entity\Employee\Employee;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
-use PrestaShopBundle\Security\Attribute\DemoRestricted;
+use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
+use PrestaShopBundle\Security\Admin\Employee;
+use PrestaShopBundle\Security\Annotation\AdminSecurity;
+use PrestaShopBundle\Security\Annotation\DemoRestricted;
 use RuntimeException;
-use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
-final class MfaController extends PrestaShopAdminController
+final class MfaController extends FrameworkBundleAdminController
 {
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function __construct(private readonly TokenStorageInterface $tokenStorage)
+    {
+        parent::__construct();
+    }
+
     public function challenge(
         Request $request,
-        Security $security,
         MfaManager $mfa,
         SessionState $sessionState,
         RouterInterface $router,
     ): Response {
-        $employee = $this->employee($security);
+        $employee = $this->employee();
         if (!$mfa->active($employee->getId())) {
             return $this->redirectToRoute('mpadmin2fa_enroll');
         }
@@ -101,10 +102,8 @@ final class MfaController extends PrestaShopAdminController
         ]);
     }
 
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function enroll(
         Request $request,
-        Security $security,
         MfaManager $mfa,
         TotpService $totp,
         SessionState $sessionState,
@@ -112,7 +111,7 @@ final class MfaController extends PrestaShopAdminController
         SecurityRepository $repository,
     ): Response {
         $this->requireHttps($request);
-        $employee = $this->employee($security);
+        $employee = $this->employee();
         $recoveryReplacement = $sessionState->isRecoveryRestricted($employee->getId());
         $authorizedReplacement = $recoveryReplacement
             || $sessionState->isEnrollmentReplacementAuthorized($employee->getId());
@@ -166,7 +165,7 @@ final class MfaController extends PrestaShopAdminController
             return $this->redirectToRoute('mpadmin2fa_enroll');
         }
 
-        $uri = $totp->provisioningUri('PrestaShop Admin', $employee->getEmail(), $secret);
+        $uri = $totp->provisioningUri('PrestaShop Admin', $employee->getUsername(), $secret);
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enroll.html.twig', [
             'confirmation_form' => $form->createView(),
@@ -176,7 +175,6 @@ final class MfaController extends PrestaShopAdminController
         ]);
     }
 
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function recoveryCodes(Request $request, RouterInterface $router): Response
     {
         $codes = $request->getSession()->get('mp2fa_recovery_plaintext');
@@ -199,15 +197,13 @@ final class MfaController extends PrestaShopAdminController
         ]);
     }
 
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function replace(
         Request $request,
-        Security $security,
         FactorConfirmationService $confirmation,
         MfaManager $mfa,
         SessionState $sessionState,
     ): Response {
-        $employee = $this->employee($security);
+        $employee = $this->employee();
         $form = $this->createForm(ReplaceFactorType::class, null, [
             'password_required' => $confirmation->passwordRequired($employee),
         ]);
@@ -232,16 +228,14 @@ final class MfaController extends PrestaShopAdminController
         }
     }
 
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function disable(
         Request $request,
-        Security $security,
         FactorConfirmationService $confirmation,
         Policy $policy,
         MfaManager $mfa,
         SessionState $sessionState,
     ): Response {
-        $employee = $this->employee($security);
+        $employee = $this->employee();
         if ($policy->requiresLoginMfa($employee)) {
             $this->addFlash('error', "Your shop's security settings require two-factor authentication, so you cannot turn it off.");
 
@@ -271,15 +265,13 @@ final class MfaController extends PrestaShopAdminController
         }
     }
 
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function regenerateRecoveryCodes(
         Request $request,
-        Security $security,
         FactorConfirmationService $confirmation,
         MfaManager $mfa,
         SessionState $sessionState,
     ): Response {
-        $employee = $this->employee($security);
+        $employee = $this->employee();
         $form = $this->createForm(RegenerateRecoveryCodesType::class, null, [
             'password_required' => $confirmation->passwordRequired($employee),
         ]);
@@ -304,14 +296,15 @@ final class MfaController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     */
     public function settings(
         Request $request,
-        Security $security,
         MfaManager $mfa,
         SecurityAlertCatalog $alertCatalog,
     ): Response {
-        $employee = $this->employee($security);
+        $employee = $this->employee();
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/settings.html.twig', [
             'layoutTitle' => 'Admin 2FA',
@@ -325,13 +318,14 @@ final class MfaController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     */
     public function authenticator(
-        Security $security,
         FactorConfirmationService $confirmation,
         MfaManager $mfa,
     ): Response {
-        $employee = $this->employee($security);
+        $employee = $this->employee();
         if (!$mfa->active($employee->getId())) {
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/authenticator.html.twig', [
                 'active' => false,
@@ -342,36 +336,39 @@ final class MfaController extends PrestaShopAdminController
         return $this->renderAuthenticator($employee, $confirmation);
     }
 
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     */
     public function enrollmentEmployees(
         EmployeeFactorFilters $filters,
-        #[Autowire(service: 'mpadmin2fa.grid.factory.employee_factor')]
-        GridFactoryInterface $gridFactory,
+        GridFactoryInterface $employeeFactorGridFactory,
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/employees.html.twig', [
-            'employeeFactorGrid' => $this->presentGrid($gridFactory->getGrid($filters)),
+            'employeeFactorGrid' => $this->presentGrid($employeeFactorGridFactory->getGrid($filters)),
             'layoutTitle' => 'Employee 2FA',
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     */
     public function enrollmentApprovals(
         PendingApprovalFilters $filters,
-        #[Autowire(service: 'mpadmin2fa.grid.factory.pending_approval')]
-        GridFactoryInterface $gridFactory,
+        GridFactoryInterface $pendingApprovalGridFactory,
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/approvals.html.twig', [
             'layoutTitle' => 'Employee 2FA',
-            'pendingApprovalGrid' => $this->presentGrid($gridFactory->getGrid($filters)),
+            'pendingApprovalGrid' => $this->presentGrid($pendingApprovalGridFactory->getGrid($filters)),
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     */
     public function securityPolicy(
-        #[Autowire(service: 'mpadmin2fa.security_policy.form_handler')]
-        FormHandlerInterface $formHandler,
+        FormHandlerInterface $securityPolicyFormHandler,
     ): Response {
-        $form = $formHandler->getForm();
+        $form = $securityPolicyFormHandler->getForm();
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
             'layoutTitle' => 'Security',
@@ -380,20 +377,20 @@ final class MfaController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    #[DemoRestricted(redirectRoute: 'mpadmin2fa_security_policy')]
+    /**
+     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @DemoRestricted(redirectRoute="mpadmin2fa_security_policy")
+     */
     public function updateSecurityPolicy(
         Request $request,
-        Security $security,
         SecurityRepository $repository,
         Policy $policy,
         SessionState $sessionState,
-        #[Autowire(service: 'mpadmin2fa.security_policy.form_handler')]
-        FormHandlerInterface $formHandler,
+        FormHandlerInterface $securityPolicyFormHandler,
     ): Response {
-        $employee = $this->employee($security);
+        $employee = $this->employee();
         $this->assertFreshVerification($employee, $sessionState, $policy);
-        $form = $formHandler->getForm();
+        $form = $securityPolicyFormHandler->getForm();
         $form->handleRequest($request);
         if (!$form->isSubmitted() || !$form->isValid()) {
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
@@ -403,9 +400,11 @@ final class MfaController extends PrestaShopAdminController
             ]);
         }
 
-        $errors = $formHandler->save($form->getData());
+        $errors = $securityPolicyFormHandler->save($form->getData());
         if (!empty($errors)) {
-            $this->addFlashErrors($errors);
+            foreach ($errors as $error) {
+                $this->addFlash('error', (string) $error);
+            }
 
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
                 'layoutTitle' => 'Security',
@@ -420,29 +419,31 @@ final class MfaController extends PrestaShopAdminController
         return $this->redirectToRoute('mpadmin2fa_security_policy');
     }
 
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     */
     public function securityActivity(
         AuditEventFilters $filters,
-        #[Autowire(service: 'mpadmin2fa.grid.factory.audit_event')]
-        GridFactoryInterface $gridFactory,
+        GridFactoryInterface $auditEventGridFactory,
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/activity.html.twig', [
-            'auditEventGrid' => $this->presentGrid($gridFactory->getGrid($filters)),
+            'auditEventGrid' => $this->presentGrid($auditEventGridFactory->getGrid($filters)),
             'layoutTitle' => 'Security',
         ]);
     }
 
-    #[AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    #[DemoRestricted(redirectRoute: 'mpadmin2fa_enrollment_approvals')]
+    /**
+     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @DemoRestricted(redirectRoute="mpadmin2fa_enrollment_approvals")
+     */
     public function approveEnrollment(
         Request $request,
         int $employeeId,
-        Security $security,
         SecurityRepository $repository,
         SessionState $sessionState,
         Policy $policy,
     ): Response {
-        $actor = $this->employee($security);
+        $actor = $this->employee();
         $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_approve_' . $employeeId);
         if ($actor->getId() === $employeeId) {
@@ -458,17 +459,18 @@ final class MfaController extends PrestaShopAdminController
         return $this->redirectToRoute('mpadmin2fa_enrollment_approvals');
     }
 
-    #[AdminSecurity("is_granted('delete', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
-    #[DemoRestricted(redirectRoute: 'mpadmin2fa_enrollment_employees')]
+    /**
+     * @AdminSecurity("is_granted('delete', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @DemoRestricted(redirectRoute="mpadmin2fa_enrollment_employees")
+     */
     public function adminReset(
         Request $request,
         int $employeeId,
-        Security $security,
         MfaManager $mfa,
         SessionState $sessionState,
         Policy $policy,
     ): Response {
-        $actor = $this->employee($security);
+        $actor = $this->employee();
         $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_admin_reset_' . $employeeId);
         if ($actor->getId() === $employeeId) {
@@ -517,9 +519,10 @@ final class MfaController extends PrestaShopAdminController
         throw new RuntimeException('No supported PrestaShop dashboard route is available.');
     }
 
-    private function employee(Security $security): Employee
+    private function employee(): Employee
     {
-        $employee = $security->getUser();
+        $token = $this->tokenStorage->getToken();
+        $employee = null !== $token ? $token->getUser() : null;
         if (!$employee instanceof Employee) {
             throw $this->createAccessDeniedException();
         }
