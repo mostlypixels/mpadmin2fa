@@ -52,12 +52,13 @@ The generated demo administrator credentials are:
 ## Current compatibility baseline
 
 - PrestaShop 8 (`2.x-ps8`):
-  - Declared support is PrestaShop 8.0.0 through 8.2.x, with PHP 8.1 or newer.
-  - CI exercises PrestaShop 8.0.5 / PHP 8.1, PrestaShop 8.2.8 /
-    PHP 8.1, and PrestaShop 8.2.8 / PHP 8.4.
+  - Declared support is PrestaShop 8.0.0 through 8.2.x, with PHP 7.2.5
+    through PHP 8.1.
+  - CI exercises PrestaShop 8.0.5 / PHP 7.2, PrestaShop 8.2.8 /
+    PHP 7.2, and PrestaShop 8.2.8 / PHP 8.1.
   - Symfony 4.4 adapters use legacy admin-controller annotations, token storage,
     the password encoder, and the interactive-login event.
-  - PHPUnit 10 passes 72 tests / 319 assertions against the production
+  - PHPUnit 8 passes 72 tests / 319 assertions against the production
     dependency sets from both PrestaShop 8.0.5 and 8.2.8.
   - On 8.2.8, cache compilation, all 18 module routes, and all four maintenance
     commands succeed.
