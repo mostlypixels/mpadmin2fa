@@ -24,9 +24,9 @@ jobs:
       matrix:
         include:
           - prestashop: 1.7.8.0
-            php: '7.2'
+            php: '7.1'
           - prestashop: 1.7.8.11
-            php: '7.2'
+            php: '7.1'
           - prestashop: 1.7.8.11
             php: '7.4'
 
@@ -46,11 +46,11 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: zip
-          tools: composer:v2
+          tools: composer:2.2
           coverage: none
 
       - name: Install PrestaShop dependencies
-        run: composer install --working-dir=prestashop --no-dev --prefer-dist --no-interaction --no-progress --no-scripts
+        run: composer install --working-dir=prestashop --no-dev --prefer-dist --no-interaction --no-progress --no-scripts --ignore-platform-req=php
 
       - name: Place the module inside PrestaShop
         run: |

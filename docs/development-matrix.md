@@ -62,17 +62,19 @@ The generated demo administrator credentials are:
   - On 8.2.8, cache compilation, all 18 module routes, and all four maintenance
     commands succeed.
 - PrestaShop 1.7 (`1.x-ps17`):
-  - Declared support is PrestaShop 1.7.8.0 through 1.7.8.x, with a PHP 7.2.5
-    runtime floor.
-  - CI exercises PrestaShop 1.7.8.0 / PHP 7.2, PrestaShop 1.7.8.11 /
-    PHP 7.2, and PrestaShop 1.7.8.11 / PHP 7.4.
+  - Declared support is PrestaShop 1.7.8.0 through 1.7.8.x, with PHP 7.1
+    through PHP 7.4.
+  - CI exercises PrestaShop 1.7.8.0 / PHP 7.1, PrestaShop 1.7.8.11 /
+    PHP 7.1, and PrestaShop 1.7.8.11 / PHP 7.4.
+  - PHP 7.1 jobs use Composer 2.2 LTS and ignore only PrestaShop's stricter
+    source-root PHP constraint; the published 1.7.8 runtime matrix includes PHP 7.1.
   - Symfony 3.4 and DBAL 2 adapters use explicit legacy services, command tags,
     form options, grid namespaces, and result methods.
-  - PHPUnit 8 passes 72 tests / 321 assertions against the production
+  - PHPUnit 7 passes 72 tests / 321 assertions against the production
     dependency sets from both PrestaShop 1.7.8.0 and 1.7.8.11.
-  - On 1.7.8.11, cache compilation, all 18 module routes, and all four
-    maintenance commands succeed.
-  - The scoped release package passes a full PHP 7.2 syntax scan and a live
+  - On 1.7.8.11 with PHP 7.1 and PHP 7.4, cache compilation, all 18 module
+    routes, and all four maintenance commands succeed.
+  - The scoped release package passes a full PHP 7.1 syntax scan and a live
     TOTP-generation smoke test. Release tooling runs separately on PHP 8.1-8.4
     and removes PHP 8-only SensitiveParameter metadata from scoped dependencies
     without changing their cryptographic behavior.

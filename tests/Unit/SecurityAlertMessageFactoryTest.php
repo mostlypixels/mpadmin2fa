@@ -10,8 +10,10 @@ use PHPUnit\Framework\TestCase;
 
 final class SecurityAlertMessageFactoryTest extends TestCase
 {
-    private SecurityAlertCatalog $catalog;
-    private SecurityAlertMessageFactory $factory;
+    /** @var SecurityAlertCatalog */
+    private $catalog;
+    /** @var SecurityAlertMessageFactory */
+    private $factory;
 
     protected function setUp(): void
     {

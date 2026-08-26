@@ -66,8 +66,8 @@ final class LoginHttpsGuardTest extends TestCase
     private function guard(): LoginHttpsGuard
     {
         return new LoginHttpsGuard(
-            $this->createStub(TokenStorageInterface::class),
-            $this->createStub(RouterInterface::class)
+            $this->createMock(TokenStorageInterface::class),
+            $this->createMock(RouterInterface::class)
         );
     }
 }

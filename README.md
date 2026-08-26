@@ -33,7 +33,7 @@ composer build:tools
 composer build:scoped
 ```
 
-Production dependencies and tests remain compatible with PHP 7.2.5. Build tooling is installed separately and requires PHP 8.1-8.4.
+Production dependencies and tests remain compatible with PHP 7.1. Build tooling is installed separately and requires PHP 8.1-8.4.
 
 The scoped release is written to `build/mpadmin2fa` with an SBOM and SHA-256 checksums. Build with PHP 8.1–8.4.
 
