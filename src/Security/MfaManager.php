@@ -9,16 +9,41 @@ use Mpadmin2fa\Repository\SecurityRepository;
 
 final class MfaManager
 {
+
+    /** @var SecurityRepository */
+    private $repository;
+
+    /** @var KeyManager */
+    private $keys;
+
+    /** @var TotpService */
+    private $totp;
+
+    /** @var RecoveryCodeService */
+    private $recoveryCodes;
+
+    /** @var RateLimiter */
+    private $rateLimiter;
+
+    /** @var SecurityAlertService */
+    private $alerts;
+
     private const SECURITY_ALERT_FAILURE_THRESHOLD = 5;
 
     public function __construct(
-        private readonly SecurityRepository $repository,
-        private readonly KeyManager $keys,
-        private readonly TotpService $totp,
-        private readonly RecoveryCodeService $recoveryCodes,
-        private readonly RateLimiter $rateLimiter,
-        private readonly SecurityAlertService $alerts,
+        SecurityRepository $repository,
+        KeyManager $keys,
+        TotpService $totp,
+        RecoveryCodeService $recoveryCodes,
+        RateLimiter $rateLimiter,
+        SecurityAlertService $alerts
     ) {
+        $this->repository = $repository;
+        $this->keys = $keys;
+        $this->totp = $totp;
+        $this->recoveryCodes = $recoveryCodes;
+        $this->rateLimiter = $rateLimiter;
+        $this->alerts = $alerts;
     }
 
     public function beginEnrollment(int $employeeId): string

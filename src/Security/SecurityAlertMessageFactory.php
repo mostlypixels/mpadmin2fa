@@ -6,8 +6,13 @@ namespace Mpadmin2fa\Security;
 
 final class SecurityAlertMessageFactory
 {
-    public function __construct(private readonly SecurityAlertCatalog $catalog)
+    /** @var SecurityAlertCatalog */
+    private $catalog;
+
+    public function __construct(SecurityAlertCatalog $catalog)
     {
+        $this->catalog = $catalog;
+
     }
 
     /**
@@ -109,13 +114,13 @@ final class SecurityAlertMessageFactory
         return $labels[$label] ?? ucfirst(str_replace('_', ' ', $label));
     }
 
-    private function value(mixed $value): string
+    private function value($value): string
     {
         if (is_bool($value)) {
             return $value ? 'Yes' : 'No';
         }
         if (is_array($value)) {
-            return implode(', ', array_map(fn (mixed $item): string => $this->value($item), $value));
+            return implode(', ', array_map(function ($item): string { return $this->value($item); }, $value));
         }
         if (null === $value || '' === $value) {
             return 'Not available';

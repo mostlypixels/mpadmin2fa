@@ -12,9 +12,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 final class KeyRotationCommand extends Command
 {
+
+    /** @var KeyManager */
+    private $keys;
+
     protected static $defaultName = 'mpadmin2fa:key:rotate';
-    public function __construct(private readonly KeyManager $keys)
-    {
+    public function __construct(KeyManager $keys) {
+        $this->keys = $keys;
         parent::__construct();
     }
 

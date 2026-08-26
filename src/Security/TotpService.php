@@ -12,7 +12,8 @@ use PragmaRX\Google2FA\Google2FA;
 
 final class TotpService
 {
-    private readonly Google2FA $google2fa;
+    /** @var Google2FA */
+    private $google2fa;
 
     public function __construct()
     {
@@ -28,7 +29,7 @@ final class TotpService
         return $this->google2fa->generateSecretKey(32);
     }
 
-    public function verifyNewer(string $secret, string $code, ?int $lastCounter, ?int $counter = null): int|false
+    public function verifyNewer(string $secret, string $code, ?int $lastCounter, ?int $counter = null)
     {
         if (1 !== preg_match('/^[0-9]{6}$/D', $code)) {
             return false;

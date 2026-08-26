@@ -9,6 +9,10 @@ use PrestaShopBundle\Security\Admin\Employee;
 
 final class Policy
 {
+
+    /** @var ConfigurationInterface */
+    private $configuration;
+
     public const CONFIG_MODE = 'MP2FA_ENFORCEMENT_MODE';
     public const CONFIG_PROFILES = 'MP2FA_ENFORCED_PROFILES';
     public const CONFIG_STEP_UP_SECONDS = 'MP2FA_STEP_UP_SECONDS';
@@ -17,8 +21,8 @@ final class Policy
     public const CONFIG_APPROVAL_PROFILES = 'MP2FA_APPROVAL_PROFILES';
     public const CONFIG_SECURITY_RECIPIENTS = 'MP2FA_SECURITY_RECIPIENTS';
 
-    public function __construct(private readonly ConfigurationInterface $configuration)
-    {
+    public function __construct(ConfigurationInterface $configuration) {
+        $this->configuration = $configuration;
     }
 
     public function requiresLoginMfa(Employee $employee): bool

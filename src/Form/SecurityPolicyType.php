@@ -24,16 +24,25 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 final class SecurityPolicyType extends AbstractType
 {
+
+    /** @var ProfileChoicesProvider|null */
+    private $profileChoicesProvider;
+
+    /** @var AuthorizationCheckerInterface|null */
+    private $authorizationChecker;
+
     public function __construct(
-        private readonly ?ProfileChoicesProvider $profileChoicesProvider = null,
-        private readonly ?AuthorizationCheckerInterface $authorizationChecker = null,
+        ?ProfileChoicesProvider $profileChoicesProvider = null,
+        ?AuthorizationCheckerInterface $authorizationChecker = null
     ) {
+        $this->profileChoicesProvider = $profileChoicesProvider;
+        $this->authorizationChecker = $authorizationChecker;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $profileChoices = $options['profile_choices']
-            ?? $this->profileChoicesProvider?->getChoices()
+            ?? (null !== $this->profileChoicesProvider ? $this->profileChoicesProvider->getChoices() : null)
             ?? [];
 
         $builder
@@ -123,7 +132,7 @@ final class SecurityPolicyType extends AbstractType
             ->setAllowedTypes('show_submit', 'bool');
     }
 
-    public static function validateCommaSeparatedEmails(mixed $value, ExecutionContextInterface $context): void
+    public static function validateCommaSeparatedEmails($value, ExecutionContextInterface $context): void
     {
         if (null === $value || '' === trim((string) $value)) {
             return;

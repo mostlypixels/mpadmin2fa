@@ -12,13 +12,26 @@ use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
 
 final class EmployeeFactorQueryBuilder extends AbstractDoctrineQueryBuilder
 {
+
+    /** @var DoctrineSearchCriteriaApplicatorInterface */
+    private $searchCriteriaApplicator;
+
+    /** @var int */
+    private $languageId;
+
+    /** @var int */
+    private $currentEmployeeId;
+
     public function __construct(
         Connection $connection,
         string $dbPrefix,
-        private readonly DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator,
-        private readonly int $languageId,
-        private readonly int $currentEmployeeId,
+        DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator,
+        int $languageId,
+        int $currentEmployeeId
     ) {
+        $this->searchCriteriaApplicator = $searchCriteriaApplicator;
+        $this->languageId = $languageId;
+        $this->currentEmployeeId = $currentEmployeeId;
         parent::__construct($connection, $dbPrefix);
     }
 

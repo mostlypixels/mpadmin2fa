@@ -10,8 +10,12 @@ final class SessionState
 {
     private const KEY = 'mpadmin2fa';
 
-    public function __construct(private readonly RequestStack $requestStack)
+    /** @var RequestStack */
+    private $requestStack;
+
+    public function __construct(RequestStack $requestStack)
     {
+        $this->requestStack = $requestStack;
     }
 
     public function resetForLogin(int $employeeId): void
@@ -35,8 +39,10 @@ final class SessionState
 
     public function clear(): void
     {
-        $session = $this->requestStack->getCurrentRequest()?->getSession();
-        $session?->remove(self::KEY);
+        $request = $this->requestStack->getCurrentRequest();
+        if (null !== $request) {
+            $request->getSession()->remove(self::KEY);
+        }
     }
 
     public function isVerified(int $employeeId): bool
@@ -110,16 +116,16 @@ final class SessionState
 
     private function read(): array
     {
-        $session = $this->requestStack->getCurrentRequest()?->getSession();
+        $request = $this->requestStack->getCurrentRequest();
 
-        return $session?->get(self::KEY, []) ?? [];
+        return null !== $request ? (array) $request->getSession()->get(self::KEY, []) : [];
     }
 
     private function write(array $state): void
     {
-        $session = $this->requestStack->getCurrentRequest()?->getSession();
-        if (null !== $session) {
-            $session->set(self::KEY, $state);
+        $request = $this->requestStack->getCurrentRequest();
+        if (null !== $request) {
+            $request->getSession()->set(self::KEY, $state);
         }
     }
 }

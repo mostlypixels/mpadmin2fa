@@ -13,11 +13,24 @@ use Throwable;
 
 final class SecurityAlertService
 {
+
+    /** @var SecurityRepository */
+    private $repository;
+
+    /** @var ConfigurationInterface */
+    private $configuration;
+
+    /** @var SecurityAlertMessageFactory */
+    private $messages;
+
     public function __construct(
-        private readonly SecurityRepository $repository,
-        private readonly ConfigurationInterface $configuration,
-        private readonly SecurityAlertMessageFactory $messages,
+        SecurityRepository $repository,
+        ConfigurationInterface $configuration,
+        SecurityAlertMessageFactory $messages
     ) {
+        $this->repository = $repository;
+        $this->configuration = $configuration;
+        $this->messages = $messages;
     }
 
     public function notify(?int $employeeId, string $event, array $metadata = []): void
@@ -81,7 +94,7 @@ final class SecurityAlertService
                 null,
                 dirname(__DIR__, 2) . '/mails/'
             );
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
             // Authentication must remain deterministic even if the merchant mail transport is unavailable.
         }
     }

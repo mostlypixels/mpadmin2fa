@@ -7,7 +7,6 @@ namespace Mpadmin2fa\Tests\Unit;
 require_once dirname(__DIR__, 4) . '/vendor/autoload.php';
 
 use Mpadmin2fa\Security\ProfilePolicyCleaner;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class ProfilePolicyCleanerTest extends TestCase
@@ -20,7 +19,7 @@ final class ProfilePolicyCleanerTest extends TestCase
         yield 'invalid and duplicate values' => ['0,2,2,garbage,4', 3, '2,4'];
     }
 
-    #[DataProvider('profileLists')]
+    /** @dataProvider profileLists */
     public function testDeletedProfileIsRemoved(string $storedIds, int $deletedId, string $expected): void
     {
         self::assertSame($expected, ProfilePolicyCleaner::removeFromList($storedIds, $deletedId));

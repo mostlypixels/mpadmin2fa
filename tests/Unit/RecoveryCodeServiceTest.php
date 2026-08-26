@@ -19,7 +19,7 @@ final class RecoveryCodeServiceTest extends TestCase
         self::assertCount(10, array_unique($codes));
         self::assertCount(10, $hashes);
         foreach ($codes as $index => $code) {
-            self::assertMatchesRegularExpression('/^[A-F0-9]{5}(?:-[A-F0-9]{5}){3}$/', $code);
+            self::assertRegExp('/^[A-F0-9]{5}(?:-[A-F0-9]{5}){3}$/', $code);
             self::assertNotSame($code, $hashes[$index]);
             self::assertTrue(password_verify($code, $hashes[$index]));
         }

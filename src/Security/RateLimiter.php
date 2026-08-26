@@ -9,11 +9,15 @@ use RuntimeException;
 
 final class RateLimiter
 {
+
+    /** @var SecurityRepository */
+    private $repository;
+
     private const FREE_FAILURES = 5;
     private const MAX_DELAY_SECONDS = 3600;
 
-    public function __construct(private readonly SecurityRepository $repository)
-    {
+    public function __construct(SecurityRepository $repository) {
+        $this->repository = $repository;
     }
 
     public function assertAllowed(string $scope, int $employeeId, ?string $ip): void

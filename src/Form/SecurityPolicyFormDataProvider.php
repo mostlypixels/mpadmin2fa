@@ -9,8 +9,12 @@ use PrestaShop\PrestaShop\Core\Form\FormDataProviderInterface;
 
 final class SecurityPolicyFormDataProvider implements FormDataProviderInterface
 {
-    public function __construct(private readonly DataConfigurationInterface $dataConfiguration)
-    {
+
+    /** @var DataConfigurationInterface */
+    private $dataConfiguration;
+
+    public function __construct(DataConfigurationInterface $dataConfiguration) {
+        $this->dataConfiguration = $dataConfiguration;
     }
 
     public function getData(): array

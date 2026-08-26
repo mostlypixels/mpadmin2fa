@@ -36,8 +36,12 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 
 final class MfaController extends FrameworkBundleAdminController
 {
-    public function __construct(private readonly TokenStorageInterface $tokenStorage)
-    {
+
+    /** @var TokenStorageInterface */
+    private $tokenStorage;
+
+    public function __construct(TokenStorageInterface $tokenStorage) {
+        $this->tokenStorage = $tokenStorage;
         parent::__construct();
     }
 
@@ -45,7 +49,7 @@ final class MfaController extends FrameworkBundleAdminController
         Request $request,
         MfaManager $mfa,
         SessionState $sessionState,
-        RouterInterface $router,
+        RouterInterface $router
     ): Response {
         $employee = $this->employee();
         if (!$mfa->active($employee->getId())) {
@@ -108,7 +112,7 @@ final class MfaController extends FrameworkBundleAdminController
         TotpService $totp,
         SessionState $sessionState,
         Policy $policy,
-        SecurityRepository $repository,
+        SecurityRepository $repository
     ): Response {
         $this->requireHttps($request);
         $employee = $this->employee();
@@ -137,7 +141,7 @@ final class MfaController extends FrameworkBundleAdminController
         try {
             try {
                 $secret = $mfa->pendingSecret($employee->getId());
-            } catch (MfaSecurityException) {
+            } catch (MfaSecurityException $exception) {
                 $secret = $mfa->beginEnrollment($employee->getId());
             }
 
@@ -201,7 +205,7 @@ final class MfaController extends FrameworkBundleAdminController
         Request $request,
         FactorConfirmationService $confirmation,
         MfaManager $mfa,
-        SessionState $sessionState,
+        SessionState $sessionState
     ): Response {
         $employee = $this->employee();
         $form = $this->createForm(ReplaceFactorType::class, null, [
@@ -233,7 +237,7 @@ final class MfaController extends FrameworkBundleAdminController
         FactorConfirmationService $confirmation,
         Policy $policy,
         MfaManager $mfa,
-        SessionState $sessionState,
+        SessionState $sessionState
     ): Response {
         $employee = $this->employee();
         if ($policy->requiresLoginMfa($employee)) {
@@ -269,7 +273,7 @@ final class MfaController extends FrameworkBundleAdminController
         Request $request,
         FactorConfirmationService $confirmation,
         MfaManager $mfa,
-        SessionState $sessionState,
+        SessionState $sessionState
     ): Response {
         $employee = $this->employee();
         $form = $this->createForm(RegenerateRecoveryCodesType::class, null, [
@@ -302,7 +306,7 @@ final class MfaController extends FrameworkBundleAdminController
     public function settings(
         Request $request,
         MfaManager $mfa,
-        SecurityAlertCatalog $alertCatalog,
+        SecurityAlertCatalog $alertCatalog
     ): Response {
         $employee = $this->employee();
 
@@ -323,7 +327,7 @@ final class MfaController extends FrameworkBundleAdminController
      */
     public function authenticator(
         FactorConfirmationService $confirmation,
-        MfaManager $mfa,
+        MfaManager $mfa
     ): Response {
         $employee = $this->employee();
         if (!$mfa->active($employee->getId())) {
@@ -341,7 +345,7 @@ final class MfaController extends FrameworkBundleAdminController
      */
     public function enrollmentEmployees(
         EmployeeFactorFilters $filters,
-        GridFactoryInterface $employeeFactorGridFactory,
+        GridFactoryInterface $employeeFactorGridFactory
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/employees.html.twig', [
             'employeeFactorGrid' => $this->presentGrid($employeeFactorGridFactory->getGrid($filters)),
@@ -354,7 +358,7 @@ final class MfaController extends FrameworkBundleAdminController
      */
     public function enrollmentApprovals(
         PendingApprovalFilters $filters,
-        GridFactoryInterface $pendingApprovalGridFactory,
+        GridFactoryInterface $pendingApprovalGridFactory
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/approvals.html.twig', [
             'layoutTitle' => 'Employee 2FA',
@@ -366,7 +370,7 @@ final class MfaController extends FrameworkBundleAdminController
      * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
      */
     public function securityPolicy(
-        FormHandlerInterface $securityPolicyFormHandler,
+        FormHandlerInterface $securityPolicyFormHandler
     ): Response {
         $form = $securityPolicyFormHandler->getForm();
 
@@ -386,7 +390,7 @@ final class MfaController extends FrameworkBundleAdminController
         SecurityRepository $repository,
         Policy $policy,
         SessionState $sessionState,
-        FormHandlerInterface $securityPolicyFormHandler,
+        FormHandlerInterface $securityPolicyFormHandler
     ): Response {
         $employee = $this->employee();
         $this->assertFreshVerification($employee, $sessionState, $policy);
@@ -424,7 +428,7 @@ final class MfaController extends FrameworkBundleAdminController
      */
     public function securityActivity(
         AuditEventFilters $filters,
-        GridFactoryInterface $auditEventGridFactory,
+        GridFactoryInterface $auditEventGridFactory
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/activity.html.twig', [
             'auditEventGrid' => $this->presentGrid($auditEventGridFactory->getGrid($filters)),
@@ -441,7 +445,7 @@ final class MfaController extends FrameworkBundleAdminController
         int $employeeId,
         SecurityRepository $repository,
         SessionState $sessionState,
-        Policy $policy,
+        Policy $policy
     ): Response {
         $actor = $this->employee();
         $this->assertFreshVerification($actor, $sessionState, $policy);
@@ -468,7 +472,7 @@ final class MfaController extends FrameworkBundleAdminController
         int $employeeId,
         MfaManager $mfa,
         SessionState $sessionState,
-        Policy $policy,
+        Policy $policy
     ): Response {
         $actor = $this->employee();
         $this->assertFreshVerification($actor, $sessionState, $policy);
@@ -486,7 +490,7 @@ final class MfaController extends FrameworkBundleAdminController
     private function renderAuthenticator(
         Employee $employee,
         FactorConfirmationService $confirmation,
-        array $forms = [],
+        array $forms = []
     ): Response {
         $passwordRequired = $confirmation->passwordRequired($employee);
         $replaceForm = $forms['replace_form'] ?? $this->createForm(ReplaceFactorType::class, null, [
@@ -552,7 +556,7 @@ final class MfaController extends FrameworkBundleAdminController
     private function assertFreshVerification(
         Employee $employee,
         SessionState $sessionState,
-        Policy $policy,
+        Policy $policy
     ): void {
         if (!$sessionState->hasFreshVerification($employee->getId(), $policy->stepUpSeconds())) {
             throw $this->createAccessDeniedException('Confirm your identity with two-factor authentication again before continuing.');

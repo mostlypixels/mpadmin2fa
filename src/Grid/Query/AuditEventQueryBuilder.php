@@ -12,11 +12,16 @@ use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
 
 final class AuditEventQueryBuilder extends AbstractDoctrineQueryBuilder
 {
+
+    /** @var DoctrineSearchCriteriaApplicatorInterface */
+    private $searchCriteriaApplicator;
+
     public function __construct(
         Connection $connection,
         string $dbPrefix,
-        private readonly DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator,
+        DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator
     ) {
+        $this->searchCriteriaApplicator = $searchCriteriaApplicator;
         parent::__construct($connection, $dbPrefix);
     }
 

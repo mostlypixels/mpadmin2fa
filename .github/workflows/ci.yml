@@ -24,11 +24,11 @@ jobs:
       matrix:
         include:
           - prestashop: 8.0.5
-            php: '8.1'
+            php: '7.2'
+          - prestashop: 8.2.8
+            php: '7.2'
           - prestashop: 8.2.8
             php: '8.1'
-          - prestashop: 8.2.8
-            php: '8.4'
 
     steps:
       - name: Check out the module
@@ -74,6 +74,29 @@ jobs:
         working-directory: prestashop/modules/mpadmin2fa
         run: composer test
 
+  package:
+    name: Verify scoped release package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the module
+        uses: actions/checkout@v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate Composer metadata
+        run: composer validate --strict
+
+      - name: Install module dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+
+      - name: Install release tools
+        run: composer build:tools
+
       - name: Verify the scoped release build
-        working-directory: prestashop/modules/mpadmin2fa
         run: composer build:scoped

@@ -11,10 +11,19 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 final class SecurityPolicyConfiguration implements DataConfigurationInterface
 {
+    /** @var ConfigurationInterface */
+    private $configuration;
+
+    /** @var Policy */
+    private $policy;
+
     public function __construct(
-        private readonly ConfigurationInterface $configuration,
-        private readonly Policy $policy,
+        ConfigurationInterface $configuration,
+        Policy $policy
     ) {
+        $this->configuration = $configuration;
+        $this->policy = $policy;
+
     }
 
     public function getConfiguration(): array
@@ -90,7 +99,7 @@ final class SecurityPolicyConfiguration implements DataConfigurationInterface
     {
         return array_values(array_unique(array_filter(
             array_map('intval', explode(',', $value)),
-            static fn (int $profileId): bool => $profileId > 0
+            static function (int $profileId): bool { return $profileId > 0; }
         )));
     }
 

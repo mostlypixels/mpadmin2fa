@@ -12,13 +12,34 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 final class CsrfTokenGridDataFactory implements GridDataFactoryInterface
 {
+
+    /** @var GridDataFactoryInterface */
+    private $dataFactory;
+
+    /** @var CsrfTokenManagerInterface */
+    private $csrfTokenManager;
+
+    /** @var string */
+    private $idField;
+
+    /** @var string */
+    private $tokenField;
+
+    /** @var string */
+    private $tokenPrefix;
+
     public function __construct(
-        private readonly GridDataFactoryInterface $dataFactory,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager,
-        private readonly string $idField,
-        private readonly string $tokenField,
-        private readonly string $tokenPrefix,
+        GridDataFactoryInterface $dataFactory,
+        CsrfTokenManagerInterface $csrfTokenManager,
+        string $idField,
+        string $tokenField,
+        string $tokenPrefix
     ) {
+        $this->dataFactory = $dataFactory;
+        $this->csrfTokenManager = $csrfTokenManager;
+        $this->idField = $idField;
+        $this->tokenField = $tokenField;
+        $this->tokenPrefix = $tokenPrefix;
     }
 
     public function getData(SearchCriteriaInterface $searchCriteria): GridData

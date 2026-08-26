@@ -7,10 +7,9 @@ namespace Mpadmin2fa\Tests\Unit;
 require_once dirname(__DIR__, 4) . '/vendor/autoload.php';
 
 use Mpadmin2fa\Controller\Admin\MfaController;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use ReflectionMethod;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Yaml\Yaml;
 
 final class AdminNavigationSecurityTest extends TestCase
@@ -28,7 +27,7 @@ final class AdminNavigationSecurityTest extends TestCase
         yield 'security activity' => ['securityActivity', 'read'];
     }
 
-    #[DataProvider('securedActions')]
+    /** @dataProvider securedActions */
     public function testAdministrativeActionsUseNativeProfilePermissions(string $method, string $permission): void
     {
         $docComment = (new ReflectionMethod(MfaController::class, $method))->getDocComment();
@@ -183,7 +182,7 @@ final class AdminNavigationSecurityTest extends TestCase
             $template = file_get_contents($templatePath);
 
             self::assertIsString($template);
-            self::assertDoesNotMatchRegularExpression(
+            self::assertNotRegExp(
                 '/<(?:form|input|select|textarea|button)\b/i',
                 $template,
                 $templatePath

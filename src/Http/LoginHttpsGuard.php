@@ -11,12 +11,21 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 
 final class LoginHttpsGuard
 {
+
+    /** @var TokenStorageInterface */
+    private $tokenStorage;
+
+    /** @var RouterInterface */
+    private $router;
+
     public const ERROR_MESSAGE = 'A secure HTTPS connection is required to log in with two-factor authentication.';
 
     public function __construct(
-        private readonly TokenStorageInterface $tokenStorage,
-        private readonly RouterInterface $router,
+        TokenStorageInterface $tokenStorage,
+        RouterInterface $router
     ) {
+        $this->tokenStorage = $tokenStorage;
+        $this->router = $router;
     }
 
     public function shouldReject(Request $request, bool $factorActive, bool $factorRequired): bool

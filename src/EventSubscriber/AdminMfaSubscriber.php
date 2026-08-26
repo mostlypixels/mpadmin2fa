@@ -24,6 +24,34 @@ use Symfony\Component\Security\Http\SecurityEvents;
 
 final class AdminMfaSubscriber implements EventSubscriberInterface
 {
+
+    /** @var TokenStorageInterface */
+    private $tokenStorage;
+
+    /** @var RouterInterface */
+    private $router;
+
+    /** @var MfaManager */
+    private $mfa;
+
+    /** @var Policy */
+    private $policy;
+
+    /** @var ReturnTargetPolicy */
+    private $returnTargets;
+
+    /** @var SessionState */
+    private $sessionState;
+
+    /** @var SecurityAlertService */
+    private $alerts;
+
+    /** @var StepUpResponseFactory */
+    private $stepUpResponses;
+
+    /** @var LoginHttpsGuard */
+    private $loginHttpsGuard;
+
     private const ALLOWED_ROUTES = [
         'admin_logout',
         'mpadmin2fa_challenge',
@@ -47,16 +75,25 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
     ];
 
     public function __construct(
-        private readonly TokenStorageInterface $tokenStorage,
-        private readonly RouterInterface $router,
-        private readonly MfaManager $mfa,
-        private readonly Policy $policy,
-        private readonly ReturnTargetPolicy $returnTargets,
-        private readonly SessionState $sessionState,
-        private readonly SecurityAlertService $alerts,
-        private readonly StepUpResponseFactory $stepUpResponses,
-        private readonly LoginHttpsGuard $loginHttpsGuard,
+        TokenStorageInterface $tokenStorage,
+        RouterInterface $router,
+        MfaManager $mfa,
+        Policy $policy,
+        ReturnTargetPolicy $returnTargets,
+        SessionState $sessionState,
+        SecurityAlertService $alerts,
+        StepUpResponseFactory $stepUpResponses,
+        LoginHttpsGuard $loginHttpsGuard
     ) {
+        $this->tokenStorage = $tokenStorage;
+        $this->router = $router;
+        $this->mfa = $mfa;
+        $this->policy = $policy;
+        $this->returnTargets = $returnTargets;
+        $this->sessionState = $sessionState;
+        $this->alerts = $alerts;
+        $this->stepUpResponses = $stepUpResponses;
+        $this->loginHttpsGuard = $loginHttpsGuard;
     }
 
     public static function getSubscribedEvents(): array
@@ -179,7 +216,7 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
             return $returnTarget;
         }
 
-        return str_starts_with((string) $request->attributes->get('_route'), 'admin_themes_')
+        return 0 === strpos((string) $request->attributes->get('_route'), 'admin_themes_')
             ? $this->router->generate('admin_themes_index')
             : $this->router->generate('admin_module_manage');
     }

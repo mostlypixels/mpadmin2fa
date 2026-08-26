@@ -342,7 +342,7 @@ class Mpadmin2fa extends Module
             $timezoneName = (string) Configuration::get('PS_TIMEZONE');
             try {
                 $timezone = new DateTimeZone('' !== $timezoneName ? $timezoneName : 'UTC');
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
                 $timezone = new DateTimeZone('UTC');
             }
             $now = new DateTimeImmutable('now', $timezone);

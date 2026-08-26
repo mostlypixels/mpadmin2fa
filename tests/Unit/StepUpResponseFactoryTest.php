@@ -47,7 +47,7 @@ final class StepUpResponseFactoryTest extends TestCase
                 'status' => false,
                 'msg' => 'Two-factor authentication is required to continue.',
             ],
-            json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR)
+            json_decode((string) $response->getContent(), true)
         );
     }
 

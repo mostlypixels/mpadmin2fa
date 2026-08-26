@@ -20,12 +20,17 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFactory
 {
+
+    /** @var AuthorizationCheckerInterface */
+    private $authorizationChecker;
+
     public const GRID_ID = 'mp2fa_employee_factor';
 
     public function __construct(
         HookDispatcherInterface $hookDispatcher,
-        private readonly AuthorizationCheckerInterface $authorizationChecker,
+        AuthorizationCheckerInterface $authorizationChecker
     ) {
+        $this->authorizationChecker = $authorizationChecker;
         parent::__construct($hookDispatcher);
     }
 
@@ -68,12 +73,14 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
                             ->setName($this->trans('Reset two-factor authentication', [], 'Modules.Mpadmin2fa.Admin'))
                             ->setIcon('delete')
                             ->setOptions([
-                                'accessibility_checker' => fn (array $record): bool => !empty($record['has_factor'])
-                                    && empty($record['is_current_employee'])
-                                    && $this->authorizationChecker->isGranted(
-                                        'delete',
-                                        'AdminMpAdmin2faEnrollment'
-                                    ),
+                                'accessibility_checker' => function (array $record): bool {
+                                    return !empty($record['has_factor'])
+                                        && empty($record['is_current_employee'])
+                                        && $this->authorizationChecker->isGranted(
+                                            'delete',
+                                            'AdminMpAdmin2faEnrollment'
+                                        );
+                                },
                                 'confirm_message' => $this->trans(
                                     'Reset two-factor authentication for this employee? They will need to set it up again.',
                                     [],

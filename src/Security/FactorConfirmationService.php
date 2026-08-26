@@ -9,12 +9,29 @@ use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 
 final class FactorConfirmationService
 {
+
+    /** @var UserPasswordEncoderInterface */
+    private $passwordEncoder;
+
+    /** @var SessionState */
+    private $sessionState;
+
+    /** @var Policy */
+    private $policy;
+
+    /** @var MfaManager */
+    private $mfa;
+
     public function __construct(
-        private readonly UserPasswordEncoderInterface $passwordEncoder,
-        private readonly SessionState $sessionState,
-        private readonly Policy $policy,
-        private readonly MfaManager $mfa,
+        UserPasswordEncoderInterface $passwordEncoder,
+        SessionState $sessionState,
+        Policy $policy,
+        MfaManager $mfa
     ) {
+        $this->passwordEncoder = $passwordEncoder;
+        $this->sessionState = $sessionState;
+        $this->policy = $policy;
+        $this->mfa = $mfa;
     }
 
     /**

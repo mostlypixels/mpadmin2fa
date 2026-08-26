@@ -8,10 +8,19 @@ use Mpadmin2fa\Repository\SecurityRepository;
 
 final class ProfileChoicesProvider
 {
+
+    /** @var SecurityRepository */
+    private $repository;
+
+    /** @var int */
+    private $languageId;
+
     public function __construct(
-        private readonly SecurityRepository $repository,
-        private readonly int $languageId,
+        SecurityRepository $repository,
+        int $languageId
     ) {
+        $this->repository = $repository;
+        $this->languageId = $languageId;
     }
 
     /**

@@ -18,9 +18,9 @@ final class ReturnTargetPolicy
         }
 
         $path = (string) ($parts['path'] ?? '');
-        if (!str_starts_with($path, '/')
-            || str_starts_with($path, '//')
-            || ('' !== $basePath && $path !== $basePath && !str_starts_with($path, $basePath . '/'))
+        if (0 !== strpos($path, '/')
+            || 0 === strpos($path, '//')
+            || ('' !== $basePath && $path !== $basePath && 0 !== strpos($path, $basePath . '/'))
         ) {
             return null;
         }

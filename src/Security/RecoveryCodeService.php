@@ -27,7 +27,7 @@ final class RecoveryCodeService
     public function hashes(array $codes): array
     {
         return array_map(
-            static fn (string $code): string => password_hash($code, PASSWORD_DEFAULT),
+            static function (string $code): string { return password_hash($code, PASSWORD_DEFAULT); },
             $codes
         );
     }

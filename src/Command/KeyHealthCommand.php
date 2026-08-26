@@ -12,15 +12,19 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class KeyHealthCommand extends Command
 {
     protected static $defaultName = 'mpadmin2fa:key:health';
-    public function __construct(private readonly KeyManager $keys)
+    /** @var KeyManager */
+    private $keys;
+
+    public function __construct(KeyManager $keys)
     {
+        $this->keys = $keys;
         parent::__construct();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $health = $this->keys->health();
-        $output->writeln(json_encode($health, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+        $output->writeln(json_encode($health, JSON_PRETTY_PRINT));
 
         return true === ($health['healthy'] ?? false) ? 0 : 1;
     }

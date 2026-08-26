@@ -12,11 +12,20 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 final class PruneAuditCommand extends Command
 {
+
+    /** @var SecurityRepository */
+    private $repository;
+
+    /** @var Policy */
+    private $policy;
+
     protected static $defaultName = 'mpadmin2fa:audit:prune';
     public function __construct(
-        private readonly SecurityRepository $repository,
-        private readonly Policy $policy,
+        SecurityRepository $repository,
+        Policy $policy
     ) {
+        $this->repository = $repository;
+        $this->policy = $policy;
         parent::__construct();
     }
 

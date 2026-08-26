@@ -7,7 +7,6 @@ namespace Mpadmin2fa\Tests\Unit;
 require_once dirname(__DIR__, 4) . '/vendor/autoload.php';
 
 use Mpadmin2fa\Http\LoginHttpsGuard;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -26,12 +25,12 @@ final class LoginHttpsGuardTest extends TestCase
         yield 'HTTPS with required enrollment' => [true, false, true, false];
     }
 
-    #[DataProvider('loginScenarios')]
+    /** @dataProvider loginScenarios */
     public function testRejectsOnlyInsecureLoginsThatNeedTwoFactorAuthentication(
         bool $secure,
         bool $factorActive,
         bool $factorRequired,
-        bool $expected,
+        bool $expected
     ): void {
         $request = Request::create('http' . ($secure ? 's' : '') . '://example.test/admin/login');
 

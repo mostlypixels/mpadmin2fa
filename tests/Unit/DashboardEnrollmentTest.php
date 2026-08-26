@@ -17,7 +17,7 @@ final class DashboardEnrollmentTest extends TestCase
         $connection = $this->createMock(Connection::class);
         $connection->expects(self::exactly(2))
             ->method('quoteIdentifier')
-            ->willReturnCallback(static fn (string $identifier): string => '`' . $identifier . '`');
+            ->willReturnCallback(static function (string $identifier): string { return '`' . $identifier . '`'; });
         $connection->expects(self::once())
             ->method('fetchAssociative')
             ->with(self::callback(static function (string $sql): bool {

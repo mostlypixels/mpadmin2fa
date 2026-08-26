@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace Mpadmin2fa\Tests\Unit;
 
 use Mpadmin2fa\Security\TotpService;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use PragmaRX\Google2FA\Google2FA;
 
 final class TotpServiceTest extends TestCase
 {
-    private TotpService $service;
+    /**  TotpService */
+    private $service;
 
     protected function setUp(): void
     {
         $this->service = new TotpService();
     }
 
-    #[DataProvider('vectors')]
+    /** @dataProvider vectors */
     public function testRfc6238Vectors(int $unixTime, string $expected): void
     {
         $secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';

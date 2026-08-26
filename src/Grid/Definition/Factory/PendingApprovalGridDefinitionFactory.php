@@ -19,12 +19,17 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 final class PendingApprovalGridDefinitionFactory extends AbstractGridDefinitionFactory
 {
+
+    /** @var AuthorizationCheckerInterface */
+    private $authorizationChecker;
+
     public const GRID_ID = 'mp2fa_pending_approval';
 
     public function __construct(
         HookDispatcherInterface $hookDispatcher,
-        private readonly AuthorizationCheckerInterface $authorizationChecker,
+        AuthorizationCheckerInterface $authorizationChecker
     ) {
+        $this->authorizationChecker = $authorizationChecker;
         parent::__construct($hookDispatcher);
     }
 
@@ -61,11 +66,13 @@ final class PendingApprovalGridDefinitionFactory extends AbstractGridDefinitionF
                             ->setName($this->trans('Approve', [], 'Admin.Actions'))
                             ->setIcon('check')
                             ->setOptions([
-                                'accessibility_checker' => fn (array $record): bool => empty($record['is_current_employee'])
-                                    && $this->authorizationChecker->isGranted(
-                                        'update',
-                                        'AdminMpAdmin2faEnrollment'
-                                    ),
+                                'accessibility_checker' => function (array $record): bool {
+                                    return empty($record['is_current_employee'])
+                                        && $this->authorizationChecker->isGranted(
+                                            'update',
+                                            'AdminMpAdmin2faEnrollment'
+                                        );
+                                },
                                 'extra_route_params' => ['token' => 'approval_token'],
                                 'route' => 'mpadmin2fa_approve',
                                 'route_param_field' => 'id_employee',

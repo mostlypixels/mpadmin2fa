@@ -177,12 +177,12 @@ function verifyArchive(string $archivePath): void
     $entries = [];
     for ($index = 0; $index < $zip->numFiles; ++$index) {
         $entry = $zip->getNameIndex($index);
-        if (false === $entry || !str_starts_with($entry, MODULE_NAME . '/')) {
+        if (false === $entry || 0 !== strpos($entry, MODULE_NAME . '/')) {
             throw new RuntimeException('Every archive entry must be inside mpadmin2fa/.');
         }
         $relative = substr($entry, strlen(MODULE_NAME) + 1);
         foreach (['.git', '.github/', 'build/', 'dist/', 'docs/', 'documentation/', 'tests/', 'tools/', 'vendor/'] as $forbidden) {
-            if (str_starts_with($relative, $forbidden)) {
+            if (0 === strpos($relative, $forbidden)) {
                 throw new RuntimeException(sprintf('Development-only path found: %s', $entry));
             }
         }

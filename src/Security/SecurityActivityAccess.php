@@ -8,9 +8,14 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 final class SecurityActivityAccess
 {
+
+    /** @var AuthorizationCheckerInterface */
+    private $authorizationChecker;
+
     public function __construct(
-        private readonly AuthorizationCheckerInterface $authorizationChecker,
+        AuthorizationCheckerInterface $authorizationChecker
     ) {
+        $this->authorizationChecker = $authorizationChecker;
     }
 
     public function canRead(): bool

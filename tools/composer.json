@@ -1,0 +1,14 @@
+{
+  "name": "mpadmin2fa/build-tools",
+  "description": "Isolated release tooling for the mpadmin2fa 2.x branch.",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.1 <8.5",
+    "humbug/php-scoper": "^0.17.7"
+  },
+  "config": {
+    "allow-plugins": {},
+    "preferred-install": "dist"
+  }
+}

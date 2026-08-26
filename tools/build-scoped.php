@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-if (PHP_VERSION_ID >= 80500) {
-    throw new RuntimeException('Build scoped releases with PHP 8.1-8.4; PHP-Scoper is not yet reliable on PHP 8.5.');
+if (PHP_VERSION_ID < 80100 || PHP_VERSION_ID >= 80500) {
+    throw new RuntimeException('Build scoped releases with PHP 8.1-8.4.');
 }
 
 $moduleRoot = dirname(__DIR__);
@@ -41,7 +41,7 @@ run('composer install --no-dev --prefer-dist --no-interaction --no-progress', $s
 
 putenv('MP2FA_SCOPE_ROOT=' . $stageRoot);
 run(
-    escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($moduleRoot . '/vendor/bin/php-scoper')
+    escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($moduleRoot . '/tools/vendor/bin/php-scoper')
     . ' add-prefix --config=' . escapeshellarg($moduleRoot . '/php-scoper.inc.php')
     . ' --output-dir=' . escapeshellarg($releaseRoot)
     . ' --force --stop-on-failure --no-interaction',
@@ -74,7 +74,10 @@ $forbidden = [
 ];
 foreach (phpFiles($releaseRoot) as $file) {
     if (str_contains(str_replace('\\\\', '/', $file), '/vendor-scoped/composer/')
-        || str_ends_with(str_replace('\\\\', '/', $file), '/vendor-scoped/autoload.php')
+        || '/vendor-scoped/autoload.php' === substr(
+            str_replace('\\\\', '/', $file),
+            -strlen('/vendor-scoped/autoload.php')
+        )
     ) {
         continue;
     }
@@ -119,7 +122,7 @@ return $loader;
 PHP;
     $rewritten = preg_replace_callback(
         '/return (ComposerAutoloaderInit[A-Za-z0-9_]+::getLoader\\(\\));/',
-        static fn (array $matches): string => str_replace('$1', $matches[1], $registration),
+        static function (array $matches) use ($registration): string { return str_replace('$1', $matches[1], $registration); },
         $contents,
         1,
         $count
@@ -180,7 +183,7 @@ function copyTree(string $source, string $destination, array $excludedNames = []
 
             continue;
         }
-        if (!$overwritePhp && str_ends_with($target, '.php') && is_file($target)) {
+        if (!$overwritePhp && '.php' === substr($target, -4) && is_file($target)) {
             continue;
         }
         if (!is_dir(dirname($target))) {
@@ -207,7 +210,7 @@ function removeTree(string $path): void
 
 function phpFiles(string $root): array
 {
-    return array_values(array_filter(allFiles($root), static fn (string $file): bool => str_ends_with($file, '.php')));
+    return array_values(array_filter(allFiles($root), static function (string $file): bool { return '.php' === substr($file, -4); }));
 }
 
 function allFiles(string $root): array

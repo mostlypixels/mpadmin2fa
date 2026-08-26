@@ -12,6 +12,13 @@ use Mpadmin2fa\Exception\MfaSecurityException;
 
 final class SecurityRepository
 {
+
+    /** @var Connection */
+    private $connection;
+
+    /** @var string */
+    private $dbPrefix;
+
     private const IMPORTANT_DASHBOARD_EVENTS = [
         'enrollment.failed',
         'enrollment.approved',
@@ -25,9 +32,11 @@ final class SecurityRepository
     ];
 
     public function __construct(
-        private readonly Connection $connection,
-        private readonly string $dbPrefix,
+        Connection $connection,
+        string $dbPrefix
     ) {
+        $this->connection = $connection;
+        $this->dbPrefix = $dbPrefix;
     }
 
     public function activeKey(): ?array
@@ -210,7 +219,7 @@ final class SecurityRepository
             'id_employee' => $employeeId,
             'event' => $event,
             'ip' => $ip,
-            'metadata_json' => json_encode($metadata, JSON_THROW_ON_ERROR),
+            'metadata_json' => json_encode($metadata),
             'date_add' => $this->now(),
         ]);
     }
@@ -286,7 +295,7 @@ final class SecurityRepository
     {
         $employeeTable = $this->connection->quoteIdentifier($this->dbPrefix . 'employee');
         $placeholders = implode(', ', array_fill(0, count(self::IMPORTANT_DASHBOARD_EVENTS), '?'));
-        $utcSince = DateTimeImmutable::createFromInterface($since)
+        $utcSince = (new DateTimeImmutable('@' . $since->getTimestamp()))
             ->setTimezone(new DateTimeZone('UTC'))
             ->format('Y-m-d H:i:s');
 
@@ -317,12 +326,14 @@ final class SecurityRepository
             array_merge([$utcSince], self::IMPORTANT_DASHBOARD_EVENTS)
         );
 
-        return array_map(static fn (array $row): array => [
-            'date_add' => (string) $row['date_add'],
-            'employee' => (string) $row['employee'],
-            'event_label' => (string) $row['event_label'],
-            'occurrences' => (int) $row['occurrences'],
-        ], $rows);
+        return array_map(static function (array $row): array {
+            return [
+                'date_add' => (string) $row['date_add'],
+                'employee' => (string) $row['employee'],
+                'event_label' => (string) $row['event_label'],
+                'occurrences' => (int) $row['occurrences'],
+            ];
+        }, $rows);
     }
 
     public function enrollmentApprovalStatus(int $employeeId): ?string

@@ -13,11 +13,20 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 final class ResetFactorCommand extends Command
 {
+
+    /** @var SecurityRepository */
+    private $repository;
+
+    /** @var MfaManager */
+    private $mfa;
+
     protected static $defaultName = 'mpadmin2fa:factor:reset';
     public function __construct(
-        private readonly SecurityRepository $repository,
-        private readonly MfaManager $mfa,
+        SecurityRepository $repository,
+        MfaManager $mfa
     ) {
+        $this->repository = $repository;
+        $this->mfa = $mfa;
         parent::__construct();
     }
 

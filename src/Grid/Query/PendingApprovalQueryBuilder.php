@@ -12,12 +12,21 @@ use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
 
 final class PendingApprovalQueryBuilder extends AbstractDoctrineQueryBuilder
 {
+
+    /** @var DoctrineSearchCriteriaApplicatorInterface */
+    private $searchCriteriaApplicator;
+
+    /** @var int */
+    private $currentEmployeeId;
+
     public function __construct(
         Connection $connection,
         string $dbPrefix,
-        private readonly DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator,
-        private readonly int $currentEmployeeId,
+        DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator,
+        int $currentEmployeeId
     ) {
+        $this->searchCriteriaApplicator = $searchCriteriaApplicator;
+        $this->currentEmployeeId = $currentEmployeeId;
         parent::__construct($connection, $dbPrefix);
     }
 

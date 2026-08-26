@@ -10,7 +10,7 @@ final class ProfilePolicyCleaner
     {
         $ids = array_unique(array_filter(
             array_map('intval', explode(',', $profileIds)),
-            static fn (int $profileId): bool => $profileId > 0 && $profileId !== $deletedProfileId
+            static function (int $profileId) use ($deletedProfileId): bool { return $profileId > 0 && $profileId !== $deletedProfileId; }
         ));
 
         return implode(',', $ids);

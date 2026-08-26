@@ -31,7 +31,7 @@ final class GridDefinitionFactoryTest extends TestCase
 
         $statusColumn = array_values(array_filter(
             $definition->getColumns()->toArray(),
-            static fn (array $column): bool => 'status' === $column['id']
+            static function (array $column): bool { return 'status' === $column['id']; }
         ))[0];
         self::assertSame('status_label', $statusColumn['options']['field']);
     }
@@ -64,7 +64,7 @@ final class GridDefinitionFactoryTest extends TestCase
 
         $eventColumn = array_values(array_filter(
             $definition->getColumns()->toArray(),
-            static fn (array $column): bool => 'event' === $column['id']
+            static function (array $column): bool { return 'event' === $column['id']; }
         ))[0];
         self::assertSame('What happened', $eventColumn['name']);
         self::assertSame('event_label', $eventColumn['options']['field']);
@@ -79,7 +79,7 @@ final class GridDefinitionFactoryTest extends TestCase
         $translator = $this->createMock($translatorType);
         $translator
             ->method('trans')
-            ->willReturnCallback(static fn (string $message): string => $message);
+            ->willReturnCallback(static function (string $message): string { return $message; });
         $factory->setTranslator($translator);
     }
 }
