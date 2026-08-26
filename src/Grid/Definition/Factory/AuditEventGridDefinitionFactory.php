@@ -29,28 +29,31 @@ final class AuditEventGridDefinitionFactory extends AbstractGridDefinitionFactor
 
     protected function getColumns(): ColumnCollection
     {
-        $dataColumnClass = class_exists(
-            \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class
-        )
-            ? \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class
-            : \PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn::class;
-
         return (new ColumnCollection())
-            ->add((new $dataColumnClass('id_audit'))
+            ->add($this->createDataColumn('id_audit')
                 ->setName($this->trans('ID', [], 'Admin.Global'))
                 ->setOptions(['field' => 'id_audit']))
             ->add((new DateTimeColumn('date_add'))
                 ->setName($this->trans('Time', [], 'Admin.Global'))
                 ->setOptions(['field' => 'date_add', 'format' => 'Y-m-d H:i:s']))
-            ->add((new $dataColumnClass('employee'))
+            ->add($this->createDataColumn('employee')
                 ->setName($this->trans('Employee', [], 'Admin.Global'))
                 ->setOptions(['field' => 'employee']))
-            ->add((new $dataColumnClass('event'))
+            ->add($this->createDataColumn('event')
                 ->setName($this->trans('What happened', [], 'Modules.Mpadmin2fa.Admin'))
                 ->setOptions(['field' => 'event_label']))
-            ->add((new $dataColumnClass('ip'))
+            ->add($this->createDataColumn('ip')
                 ->setName($this->trans('IP address', [], 'Admin.Global'))
                 ->setOptions(['field' => 'ip']));
+    }
+
+    private function createDataColumn(string $id)
+    {
+        if (class_exists(\PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class)) {
+            return new \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn($id);
+        }
+
+        return new \PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn($id);
     }
 
     protected function getFilters(): FilterCollection

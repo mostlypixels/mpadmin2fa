@@ -41,26 +41,20 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
 
     protected function getColumns(): ColumnCollection
     {
-        $dataColumnClass = class_exists(
-            \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class
-        )
-            ? \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class
-            : \PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn::class;
-
         return (new ColumnCollection())
-            ->add((new $dataColumnClass('id_employee'))
+            ->add($this->createDataColumn('id_employee')
                 ->setName($this->trans('ID', [], 'Admin.Global'))
                 ->setOptions(['field' => 'id_employee']))
-            ->add((new $dataColumnClass('employee'))
+            ->add($this->createDataColumn('employee')
                 ->setName($this->trans('Employee', [], 'Admin.Global'))
                 ->setOptions(['field' => 'employee']))
-            ->add((new $dataColumnClass('email'))
+            ->add($this->createDataColumn('email')
                 ->setName($this->trans('Email', [], 'Admin.Global'))
                 ->setOptions(['field' => 'email']))
-            ->add((new $dataColumnClass('profile_name'))
+            ->add($this->createDataColumn('profile_name')
                 ->setName($this->trans('Profile', [], 'Admin.Global'))
                 ->setOptions(['field' => 'profile_name']))
-            ->add((new $dataColumnClass('status'))
+            ->add($this->createDataColumn('status')
                 ->setName($this->trans('Status', [], 'Admin.Global'))
                 ->setOptions(['field' => 'status_label']))
             ->add((new DateTimeColumn('confirmed_at'))
@@ -91,6 +85,15 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
                                 'route_param_name' => 'employeeId',
                             ])),
                 ]));
+    }
+
+    private function createDataColumn(string $id)
+    {
+        if (class_exists(\PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class)) {
+            return new \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn($id);
+        }
+
+        return new \PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn($id);
     }
 
     protected function getFilters(): FilterCollection
