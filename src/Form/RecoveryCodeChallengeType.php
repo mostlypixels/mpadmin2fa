@@ -23,10 +23,10 @@ final class RecoveryCodeChallengeType extends AbstractType
                 'attr' => ['autocomplete' => 'one-time-code'],
                 'constraints' => [
                     new NotBlank(),
-                    new Regex(
-                        pattern: '/^[A-Fa-f0-9]{5}(?:-[A-Fa-f0-9]{5}){3}$/',
-                        message: 'Enter a recovery code in the format XXXXX-XXXXX-XXXXX-XXXXX.'
-                    ),
+                    new Regex([
+                        'pattern' => '/^[A-Fa-f0-9]{5}(?:-[A-Fa-f0-9]{5}){3}$/',
+                        'message' => 'Enter a recovery code in the format XXXXX-XXXXX-XXXXX-XXXXX.',
+                    ]),
                 ],
             ])
             ->add('submit', SubmitType::class, [

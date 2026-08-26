@@ -8,7 +8,6 @@ use PrestaShop\PrestaShop\Core\Grid\Action\Row\RowActionCollection;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\SubmitRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Column\ColumnCollection;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ActionColumn;
-use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DateTimeColumn;
 use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\AbstractGridDefinitionFactory;
 use PrestaShop\PrestaShop\Core\Grid\Filter\Filter;
@@ -41,14 +40,20 @@ final class PendingApprovalGridDefinitionFactory extends AbstractGridDefinitionF
 
     protected function getColumns(): ColumnCollection
     {
+        $dataColumnClass = class_exists(
+            \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class
+        )
+            ? \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class
+            : \PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn::class;
+
         return (new ColumnCollection())
-            ->add((new DataColumn('id_employee'))
+            ->add((new $dataColumnClass('id_employee'))
                 ->setName($this->trans('ID', [], 'Admin.Global'))
                 ->setOptions(['field' => 'id_employee']))
-            ->add((new DataColumn('employee'))
+            ->add((new $dataColumnClass('employee'))
                 ->setName($this->trans('Employee', [], 'Admin.Global'))
                 ->setOptions(['field' => 'employee']))
-            ->add((new DataColumn('email'))
+            ->add((new $dataColumnClass('email'))
                 ->setName($this->trans('Email', [], 'Admin.Global'))
                 ->setOptions(['field' => 'email']))
             ->add((new DateTimeColumn('date_add'))

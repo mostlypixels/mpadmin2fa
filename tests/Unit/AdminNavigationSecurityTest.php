@@ -9,7 +9,7 @@ require_once dirname(__DIR__, 4) . '/vendor/autoload.php';
 use Mpadmin2fa\Controller\Admin\MfaController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use ReflectionMethod;
 use Symfony\Component\Yaml\Yaml;
 
@@ -31,12 +31,12 @@ final class AdminNavigationSecurityTest extends TestCase
     #[DataProvider('securedActions')]
     public function testAdministrativeActionsUseNativeProfilePermissions(string $method, string $permission): void
     {
-        $attributes = (new ReflectionMethod(MfaController::class, $method))->getAttributes(AdminSecurity::class);
+        $docComment = (new ReflectionMethod(MfaController::class, $method))->getDocComment();
 
-        self::assertCount(1, $attributes);
-        self::assertSame(
-            sprintf("is_granted('%s', request.get('_legacy_controller'))", $permission),
-            $attributes[0]->newInstance()->getAttribute()
+        self::assertIsString($docComment);
+        self::assertStringContainsString(
+            sprintf("@AdminSecurity(\"is_granted('%s', request.get('_legacy_controller'))\"", $permission),
+            $docComment
         );
     }
 
@@ -161,9 +161,13 @@ final class AdminNavigationSecurityTest extends TestCase
         self::assertStringNotContainsString('nav-tabs', $layout);
     }
 
-    public function testControllerUsesActionInjectionInsteadOfAServiceConstructor(): void
+    public function testControllerConstructorOnlyAdaptsLegacyTokenStorage(): void
     {
-        self::assertNull((new \ReflectionClass(MfaController::class))->getConstructor());
+        $constructor = (new \ReflectionClass(MfaController::class))->getConstructor();
+
+        self::assertNotNull($constructor);
+        self::assertCount(1, $constructor->getParameters());
+        self::assertSame(TokenStorageInterface::class, $constructor->getParameters()[0]->getType()->getName());
     }
 
     public function testAdminTemplatesDoNotContainHandWrittenFormControls(): void

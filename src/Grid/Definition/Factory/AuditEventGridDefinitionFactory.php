@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mpadmin2fa\Grid\Definition\Factory;
 
 use PrestaShop\PrestaShop\Core\Grid\Column\ColumnCollection;
-use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DateTimeColumn;
 use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\AbstractGridDefinitionFactory;
 use PrestaShop\PrestaShop\Core\Grid\Filter\Filter;
@@ -30,20 +29,26 @@ final class AuditEventGridDefinitionFactory extends AbstractGridDefinitionFactor
 
     protected function getColumns(): ColumnCollection
     {
+        $dataColumnClass = class_exists(
+            \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class
+        )
+            ? \PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn::class
+            : \PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn::class;
+
         return (new ColumnCollection())
-            ->add((new DataColumn('id_audit'))
+            ->add((new $dataColumnClass('id_audit'))
                 ->setName($this->trans('ID', [], 'Admin.Global'))
                 ->setOptions(['field' => 'id_audit']))
             ->add((new DateTimeColumn('date_add'))
                 ->setName($this->trans('Time', [], 'Admin.Global'))
                 ->setOptions(['field' => 'date_add', 'format' => 'Y-m-d H:i:s']))
-            ->add((new DataColumn('employee'))
+            ->add((new $dataColumnClass('employee'))
                 ->setName($this->trans('Employee', [], 'Admin.Global'))
                 ->setOptions(['field' => 'employee']))
-            ->add((new DataColumn('event'))
+            ->add((new $dataColumnClass('event'))
                 ->setName($this->trans('What happened', [], 'Modules.Mpadmin2fa.Admin'))
                 ->setOptions(['field' => 'event_label']))
-            ->add((new DataColumn('ip'))
+            ->add((new $dataColumnClass('ip'))
                 ->setName($this->trans('IP address', [], 'Admin.Global'))
                 ->setOptions(['field' => 'ip']));
     }

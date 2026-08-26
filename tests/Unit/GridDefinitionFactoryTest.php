@@ -13,7 +13,6 @@ use PHPUnit\Framework\TestCase;
 use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\AbstractGridDefinitionFactory;
 use PrestaShop\PrestaShop\Core\Hook\HookDispatcherInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class GridDefinitionFactoryTest extends TestCase
 {
@@ -73,7 +72,11 @@ final class GridDefinitionFactoryTest extends TestCase
 
     private function prepareFactory(AbstractGridDefinitionFactory $factory): void
     {
-        $translator = $this->createMock(TranslatorInterface::class);
+        $translatorType = (new \ReflectionMethod($factory, 'setTranslator'))
+            ->getParameters()[0]
+            ->getType()
+            ->getName();
+        $translator = $this->createMock($translatorType);
         $translator
             ->method('trans')
             ->willReturnCallback(static fn (string $message): string => $message);

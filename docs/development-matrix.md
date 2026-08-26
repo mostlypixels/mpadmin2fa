@@ -51,21 +51,28 @@ The generated demo administrator credentials are:
 
 ## Current compatibility baseline
 
-- PrestaShop 8.2.8 / PHP 8.1:
-  - The 2.x branch declares support for PrestaShop 8.x and installs successfully.
-  - Symfony 4.4 adapters use the legacy admin controller, employee security user,
-    token storage, password encoder, interactive-login event, and command names.
-  - Cache compilation, module routes, controller registration, and all four
+- PrestaShop 8 (`2.x-ps8`):
+  - Declared support is PrestaShop 8.0.0 through 8.2.x, with PHP 8.1 or newer.
+  - CI exercises PrestaShop 8.0.5 / PHP 8.1, PrestaShop 8.2.8 /
+    PHP 8.1, and PrestaShop 8.2.8 / PHP 8.4.
+  - Symfony 4.4 adapters use legacy admin-controller annotations, token storage,
+    the password encoder, and the interactive-login event.
+  - PHPUnit 10 passes 72 tests / 319 assertions against the production
+    dependency sets from both PrestaShop 8.0.5 and 8.2.8.
+  - On 8.2.8, cache compilation, all 18 module routes, and all four maintenance
+    commands succeed.
+- PrestaShop 1.7 (`1.x-ps17`):
+  - Declared support is PrestaShop 1.7.8.0 through 1.7.8.x, with a PHP 7.2.5
+    runtime floor.
+  - CI exercises PrestaShop 1.7.8.0 / PHP 7.2, PrestaShop 1.7.8.11 /
+    PHP 7.2, and PrestaShop 1.7.8.11 / PHP 7.4.
+  - Symfony 3.4 and DBAL 2 adapters use explicit legacy services, command tags,
+    form options, grid namespaces, and result methods.
+  - PHPUnit 8 passes 72 tests / 321 assertions against the production
+    dependency sets from both PrestaShop 1.7.8.0 and 1.7.8.11.
+  - On 1.7.8.11, cache compilation, all 18 module routes, and all four
     maintenance commands succeed.
-  - PHPUnit 10 passes 13 tests / 60 assertions.
-- PrestaShop 1.7.8.11 / PHP 7.4 with a PHP 7.2.5 Composer platform:
-  - The 1.x branch declares support for PrestaShop 1.7.8 and installs successfully.
-  - The production lock resolves Google2FA 8.x, BaconQrCode 2.x, Defuse 2.4, and
-    PHPUnit 8 while remaining installable for PHP 7.2.5.
-  - PHP 8-only runtime syntax was backported, and Symfony 3.4 / legacy DBAL
-    adapters use explicit service definitions and tags.
-  - Cache compilation, module routes, all four maintenance commands, and
-    encryption-key health succeed.
-  - PHPUnit 8 passes 13 tests / 60 assertions.
-  - PHP-Scoper is isolated in `tools/composer.json` and requires PHP 8.1-8.4;
-    run `composer build:tools` before `composer build:scoped`.
+  - The scoped release package passes a full PHP 7.2 syntax scan and a live
+    TOTP-generation smoke test. Release tooling runs separately on PHP 8.1-8.4
+    and removes PHP 8-only SensitiveParameter metadata from scoped dependencies
+    without changing their cryptographic behavior.

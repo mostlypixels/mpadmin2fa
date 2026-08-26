@@ -19,7 +19,7 @@ final class RecoveryCodeAcknowledgementType extends AbstractType
             ->add('saved', CheckboxType::class, [
                 'label' => 'I saved these codes securely.',
                 'constraints' => [
-                    new IsTrue(message: 'Confirm that the recovery codes were saved before continuing.'),
+                    new IsTrue(['message' => 'Confirm that the recovery codes were saved before continuing.']),
                 ],
             ])
             ->add('submit', SubmitType::class, [

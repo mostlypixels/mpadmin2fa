@@ -59,13 +59,13 @@ final class SecurityPolicyType extends AbstractType
                 'label' => 'How long a 2FA check stays valid (seconds)',
                 'help' => 'How long a successful 2FA check stays valid for important security changes. For example, 300 seconds is 5 minutes.',
                 'attr' => ['min' => 60],
-                'constraints' => [new NotBlank(), new Range(min: 60)],
+                'constraints' => [new NotBlank(), new Range(['min' => 60])],
             ])
             ->add('password_max_age', IntegerType::class, [
                 'label' => 'How long a recent sign-in counts (seconds)',
                 'help' => 'How long employees can manage their own two-factor authentication after signing in without entering their password again. For example, 900 seconds is 15 minutes.',
                 'attr' => ['min' => 60],
-                'constraints' => [new NotBlank(), new Range(min: 60)],
+                'constraints' => [new NotBlank(), new Range(['min' => 60])],
             ])
             ->add('approval_profiles', ChoiceType::class, [
                 'label' => 'Profiles whose first 2FA setup needs approval',
@@ -86,8 +86,8 @@ final class SecurityPolicyType extends AbstractType
                 'required' => false,
                 'help' => 'Enter the people who should receive 2FA security alerts. Separate multiple email addresses with commas, for example owner@example.com, security@example.com.',
                 'constraints' => [
-                    new Length(max: 1000),
-                    new Callback(self::validateCommaSeparatedEmails(...)),
+                    new Length(['max' => 1000]),
+                    new Callback([self::class, 'validateCommaSeparatedEmails']),
                 ],
             ])
             ->addEventListener(FormEvents::POST_SUBMIT, static function (FormEvent $event): void {

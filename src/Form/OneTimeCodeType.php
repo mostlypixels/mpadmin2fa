@@ -27,10 +27,10 @@ final class OneTimeCodeType extends AbstractType
                 ],
                 'constraints' => [
                     new NotBlank(),
-                    new Regex(
-                        pattern: '/^\d{6}$/',
-                        message: 'Enter the six-digit code shown by your authenticator app.'
-                    ),
+                    new Regex([
+                        'pattern' => '/^\d{6}$/',
+                        'message' => 'Enter the six-digit code shown by your authenticator app.',
+                    ]),
                 ],
             ])
             ->add('submit', SubmitType::class, [
