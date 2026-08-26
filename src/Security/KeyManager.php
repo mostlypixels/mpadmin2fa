@@ -19,12 +19,18 @@ final class KeyManager
     /** @var CookieKeyProvider */
     private $cookieKeys;
 
+    /** @var ProtectedKeyRewrapper */
+    private $keyRewrapper;
+
     public function __construct(
         SecurityRepository $repository,
-        CookieKeyProvider $cookieKeys)
+        CookieKeyProvider $cookieKeys,
+        ProtectedKeyRewrapper $keyRewrapper
+    )
     {
         $this->repository = $repository;
         $this->cookieKeys = $cookieKeys;
+        $this->keyRewrapper = $keyRewrapper;
     }
 
     public function initialize(): void
@@ -117,7 +123,11 @@ final class KeyManager
 
         $row = $this->requireActiveRow();
         $protected = KeyProtectedByPassword::loadFromAsciiSafeString((string) $row['protected_key']);
-        $protected->changePassword($this->cookieKeys->current(), $newCookieKey);
+        $protected = $this->keyRewrapper->rewrap(
+            $protected,
+            $this->cookieKeys->current(),
+            $newCookieKey
+        );
         $this->repository->stageRewrappedKey(
             (int) $row['version'],
             $protected->saveToAsciiSafeString(),

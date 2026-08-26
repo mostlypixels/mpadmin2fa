@@ -1,0 +1,5 @@
+{% extends '@Modules/mpadmin2fa/views/templates/admin/enrollment/layout.html.twig' %}
+
+{% block enrollment_content %}
+  {{ include('@PrestaShop/Admin/Common/Grid/grid_panel.html.twig', {grid: employeeFactorGrid}) }}
+{% endblock %}

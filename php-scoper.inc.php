@@ -25,6 +25,11 @@ return [
         'Twig',
     ],
     'expose-namespaces' => ['Mpadmin2fa'],
+    'patchers' => [
+        static function (string $filePath, string $prefix, string $contents): string {
+            return str_replace('#[\SensitiveParameter] ', '', $contents);
+        },
+    ],
     'exclude-classes' => [
         'Configuration',
         'Db',

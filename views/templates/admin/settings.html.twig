@@ -1,106 +1,123 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% block content %}
-<div class="row"><div class="col-xl-8">
-  <div class="card mb-3">
-    <h3 class="card-header">Your authenticator</h3>
-    <div class="card-body">
-      <p>Status: <strong>{{ active ? 'Active' : 'Not enrolled' }}</strong></p>
-      {% if active %}
-      <form method="post" action="{{ path('mpadmin2fa_replace') }}" class="mb-4">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_replace') }}">
-        <h4>Replace authenticator</h4>
-        <input class="form-control mb-2" type="password" name="password" placeholder="Current password{% if not password_required %} (optional for this recent login){% endif %}" {% if password_required %}required {% endif %}autocomplete="current-password">
-        <input class="form-control mb-2" name="code" placeholder="Current six-digit code" required inputmode="numeric" autocomplete="one-time-code">
-        <button class="btn btn-outline-primary">Replace</button>
-      </form>
-      <form method="post" action="{{ path('mpadmin2fa_recovery_regenerate') }}" class="mb-4">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_recovery_regenerate') }}">
-        <h4>Replace recovery codes</h4>
-        <p>This invalidates every existing recovery code.</p>
-        <input class="form-control mb-2" type="password" name="password" placeholder="Current password{% if not password_required %} (optional for this recent login){% endif %}" {% if password_required %}required {% endif %}autocomplete="current-password">
-        <input class="form-control mb-2" name="code" placeholder="Current six-digit code" required inputmode="numeric" autocomplete="one-time-code">
-        <button class="btn btn-outline-primary">Generate replacement codes</button>
-      </form>
-      <form method="post" action="{{ path('mpadmin2fa_disable') }}">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_disable') }}">
-        <h4>Disable authenticator</h4>
-        <input class="form-control mb-2" type="password" name="password" placeholder="Current password{% if not password_required %} (optional for this recent login){% endif %}" {% if password_required %}required {% endif %}autocomplete="current-password">
-        <input class="form-control mb-2" name="code" placeholder="Current six-digit code" required inputmode="numeric" autocomplete="one-time-code">
-        <button class="btn btn-outline-danger">Disable</button>
-      </form>
-      {% else %}
-        <a class="btn btn-primary" href="{{ path('mpadmin2fa_enroll') }}">Set up authenticator</a>
-      {% endif %}
-    </div>
-  </div>
-
-  {% if is_superadmin %}
-  <div class="card mb-3">
-    <h3 class="card-header">Global policy</h3>
-    <div class="card-body">
-      <form method="post">
-        <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_settings') }}">
-        <label>Login enforcement</label>
-        <select class="form-control mb-2" name="mode">
-          <option value="superadmins" {{ mode == 'superadmins' ? 'selected' }}>SuperAdmins</option>
-          <option value="profiles" {{ mode == 'profiles' ? 'selected' }}>Selected profile IDs</option>
-          <option value="all" {{ mode == 'all' ? 'selected' }}>All employees</option>
-        </select>
-        <label>Profile IDs (comma separated)</label>
-        <input class="form-control mb-2" name="profiles" value="{{ profiles }}">
-        <label>Fresh verification lifetime (seconds)</label>
-        <input class="form-control mb-2" type="number" min="60" name="step_up_seconds" value="{{ step_up_seconds }}">
-        <label>Native password-authentication maximum age (seconds)</label>
-        <input class="form-control mb-2" type="number" min="60" name="password_max_age" value="{{ password_max_age }}">
-        <label>Profiles requiring first-enrollment approval (comma separated)</label>
-        <input class="form-control mb-2" name="approval_profiles" value="{{ approval_profiles }}">
-        <label>Audit retention (days)</label>
-        <input class="form-control mb-2" type="number" min="1" name="audit_days" value="{{ audit_days }}">
-        <label>Security alert recipients (comma separated)</label>
-        <input class="form-control mb-3" name="security_recipients" value="{{ security_recipients }}">
-        <button class="btn btn-primary">Save policy</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="card mb-3">
-    <h3 class="card-header">Pending enrollment approvals</h3>
-    <div class="card-body">
-      {% if pending_approvals is empty %}<p class="mb-0">No approvals are pending.</p>{% endif %}
-      {% for item in pending_approvals %}
-        <form method="post" action="{{ path('mpadmin2fa_approve', {employeeId: item.id_employee}) }}" class="d-flex justify-content-between mb-2">
-          <span>{{ item.firstname }} {{ item.lastname }} ({{ item.email }})</span>
-          <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_approve_' ~ item.id_employee) }}">
-          <button class="btn btn-sm btn-primary">Approve</button>
-        </form>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="card mb-3">
-    <h3 class="card-header">Employees</h3>
-    <div class="card-body table-responsive"><table class="table">
-      <thead><tr><th>Employee</th><th>Profile</th><th>Status</th><th></th></tr></thead>
-      <tbody>{% for item in employees %}<tr>
-        <td>{{ item.firstname }} {{ item.lastname }}<br><small>{{ item.email }}</small></td>
-        <td>{{ item.id_profile }}</td><td>{{ item.status|default('not enrolled') }}</td>
-        <td>{% if item.status and item.id_employee != app.user.id %}
-          <form method="post" action="{{ path('mpadmin2fa_admin_reset', {employeeId: item.id_employee}) }}">
-            <input type="hidden" name="mp2fa_csrf_token" value="{{ csrf_token('mp2fa_admin_reset_' ~ item.id_employee) }}">
-            <button class="btn btn-sm btn-outline-danger">Reset factor</button>
-          </form>{% endif %}</td>
-      </tr>{% endfor %}</tbody>
-    </table></div>
-  </div>
-
+<div class="row"><div class="col-xl-10">
   <div class="card">
-    <h3 class="card-header">Recent security events</h3>
-    <div class="card-body table-responsive"><table class="table">
-      <thead><tr><th>Time</th><th>Employee</th><th>Event</th><th>IP</th></tr></thead>
-      <tbody>{% for event in audit_events %}<tr><td>{{ event.date_add }}</td><td>{{ event.id_employee }}</td><td>{{ event.event }}</td><td>{{ event.ip }}</td></tr>{% endfor %}</tbody>
-    </table></div>
+    <h3 class="card-header">Admin 2FA</h3>
+    <div class="card-body">
+      <p class="lead">Protect back-office accounts with an authenticator app, recovery codes, and another 2FA check before important security changes.</p>
+      <h4 class="mt-4">{{ authenticator_active ? 'Manage and strengthen 2FA' : 'Get started' }}</h4>
+      <div class="row">
+        <div class="col-lg-4 mb-3">
+          <div class="card d-flex flex-column h-100">
+            <div class="card-body">
+              {% if authenticator_active %}
+                <h4>1. Your account is protected</h4>
+                <p>Your authenticator is connected. Open it to manage your authenticator and recovery codes.</p>
+              {% else %}
+                <h4>1. Protect your account</h4>
+                <p>Connect an authenticator app, verify the first code, and save the recovery codes when they are shown.</p>
+              {% endif %}
+            </div>
+            <div class="card-footer d-flex justify-content-end mt-auto">
+              {% if can_open_authenticator %}
+                <a class="btn btn-primary" href="{{ path('mpadmin2fa_authenticator') }}">{{ authenticator_active ? 'Manage your authenticator' : 'Set up your authenticator' }}</a>
+              {% else %}
+                <span class="text-muted">This section is not available to your profile.</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+          <div class="card d-flex flex-column h-100">
+            <div class="card-body">
+              <h4>2. Prepare the rollout</h4>
+              <p>Review employee 2FA setup, approve requests when required, and make sure another trusted administrator can recover access.</p>
+            </div>
+            <div class="card-footer d-flex justify-content-end mt-auto">
+              {% if can_open_enrollment %}
+                <a class="btn btn-outline-primary" href="{{ path('mpadmin2fa_enrollment_employees') }}">Review employee 2FA</a>
+              {% else %}
+                <span class="text-muted">This section is not available to your profile.</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+          <div class="card d-flex flex-column h-100">
+            <div class="card-body">
+              <h4>3. Set the security rules</h4>
+              <p>Decide who must use 2FA, choose how long confirmations stay valid, and review the security activity log.</p>
+            </div>
+            <div class="card-footer d-flex justify-content-end mt-auto">
+              {% if can_open_security %}
+                <a class="btn btn-outline-primary" href="{{ path('mpadmin2fa_security_policy') }}">Configure 2FA rules</a>
+              {% else %}
+                <span class="text-muted">This section is not available to your profile.</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if not https_configured or not https_active %}
+        <div class="alert alert-danger mt-3" role="alert">
+          <h4 class="alert-heading">HTTPS needs attention</h4>
+          {% if not https_configured %}
+            <p class="mb-0">HTTPS is not enabled in PrestaShop settings. Enable SSL under Shop Parameters &gt; General before requiring 2FA.</p>
+          {% else %}
+            <p class="mb-0">HTTPS is enabled in PrestaShop, but this back-office page is not secure. Ask your hosting provider or technical contact to check the web server or proxy before requiring 2FA.</p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div class="row mt-3">
+        <div class="col-6">
+          <div class="alert alert-warning h-100 mb-0">
+            <h4 class="alert-heading">Before requiring 2FA</h4>
+            <ul class="mb-0">
+              <li>Set up 2FA for at least two trusted SuperAdmins so one person can recover the other.</li>
+              <li>Store recovery codes somewhere secure outside PrestaShop. They are shown only once.</li>
+              <li>Test a complete sign-in in a private browser window before requiring 2FA for employees.</li>
+              <li>Ask your hosting provider to keep the server time automatic and accurate; authenticator codes depend on it.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col-6">
+          <h4>What changes after 2FA is set up?</h4>
+          <p class="mb-0">After entering their password, protected employees also enter the current six-digit code from their authenticator app. Important module and theme changes may ask for another 2FA code. These checks appear in the security activity log.</p>
+        </div>
+      </div>
+    </div>
   </div>
-  {% endif %}
+
+  <div class="card mt-3">
+    <h3 class="card-header">Security emails: what to do</h3>
+    <div class="card-body">
+      <p>Most security emails go to the affected employee and the addresses entered under Security alert recipients. The urgent successful-login alert goes only to the Security alert recipients.</p>
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Priority</th>
+              <th scope="col">What it means</th>
+              <th scope="col">What to do</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for alert in security_alerts %}
+            <tr>
+              <td><strong>{{ alert.title }}</strong></td>
+              <td><span class="badge {{ alert.badge_class }}">{{ alert.priority }}</span></td>
+              <td>{{ alert.meaning }}</td>
+              <td>{{ alert.action }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div></div>
 {% endblock %}

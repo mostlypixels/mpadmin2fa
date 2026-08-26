@@ -19,19 +19,34 @@ final class SecurityAlertService
     /** @var ConfigurationInterface */
     private $configuration;
 
+    /** @var SecurityAlertMessageFactory */
+    private $messages;
+
     public function __construct(
         SecurityRepository $repository,
-        ConfigurationInterface $configuration)
+        ConfigurationInterface $configuration,
+        SecurityAlertMessageFactory $messages)
     {
         $this->repository = $repository;
         $this->configuration = $configuration;
+        $this->messages = $messages;
     }
 
     public function notify(?int $employeeId, string $event, array $metadata = []): void
     {
+        $this->send($employeeId, $event, $metadata, true);
+    }
+
+    public function notifySecurityRecipients(?int $employeeId, string $event, array $metadata = []): void
+    {
+        $this->send($employeeId, $event, $metadata, false);
+    }
+
+    private function send(?int $employeeId, string $event, array $metadata, bool $includeEmployee): void
+    {
         try {
             $recipients = [];
-            if (null !== $employeeId) {
+            if ($includeEmployee && null !== $employeeId) {
                 $email = $this->repository->employeeEmail($employeeId);
                 if (null !== $email) {
                     $recipients[] = $email;
@@ -50,6 +65,12 @@ final class SecurityAlertService
                 return;
             }
 
+            $message = $this->messages->create(
+                $event,
+                null === $employeeId ? null : $this->repository->employeeIdentity($employeeId),
+                $metadata
+            );
+
             $languageId = (int) Language::getIdByIso('en');
             if ($languageId <= 0) {
                 $languageId = (int) Configuration::get('PS_LANG_DEFAULT');
@@ -58,10 +79,11 @@ final class SecurityAlertService
             Mail::send(
                 $languageId,
                 'mpadmin2fa_alert',
-                'PrestaShop back-office security alert',
+                $message['subject'],
                 [
                     '{event}' => $event,
-                    '{details}' => json_encode($metadata, JSON_PRETTY_PRINT),
+                    '{details}' => $message['details'],
+                    '{details_html}' => $message['details_html'],
                 ],
                 $recipients,
                 null,

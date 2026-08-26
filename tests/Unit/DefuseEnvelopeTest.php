@@ -7,6 +7,7 @@ namespace Mpadmin2fa\Tests\Unit;
 use Defuse\Crypto\Crypto;
 use Defuse\Crypto\Exception\WrongKeyOrModifiedCiphertextException;
 use Defuse\Crypto\KeyProtectedByPassword;
+use Mpadmin2fa\Security\ProtectedKeyRewrapper;
 use PHPUnit\Framework\TestCase;
 
 final class DefuseEnvelopeTest extends TestCase
@@ -23,7 +24,7 @@ final class DefuseEnvelopeTest extends TestCase
         self::assertStringNotContainsString($secret, $ciphertext);
         self::assertStringNotContainsString($secret, $protected->saveToAsciiSafeString());
 
-        $rewrapped = $protected->changePassword($oldCookieKey, $newCookieKey);
+        $rewrapped = (new ProtectedKeyRewrapper())->rewrap($protected, $oldCookieKey, $newCookieKey);
         self::assertSame($secret, Crypto::decrypt($ciphertext, $rewrapped->unlockKey($newCookieKey)));
     }
 

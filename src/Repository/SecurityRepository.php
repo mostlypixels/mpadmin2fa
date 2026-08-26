@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Repository;
 
+use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Mpadmin2fa\Exception\MfaSecurityException;
 
@@ -14,6 +17,18 @@ final class SecurityRepository
 
     /** @var string */
     private $dbPrefix;
+
+    private const IMPORTANT_DASHBOARD_EVENTS = [
+        'enrollment.failed',
+        'enrollment.approved',
+        'challenge.failed',
+        'step_up.failed',
+        'factor_change.failed',
+        'recovery.failed',
+        'recovery.used',
+        'factor.reset',
+        'policy.updated',
+    ];
 
     public function __construct(
         Connection $connection,
@@ -98,7 +113,7 @@ final class SecurityRepository
                 [$counter, $this->now(), $this->now(), $employeeId]
             );
             if (1 !== $updated) {
-                throw new MfaSecurityException('The enrollment is no longer pending.');
+                throw new MfaSecurityException('This 2FA setup is no longer waiting for approval.');
             }
 
             $this->connection->delete($this->tableName('recovery_code'), ['id_employee' => $employeeId]);
@@ -208,6 +223,25 @@ final class SecurityRepository
         ]);
     }
 
+    /**
+     * @return array{failures: int, first_failure_at: string|null}
+     */
+    public function challengeFailuresSinceLastSuccess(int $employeeId): array
+    {
+        $row = $this->connection->fetchAssoc(
+            'SELECT COUNT(*) AS failures, MIN(date_add) AS first_failure_at FROM ' . $this->table('audit')
+            . ' WHERE id_employee = ? AND event = ? AND id_audit > COALESCE(('
+            . 'SELECT MAX(id_audit) FROM ' . $this->table('audit') . ' WHERE id_employee = ? AND event = ?'
+            . '), 0)',
+            [$employeeId, 'challenge.failed', $employeeId, 'challenge.verified']
+        );
+
+        return [
+            'failures' => (int) ($row['failures'] ?? 0),
+            'first_failure_at' => isset($row['first_failure_at']) ? (string) $row['first_failure_at'] : null,
+        ];
+    }
+
     public function pruneAudit(int $days): int
     {
         return $this->connection->executeUpdate(
@@ -223,6 +257,82 @@ final class SecurityRepository
             . 'employee e ON e.id_employee = f.id_employee WHERE f.status = "active" AND e.id_profile = ? LIMIT 1',
             [$superAdminProfileId]
         );
+    }
+
+    /**
+     * @return array{not_enrolled: int, total: int}
+     */
+    public function activeEmployeeEnrollmentSummary(): array
+    {
+        $employeeTable = $this->connection->quoteIdentifier($this->dbPrefix . 'employee');
+        $row = $this->connection->fetchAssoc(
+            'SELECT COUNT(e.id_employee) AS total, '
+            . 'COALESCE(SUM(CASE WHEN f.status = "active" THEN 0 ELSE 1 END), 0) AS not_enrolled '
+            . 'FROM ' . $employeeTable . ' e LEFT JOIN ' . $this->table('employee') . ' f '
+            . 'ON f.id_employee = e.id_employee WHERE e.active = 1'
+        );
+
+        return [
+            'not_enrolled' => (int) ($row['not_enrolled'] ?? 0),
+            'total' => (int) ($row['total'] ?? 0),
+        ];
+    }
+
+    /**
+     * Return grouped security-significant audit events for the dashboard.
+     *
+     * Events are identical when their event, employee, and metadata match.
+     *
+     * @return list<array{
+     *     date_add: string,
+     *     employee: string,
+     *     event_label: string,
+     *     occurrences: int
+     * }>
+     */
+    public function importantDashboardEventsSince(DateTimeInterface $since): array
+    {
+        $employeeTable = $this->connection->quoteIdentifier($this->dbPrefix . 'employee');
+        $placeholders = implode(', ', array_fill(0, count(self::IMPORTANT_DASHBOARD_EVENTS), '?'));
+        $utcSince = (new DateTimeImmutable('@' . $since->getTimestamp()))
+            ->setTimezone(new DateTimeZone('UTC'))
+            ->format('Y-m-d H:i:s');
+
+        $rows = $this->connection->fetchAll(
+            'SELECT MAX(a.date_add) AS date_add, '
+            . 'CASE'
+            . ' WHEN a.id_employee IS NULL THEN "System"'
+            . ' WHEN e.id_employee IS NULL THEN CONCAT(a.id_employee, " - Deleted employee")'
+            . ' ELSE CONCAT(e.firstname, " ", e.lastname)'
+            . ' END AS employee, '
+            . 'CASE a.event'
+            . ' WHEN "enrollment.failed" THEN "Authenticator setup failed"'
+            . ' WHEN "enrollment.approved" THEN "2FA setup approved"'
+            . ' WHEN "challenge.failed" THEN "Sign-in 2FA failed"'
+            . ' WHEN "step_up.failed" THEN "Security-change 2FA failed"'
+            . ' WHEN "factor_change.failed" THEN "Authenticator-settings check failed"'
+            . ' WHEN "recovery.failed" THEN "Recovery code rejected"'
+            . ' WHEN "recovery.used" THEN "Recovery code used"'
+            . ' WHEN "factor.reset" THEN "Two-factor authentication reset"'
+            . ' WHEN "policy.updated" THEN "Two-factor authentication settings changed"'
+            . ' ELSE a.event END AS event_label, '
+            . 'COUNT(*) AS occurrences '
+            . 'FROM ' . $this->table('audit') . ' a '
+            . 'LEFT JOIN ' . $employeeTable . ' e ON e.id_employee = a.id_employee '
+            . 'WHERE a.date_add >= ? AND a.event IN (' . $placeholders . ') '
+            . 'GROUP BY a.id_employee, a.event, a.metadata_json, e.id_employee, e.firstname, e.lastname '
+            . 'ORDER BY date_add DESC',
+            array_merge([$utcSince], self::IMPORTANT_DASHBOARD_EVENTS)
+        );
+
+        return array_map(static function (array $row): array {
+            return [
+                'date_add' => (string) $row['date_add'],
+                'employee' => (string) $row['employee'],
+                'event_label' => (string) $row['event_label'],
+                'occurrences' => (int) $row['occurrences'],
+            ];
+        }, $rows);
     }
 
     public function enrollmentApprovalStatus(int $employeeId): ?string
@@ -261,17 +371,8 @@ final class SecurityRepository
             [$approverId, $this->now(), $employeeId]
         );
         if (1 !== $updated) {
-            throw new MfaSecurityException('No pending enrollment approval was found.');
+            throw new MfaSecurityException('No 2FA setup waiting for approval was found.');
         }
-    }
-
-    public function pendingApprovals(): array
-    {
-        return $this->connection->fetchAll(
-            'SELECT a.id_employee, a.date_add, e.email, e.firstname, e.lastname, e.id_profile'
-            . ' FROM ' . $this->table('approval') . ' a INNER JOIN ' . $this->dbPrefix
-            . 'employee e ON e.id_employee = a.id_employee WHERE a.status = "pending" ORDER BY a.date_add'
-        );
     }
 
     public function employeeEmail(int $employeeId): ?string
@@ -284,6 +385,27 @@ final class SecurityRepository
         return false === $email ? null : (string) $email;
     }
 
+    /**
+     * @return array{name: string, email: string}|null
+     */
+    public function employeeIdentity(int $employeeId): ?array
+    {
+        $employee = $this->connection->fetchAssoc(
+            'SELECT firstname, lastname, email FROM ' . $this->dbPrefix . 'employee WHERE id_employee = ?',
+            [$employeeId]
+        );
+        if (false === $employee) {
+            return null;
+        }
+
+        $name = trim((string) $employee['firstname'] . ' ' . (string) $employee['lastname']);
+
+        return [
+            'name' => '' !== $name ? $name : 'Employee #' . $employeeId,
+            'email' => (string) $employee['email'],
+        ];
+    }
+
     public function employeeIdByEmail(string $email): ?int
     {
         $id = $this->connection->fetchColumn(
@@ -294,20 +416,26 @@ final class SecurityRepository
         return false === $id ? null : (int) $id;
     }
 
-    public function employeeStatuses(): array
+    /**
+     * @return array<string, int>
+     */
+    public function profileChoices(int $languageId): array
     {
-        return $this->connection->fetchAll(
-            'SELECT e.id_employee, e.email, e.firstname, e.lastname, e.id_profile, f.status, f.confirmed_at '
-            . 'FROM ' . $this->dbPrefix . 'employee e LEFT JOIN ' . $this->table('employee')
-            . ' f ON f.id_employee = e.id_employee ORDER BY e.lastname, e.firstname'
+        $rows = $this->connection->fetchAll(
+            'SELECT p.id_profile, pl.name FROM ' . $this->dbPrefix . 'profile p INNER JOIN '
+            . $this->dbPrefix . 'profile_lang pl ON pl.id_profile = p.id_profile AND pl.id_lang = ? ORDER BY pl.name',
+            [$languageId]
         );
-    }
+        $choices = [];
+        foreach ($rows as $row) {
+            $label = (string) $row['name'];
+            if (array_key_exists($label, $choices)) {
+                $label .= ' (#' . (int) $row['id_profile'] . ')';
+            }
+            $choices[$label] = (int) $row['id_profile'];
+        }
 
-    public function auditEvents(int $limit = 100): array
-    {
-        return $this->connection->fetchAll(
-            'SELECT * FROM ' . $this->table('audit') . ' ORDER BY id_audit DESC LIMIT ' . max(1, min(500, $limit))
-        );
+        return $choices;
     }
 
     private function table(string $suffix): string

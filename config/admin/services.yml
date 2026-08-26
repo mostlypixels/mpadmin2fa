@@ -23,18 +23,65 @@ services:
     class: Mpadmin2fa\Command\ResetFactorCommand
     tags: ['console.command']
 
+  Mpadmin2fa\Configuration\SecurityPolicyConfiguration:
+    class: Mpadmin2fa\Configuration\SecurityPolicyConfiguration
+
   Mpadmin2fa\EventSubscriber\AdminMfaSubscriber:
     class: Mpadmin2fa\EventSubscriber\AdminMfaSubscriber
-    tags: ['kernel.event_subscriber']
 
-  Mpadmin2fa\Repository\SecurityRepository:
-    class: Mpadmin2fa\Repository\SecurityRepository
-    arguments:
-      $connection: '@doctrine.dbal.default_connection'
-      $dbPrefix: '%database_prefix%'
+  Mpadmin2fa\Exception\MfaSecurityException:
+    class: Mpadmin2fa\Exception\MfaSecurityException
+
+  Mpadmin2fa\Form\DisableFactorType:
+    class: Mpadmin2fa\Form\DisableFactorType
+
+  Mpadmin2fa\Form\FactorConfirmationType:
+    class: Mpadmin2fa\Form\FactorConfirmationType
+
+  Mpadmin2fa\Form\OneTimeCodeType:
+    class: Mpadmin2fa\Form\OneTimeCodeType
+
+  Mpadmin2fa\Form\RecoveryCodeAcknowledgementType:
+    class: Mpadmin2fa\Form\RecoveryCodeAcknowledgementType
+
+  Mpadmin2fa\Form\RecoveryCodeChallengeType:
+    class: Mpadmin2fa\Form\RecoveryCodeChallengeType
+
+  Mpadmin2fa\Form\RegenerateRecoveryCodesType:
+    class: Mpadmin2fa\Form\RegenerateRecoveryCodesType
+
+  Mpadmin2fa\Form\ReplaceFactorType:
+    class: Mpadmin2fa\Form\ReplaceFactorType
+
+  Mpadmin2fa\Form\SecurityPolicyType:
+    class: Mpadmin2fa\Form\SecurityPolicyType
+
+  Mpadmin2fa\Grid\Data\Factory\CsrfTokenGridDataFactory:
+    class: Mpadmin2fa\Grid\Data\Factory\CsrfTokenGridDataFactory
+
+  Mpadmin2fa\Grid\Filters\AuditEventFilters:
+    class: Mpadmin2fa\Grid\Filters\AuditEventFilters
+
+  Mpadmin2fa\Grid\Filters\EmployeeFactorFilters:
+    class: Mpadmin2fa\Grid\Filters\EmployeeFactorFilters
+
+  Mpadmin2fa\Grid\Filters\PendingApprovalFilters:
+    class: Mpadmin2fa\Grid\Filters\PendingApprovalFilters
+
+  Mpadmin2fa\Http\LoginHttpsGuard:
+    class: Mpadmin2fa\Http\LoginHttpsGuard
+
+  Mpadmin2fa\Http\StepUpResponseFactory:
+    class: Mpadmin2fa\Http\StepUpResponseFactory
+
+  Mpadmin2fa\Mail\MailThemeLayoutRegistrar:
+    class: Mpadmin2fa\Mail\MailThemeLayoutRegistrar
 
   Mpadmin2fa\Security\CookieKeyProvider:
     class: Mpadmin2fa\Security\CookieKeyProvider
+
+  Mpadmin2fa\Security\DashboardActivityWindow:
+    class: Mpadmin2fa\Security\DashboardActivityWindow
 
   Mpadmin2fa\Security\KeyManager:
     class: Mpadmin2fa\Security\KeyManager
@@ -45,6 +92,12 @@ services:
   Mpadmin2fa\Security\Policy:
     class: Mpadmin2fa\Security\Policy
 
+  Mpadmin2fa\Security\ProfilePolicyCleaner:
+    class: Mpadmin2fa\Security\ProfilePolicyCleaner
+
+  Mpadmin2fa\Security\ProtectedKeyRewrapper:
+    class: Mpadmin2fa\Security\ProtectedKeyRewrapper
+
   Mpadmin2fa\Security\RateLimiter:
     class: Mpadmin2fa\Security\RateLimiter
 
@@ -53,6 +106,12 @@ services:
 
   Mpadmin2fa\Security\ReturnTargetPolicy:
     class: Mpadmin2fa\Security\ReturnTargetPolicy
+
+  Mpadmin2fa\Security\SecurityAlertCatalog:
+    class: Mpadmin2fa\Security\SecurityAlertCatalog
+
+  Mpadmin2fa\Security\SecurityAlertMessageFactory:
+    class: Mpadmin2fa\Security\SecurityAlertMessageFactory
 
   Mpadmin2fa\Security\SecurityAlertService:
     class: Mpadmin2fa\Security\SecurityAlertService
@@ -66,4 +125,164 @@ services:
   Mpadmin2fa\Controller\Admin\MfaController:
     class: Mpadmin2fa\Controller\Admin\MfaController
     public: true
+    bind:
+      $employeeFactorGridFactory: '@mpadmin2fa.grid.factory.employee_factor'
+      $pendingApprovalGridFactory: '@mpadmin2fa.grid.factory.pending_approval'
+      $auditEventGridFactory: '@mpadmin2fa.grid.factory.audit_event'
+      $securityPolicyFormHandler: '@mpadmin2fa.security_policy.form_handler'
     tags: ['controller.service_arguments']
+
+  Mpadmin2fa\Security\FactorConfirmationService:
+    class: Mpadmin2fa\Security\FactorConfirmationService
+    arguments:
+      $passwordEncoder: '@security.password_encoder'
+
+  Mpadmin2fa\Repository\SecurityRepository:
+    class: Mpadmin2fa\Repository\SecurityRepository
+    public: true
+    arguments:
+      $connection: '@doctrine.dbal.default_connection'
+      $dbPrefix: '%database_prefix%'
+
+  Mpadmin2fa\Security\SecurityActivityAccess:
+    class: Mpadmin2fa\Security\SecurityActivityAccess
+    public: true
+
+  Mpadmin2fa\Form\SecurityPolicyFormDataProvider:
+    class: Mpadmin2fa\Form\SecurityPolicyFormDataProvider
+    arguments:
+      $dataConfiguration: '@Mpadmin2fa\Configuration\SecurityPolicyConfiguration'
+
+  Mpadmin2fa\Form\ProfileChoicesProvider:
+    class: Mpadmin2fa\Form\ProfileChoicesProvider
+    arguments:
+      $languageId: '@=service("prestashop.adapter.legacy.context").getContext().language.id'
+
+  mpadmin2fa.security_policy.form_handler:
+    class: 'PrestaShop\PrestaShop\Core\Form\Handler'
+    public: true
+    arguments:
+      - '@form.factory'
+      - '@prestashop.core.hook.dispatcher'
+      - '@Mpadmin2fa\Form\SecurityPolicyFormDataProvider'
+      - 'Mpadmin2fa\Form\SecurityPolicyType'
+      - 'MpAdmin2faSecurityPolicy'
+      - 'mpadmin2fa-security-policy'
+
+  Mpadmin2fa\Grid\Definition\Factory\EmployeeFactorGridDefinitionFactory:
+    class: Mpadmin2fa\Grid\Definition\Factory\EmployeeFactorGridDefinitionFactory
+    parent: 'prestashop.core.grid.definition.factory.abstract_grid_definition'
+    autowire: false
+    autoconfigure: false
+    public: false
+    arguments:
+      $authorizationChecker: '@security.authorization_checker'
+    tags: ['core.grid_definition_factory']
+
+  Mpadmin2fa\Grid\Definition\Factory\PendingApprovalGridDefinitionFactory:
+    class: Mpadmin2fa\Grid\Definition\Factory\PendingApprovalGridDefinitionFactory
+    parent: 'prestashop.core.grid.definition.factory.abstract_grid_definition'
+    autowire: false
+    autoconfigure: false
+    public: false
+    arguments:
+      $authorizationChecker: '@security.authorization_checker'
+    tags: ['core.grid_definition_factory']
+
+  Mpadmin2fa\Grid\Definition\Factory\AuditEventGridDefinitionFactory:
+    class: Mpadmin2fa\Grid\Definition\Factory\AuditEventGridDefinitionFactory
+    parent: 'prestashop.core.grid.definition.factory.abstract_grid_definition'
+    autowire: false
+    autoconfigure: false
+    public: false
+    tags: ['core.grid_definition_factory']
+
+  Mpadmin2fa\Grid\Query\EmployeeFactorQueryBuilder:
+    class: Mpadmin2fa\Grid\Query\EmployeeFactorQueryBuilder
+    arguments:
+      $connection: '@doctrine.dbal.default_connection'
+      $dbPrefix: '%database_prefix%'
+      $searchCriteriaApplicator: '@prestashop.core.query.doctrine_search_criteria_applicator'
+      $languageId: '@=service("prestashop.adapter.legacy.context").getContext().language.id'
+      $currentEmployeeId: '@=service("prestashop.adapter.legacy.context").getContext().employee.id'
+
+  Mpadmin2fa\Grid\Query\PendingApprovalQueryBuilder:
+    class: Mpadmin2fa\Grid\Query\PendingApprovalQueryBuilder
+    arguments:
+      $connection: '@doctrine.dbal.default_connection'
+      $dbPrefix: '%database_prefix%'
+      $searchCriteriaApplicator: '@prestashop.core.query.doctrine_search_criteria_applicator'
+      $currentEmployeeId: '@=service("prestashop.adapter.legacy.context").getContext().employee.id'
+
+  Mpadmin2fa\Grid\Query\AuditEventQueryBuilder:
+    class: Mpadmin2fa\Grid\Query\AuditEventQueryBuilder
+    arguments:
+      $connection: '@doctrine.dbal.default_connection'
+      $dbPrefix: '%database_prefix%'
+      $searchCriteriaApplicator: '@prestashop.core.query.doctrine_search_criteria_applicator'
+
+  mpadmin2fa.grid.data_factory.employee_factor.inner:
+    class: 'PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory'
+    arguments:
+      - '@Mpadmin2fa\Grid\Query\EmployeeFactorQueryBuilder'
+      - '@prestashop.core.hook.dispatcher'
+      - '@prestashop.core.grid.query.doctrine_query_parser'
+      - 'mp2fa_employee_factor'
+
+  mpadmin2fa.grid.data_factory.employee_factor:
+    class: 'Mpadmin2fa\Grid\Data\Factory\CsrfTokenGridDataFactory'
+    arguments:
+      - '@mpadmin2fa.grid.data_factory.employee_factor.inner'
+      - '@security.csrf.token_manager'
+      - 'id_employee'
+      - 'reset_token'
+      - 'mp2fa_admin_reset_'
+
+  mpadmin2fa.grid.data_factory.pending_approval.inner:
+    class: 'PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory'
+    arguments:
+      - '@Mpadmin2fa\Grid\Query\PendingApprovalQueryBuilder'
+      - '@prestashop.core.hook.dispatcher'
+      - '@prestashop.core.grid.query.doctrine_query_parser'
+      - 'mp2fa_pending_approval'
+
+  mpadmin2fa.grid.data_factory.pending_approval:
+    class: 'Mpadmin2fa\Grid\Data\Factory\CsrfTokenGridDataFactory'
+    arguments:
+      - '@mpadmin2fa.grid.data_factory.pending_approval.inner'
+      - '@security.csrf.token_manager'
+      - 'id_employee'
+      - 'approval_token'
+      - 'mp2fa_approve_'
+
+  mpadmin2fa.grid.data_factory.audit_event:
+    class: 'PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory'
+    arguments:
+      - '@Mpadmin2fa\Grid\Query\AuditEventQueryBuilder'
+      - '@prestashop.core.hook.dispatcher'
+      - '@prestashop.core.grid.query.doctrine_query_parser'
+      - 'mp2fa_audit_event'
+
+  mpadmin2fa.grid.factory.employee_factor:
+    class: 'PrestaShop\PrestaShop\Core\Grid\GridFactory'
+    arguments:
+      - '@Mpadmin2fa\Grid\Definition\Factory\EmployeeFactorGridDefinitionFactory'
+      - '@mpadmin2fa.grid.data_factory.employee_factor'
+      - '@prestashop.core.grid.filter.form_factory'
+      - '@prestashop.core.hook.dispatcher'
+
+  mpadmin2fa.grid.factory.pending_approval:
+    class: 'PrestaShop\PrestaShop\Core\Grid\GridFactory'
+    arguments:
+      - '@Mpadmin2fa\Grid\Definition\Factory\PendingApprovalGridDefinitionFactory'
+      - '@mpadmin2fa.grid.data_factory.pending_approval'
+      - '@prestashop.core.grid.filter.form_factory'
+      - '@prestashop.core.hook.dispatcher'
+
+  mpadmin2fa.grid.factory.audit_event:
+    class: 'PrestaShop\PrestaShop\Core\Grid\GridFactory'
+    arguments:
+      - '@Mpadmin2fa\Grid\Definition\Factory\AuditEventGridDefinitionFactory'
+      - '@mpadmin2fa.grid.data_factory.audit_event'
+      - '@prestashop.core.grid.filter.form_factory'
+      - '@prestashop.core.hook.dispatcher'

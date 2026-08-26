@@ -1,9 +1,12 @@
 /vendor/
 /build/
+/dist/
 /.phpunit.cache/
 /.phpunit.result.cache
 /tools/vendor/
+/tools/composer.lock
 /node_modules/
 .idea/
 .DS_Store
 *.log
+config.xml

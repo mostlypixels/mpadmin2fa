@@ -1,8 +1,1 @@
-PrestaShop back-office security alert
-
-Event: {event}
-
-Details:
-{details}
-
-Review the Admin 2FA audit log in the back office.
+PrestaShop back-office security alert Event: {event} {details} Review the Admin 2FA security activity log in the back office.

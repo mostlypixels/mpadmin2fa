@@ -27,6 +27,8 @@ final class MfaManager
     /** @var SecurityAlertService */
     private $alerts;
 
+    private const SECURITY_ALERT_FAILURE_THRESHOLD = 5;
+
     public function __construct(
         SecurityRepository $repository,
         KeyManager $keys,
@@ -56,7 +58,7 @@ final class MfaManager
     {
         $factor = $this->repository->factor($employeeId);
         if (!$factor || 'pending' !== $factor['status']) {
-            throw new MfaSecurityException('No pending enrollment exists.');
+            throw new MfaSecurityException('No authenticator setup is waiting to be confirmed. Start the setup again.');
         }
 
         return $this->keys->decrypt((string) $factor['secret_ciphertext'], (int) $factor['key_version']);
@@ -67,7 +69,7 @@ final class MfaManager
         $this->rateLimiter->assertAllowed('enrollment', $employeeId, $ip);
         $factor = $this->repository->factor($employeeId);
         if (!$factor || 'pending' !== $factor['status']) {
-            throw new MfaSecurityException('No pending enrollment exists.');
+            throw new MfaSecurityException('No authenticator setup is waiting to be confirmed. Start the setup again.');
         }
 
         $secret = $this->keys->decrypt((string) $factor['secret_ciphertext'], (int) $factor['key_version']);
@@ -76,7 +78,7 @@ final class MfaManager
             $failures = $this->rateLimiter->failure('enrollment', $employeeId, $ip);
             $this->notifyRepeatedFailures($employeeId, 'enrollment', $failures);
             $this->repository->audit($employeeId, 'enrollment.failed', $ip);
-            throw new MfaSecurityException('The authentication code is invalid.');
+            throw new MfaSecurityException('That authenticator code is incorrect. Check the app and try again.');
         }
 
         $codes = $this->recoveryCodes->generate();
@@ -93,7 +95,7 @@ final class MfaManager
         $this->rateLimiter->assertAllowed($scope, $employeeId, $ip);
         $factor = $this->repository->factor($employeeId);
         if (!$factor || 'active' !== $factor['status']) {
-            throw new MfaSecurityException('TOTP is not active for this employee.');
+            throw new MfaSecurityException('Two-factor authentication is not active for this employee.');
         }
 
         $secret = $this->keys->decrypt((string) $factor['secret_ciphertext'], (int) $factor['key_version']);
@@ -107,8 +109,23 @@ final class MfaManager
             return false;
         }
 
+        $challengeFailures = 'challenge' === $scope
+            ? $this->repository->challengeFailuresSinceLastSuccess($employeeId)
+            : null;
         $this->rateLimiter->success($scope, $employeeId, $ip);
         $this->repository->audit($employeeId, $scope . '.verified', $ip);
+        if (null !== $challengeFailures
+            && $challengeFailures['failures'] >= self::SECURITY_ALERT_FAILURE_THRESHOLD
+            && null !== $challengeFailures['first_failure_at']
+        ) {
+            $firstFailureAt = strtotime($challengeFailures['first_failure_at']);
+            $this->alerts->notifySecurityRecipients($employeeId, 'authentication.succeeded_after_failures', [
+                'elapsed_seconds' => false === $firstFailureAt ? 0 : max(0, time() - $firstFailureAt),
+                'failures' => $challengeFailures['failures'],
+                'first_failure_at' => $challengeFailures['first_failure_at'],
+                'ip' => $ip,
+            ]);
+        }
 
         return true;
     }
@@ -159,7 +176,9 @@ final class MfaManager
 
     private function notifyRepeatedFailures(int $employeeId, string $scope, int $failures): void
     {
-        if (5 === $failures || ($failures > 5 && 0 === $failures % 3)) {
+        if (self::SECURITY_ALERT_FAILURE_THRESHOLD === $failures
+            || ($failures > self::SECURITY_ALERT_FAILURE_THRESHOLD && 0 === $failures % 3)
+        ) {
             $this->alerts->notify($employeeId, 'authentication.repeated_failures', [
                 'scope' => $scope,
                 'failures' => $failures,

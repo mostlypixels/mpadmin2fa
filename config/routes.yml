@@ -36,17 +36,64 @@ mpadmin2fa_recovery_regenerate:
 
 mpadmin2fa_settings:
   path: /mpadmin2fa/settings
-  methods: [GET, POST]
+  methods: [GET]
   defaults:
     _controller: 'Mpadmin2fa\Controller\Admin\MfaController::settings'
     _legacy_controller: AdminMpAdmin2fa
     _legacy_link: AdminMpAdmin2fa
+
+mpadmin2fa_authenticator:
+  path: /mpadmin2fa/authenticator
+  methods: [GET]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::authenticator'
+    _legacy_controller: AdminMpAdmin2faAuthenticator
+    _legacy_link: AdminMpAdmin2faAuthenticator
+
+mpadmin2fa_enrollment_employees:
+  path: /mpadmin2fa/enrollment
+  methods: [GET]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::enrollmentEmployees'
+    _legacy_controller: AdminMpAdmin2faEnrollment
+    _legacy_link: AdminMpAdmin2faEnrollment
+
+mpadmin2fa_enrollment_approvals:
+  path: /mpadmin2fa/enrollment/pending-approvals
+  methods: [GET]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::enrollmentApprovals'
+    _legacy_controller: AdminMpAdmin2faEnrollment
+
+mpadmin2fa_security_policy:
+  path: /mpadmin2fa/security
+  methods: [GET]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::securityPolicy'
+    _legacy_controller: AdminMpAdmin2faSecurity
+    _legacy_link: AdminMpAdmin2faSecurity
+
+mpadmin2fa_security_policy_update:
+  path: /mpadmin2fa/security
+  methods: [POST]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::updateSecurityPolicy'
+    _legacy_controller: AdminMpAdmin2faSecurity
+
+mpadmin2fa_security_activity:
+  path: /mpadmin2fa/security/activity-log
+  methods: [GET]
+  defaults:
+    _controller: 'Mpadmin2fa\Controller\Admin\MfaController::securityActivity'
+    _legacy_controller: AdminMpAdmin2faSecurityActivity
+    _legacy_link: AdminMpAdmin2faSecurityActivity
 
 mpadmin2fa_admin_reset:
   path: /mpadmin2fa/employees/{employeeId}/reset
   methods: [POST]
   defaults:
     _controller: 'Mpadmin2fa\Controller\Admin\MfaController::adminReset'
+    _legacy_controller: AdminMpAdmin2faEnrollment
   requirements:
     employeeId: '\d+'
 
@@ -55,5 +102,33 @@ mpadmin2fa_approve:
   methods: [POST]
   defaults:
     _controller: 'Mpadmin2fa\Controller\Admin\MfaController::approveEnrollment'
+    _legacy_controller: AdminMpAdmin2faEnrollment
   requirements:
     employeeId: '\d+'
+
+mpadmin2fa_enrollment_employees_search:
+  path: /mpadmin2fa/enrollment
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle\Controller\Admin\CommonController::searchGridAction'
+    gridDefinitionFactoryServiceId: 'Mpadmin2fa\Grid\Definition\Factory\EmployeeFactorGridDefinitionFactory'
+    redirectRoute: mpadmin2fa_enrollment_employees
+    _legacy_controller: AdminMpAdmin2faEnrollment
+
+mpadmin2fa_enrollment_approvals_search:
+  path: /mpadmin2fa/enrollment/pending-approvals
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle\Controller\Admin\CommonController::searchGridAction'
+    gridDefinitionFactoryServiceId: 'Mpadmin2fa\Grid\Definition\Factory\PendingApprovalGridDefinitionFactory'
+    redirectRoute: mpadmin2fa_enrollment_approvals
+    _legacy_controller: AdminMpAdmin2faEnrollment
+
+mpadmin2fa_security_activity_search:
+  path: /mpadmin2fa/security/activity-log
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle\Controller\Admin\CommonController::searchGridAction'
+    gridDefinitionFactoryServiceId: 'Mpadmin2fa\Grid\Definition\Factory\AuditEventGridDefinitionFactory'
+    redirectRoute: mpadmin2fa_security_activity
+    _legacy_controller: AdminMpAdmin2faSecurityActivity
