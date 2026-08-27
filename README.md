@@ -1,47 +1,54 @@
 > [!CAUTION]
-> **YO. This is entirely vibe-coded and not production ready. TEST IT. READ THE CODE. If you are not a developer: DO NOT INSTALL THIS.**
+> This module is not ready for production. Test it and review the code before you install it.
 
 # Admin 2FA
 
-Security-focused TOTP authentication for PrestaShop back-office employees. The module protects login and requires fresh MFA before module or theme operations that can deploy executable code.
+Admin 2FA gives time-based one-time password protection to PrestaShop back-office employees.
+It also requires a recent code before an employee changes modules, themes, or module security settings.
 
-This work-in-progress branch targets PrestaShop 9.0 through 9.2 and PHP 8.1+. It is not ready for production.
+This branch supports 8.0 through 8.2 and PHP 7.2.5 through 8.1.
 
-Start with the [documentation index](documentation/README.md). See
-[IMPLEMENTATION.md](IMPLEMENTATION.md) for the implemented architecture and
-[SECURITY.md](SECURITY.md) for reporting and threat-model details. The older
-`spec.md` and `HANDOFF.md` files are historical design records.
+Start with the [documentation index](documentation/README.md).
+Read [SECURITY.md](SECURITY.md) to report a security problem.
 
-## Install
+## Install the module
+
+1. Put this repository in the PrestaShop `modules/mpadmin2fa` directory.
+2. Install the production dependencies.
+3. Run this command from the PrestaShop root:
 
 ```bash
-ln -s "$(pwd)" /path/to/prestashop/modules/mpadmin2fa
 php bin/console prestashop:module install mpadmin2fa
 ```
 
 ## Requirements
 
-- PrestaShop >= 9.0.0 and <= 9.2.x
-- PHP >= 8.1
+- PrestaShop 8.0 through 8.2
+- PHP 7.2.5 through 8.1
+- HTTPS for authenticator enrollment
 
-## Development
+## Run the development checks
+
+Run these commands from the module directory:
 
 ```bash
 composer install
 composer test
+composer build:tools
 composer build:scoped
 ```
 
-The scoped release is written to `build/mpadmin2fa` with an SBOM and SHA-256 checksums. Build with PHP 8.1–8.4.
+The module runtime supports PHP 7.2.5. The separate release-build tools require PHP 8.1 through PHP 8.4.
+The scoped module is in `build/mpadmin2fa`.
+The build contains an SBOM and SHA-256 checksums.
 
-## Release
+## Prepare a release
 
-Each PrestaShop compatibility branch has its own module major version. Read the
-[release strategy](documentation/release-strategy.md) before changing versions
-or pushing tags. Pushing a valid `v*` tag is the publication trigger; routine
-branch pushes do not create releases.
+Read the [release guide](documentation/release-strategy.md) before you change a version or push a tag.
+A branch push does not create a release.
+A valid `v*` tag starts the publication workflow.
 
-To produce and verify release artifacts locally without publishing them:
+Make and verify a package without publication:
 
 ```bash
 php tools/release.php <matching-tag>
