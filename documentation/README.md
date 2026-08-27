@@ -1,20 +1,38 @@
-# Documentation
+# Admin 2FA documentation for PrestaShop 9
 
-This directory is the starting point for mpadmin2fa contributor and release
-documentation.
+This documentation applies to the `main` branch.
 
-## Release management
+| Item | Supported value |
+| --- | --- |
+| Module release line | 3.x |
+| PrestaShop | 9.0 through 9.2 |
+| PHP runtime | 8.1 through 8.5 |
+| Release-build PHP | 8.1 through 8.4 |
 
-- [Release strategy](release-strategy.md) — compatibility lines, version
-  numbering, backports, tags, and publication safety.
+PrestaShop 9.0 supports PHP 8.1 through PHP 8.4.
+PrestaShop 9.1 also supports PHP 8.5.
+The release-build tool does not support PHP 8.5.
+Use PHP 8.1 through PHP 8.4 to make the package.
+Use PHP 8.5 only for module runtime tests.
 
-## Development and security
+The module declares support through PrestaShop 9.2.
+Do not publish a 9.2 compatibility claim until its endpoint tests pass.
 
-- [Local compatibility matrix](../docs/development-matrix.md) — PrestaShop 1.7,
-  8, and 9 development environments.
-- [Implementation architecture](../IMPLEMENTATION.md) — security architecture
-  and implemented behavior.
-- [Security policy](../SECURITY.md) — threat model and vulnerability reporting.
+## Select a document
 
-The files under `docs/` and the repository-root design records predate this
-index. New project documentation should be added here and linked from this page.
+- [Use Docker](docker.md) to start the PrestaShop 9 test shop.
+- [Understand the module](how-it-works.md) to learn the employee and administrator tasks.
+- [Understand the architecture](architecture.md) to learn the software parts and data flows.
+- [Use the compatibility matrix](development-matrix.md) to test the supported PHP range.
+- [Prepare a release](release-strategy.md) to make a 3.x package.
+
+## Documentation rules
+
+These files use ASD-STE100 Simplified Technical English.
+Use the same technical terms in all files.
+Use short sentences.
+Use one instruction in each numbered step.
+
+Keep this directory in Git.
+Do not put this directory in a module release.
+The release tools exclude `documentation/` and reject an archive that contains it.
