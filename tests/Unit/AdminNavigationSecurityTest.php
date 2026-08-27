@@ -4,7 +4,15 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Tests\Unit;
 
+$moduleLoader = require dirname(__DIR__, 2) . '/vendor/autoload.php';
+class_exists(\PHPUnit\Framework\TestCase::class);
+interface_exists(\PHPUnit\Framework\Test::class);
 require_once dirname(__DIR__, 4) . '/vendor/autoload.php';
+spl_autoload_register(static function ($class) use ($moduleLoader): void {
+    if (0 === strpos($class, 'PHPUnit\\')) {
+        $moduleLoader->loadClass($class);
+    }
+}, true, true);
 
 use Mpadmin2fa\Controller\Admin\MfaController;
 use PHPUnit\Framework\TestCase;
