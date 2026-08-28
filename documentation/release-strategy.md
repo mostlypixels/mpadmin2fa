@@ -1,86 +1,79 @@
 # Release guide for PrestaShop 9
 
-This guide applies only to the `main` branch.
-This branch owns module line 3.x.
-Use tags that start with `v3.`.
+## Release identity
 
-## Version rules
+| Item | Required value |
+| --- | --- |
+| **Branch** | `main` |
+| **Module line** | 3.x |
+| **Tag prefix** | `v3.` |
+| **First public version** | `3.0.0` |
+| **Build PHP** | 8.1 through 8.4 |
 
-- Increase the patch number for a compatible fix.
-- Increase the minor number for a compatible feature.
-- Keep major version 3 for PrestaShop 9.
-- Use a suffix only for a real prerelease.
+The current `0.x` version is for development. Never reuse the same tag on another branch.
 
-The current `0.x` module version is a development version.
-Set the first public version on this branch to `3.0.0`.
-Do not reuse the same Git tag on another branch.
+## Choose the version number
 
-## Prepare the branch
+| Change | Version action |
+| --- | --- |
+| Compatible bug fix | Increase the **patch** number. |
+| Compatible feature | Increase the **minor** number. |
+| First public PrestaShop 9 release | Use **3.0.0**. |
+| Test release | Add a suffix such as `-rc.1`. |
 
-1. Select the `main` branch.
-2. Get the current remote changes with a fast-forward update.
-3. Add all required fixes for PrestaShop 9.
-4. Set `$this->version` in `mpadmin2fa.php`.
-5. Confirm the PrestaShop range in `$this->ps_versions_compliancy`.
-6. Confirm the PHP range in `composer.json`.
-7. Update these version-specific documents.
-8. Run the full [compatibility matrix](development-matrix.md).
-9. Run the unit tests.
-10. Build the scoped module.
-11. Confirm that the documentation is absent from the build.
-12. Review all branch changes.
-13. Commit the release preparation.
+## Prepare the release
 
-Run the release build with PHP 8.1 through PHP 8.4.
+1. Update `main` with a fast-forward pull.
+2. Set `$this->version` in `mpadmin2fa.php`.
+3. Check the PrestaShop range in `$this->ps_versions_compliancy`.
+4. Check the PHP range in `composer.json`.
+5. Update these documents when compatibility changed.
+6. Run the full [compatibility matrix](development-matrix.md).
+7. Review and commit the release changes.
 
-## Make the local package
+**Build ZIP files with PHP 8.1 through 8.4.** The build tool does not support PHP 8.5.
 
-Use a tag value that is equal to the module version:
+## Build the ZIP
+
+The tag text must match the module version:
 
 ```bash
 php tools/release.php v3.0.0
 ```
 
-The command validates Composer data.
-It runs the tests and makes the scoped module.
-It makes a ZIP file and a SHA-256 file in `dist/`.
-It does not publish a release.
+The command validates Composer data, runs tests, builds scoped dependencies, and writes two files to `dist/`:
 
-## Inspect the package
+| File | Purpose |
+| --- | --- |
+| `mpadmin2fa-v3.0.0.zip` | Installable module package. |
+| `mpadmin2fa-v3.0.0.zip.sha256` | File-integrity checksum. |
 
-1. Open the ZIP file list.
-2. Confirm that all entries start with `mpadmin2fa/`.
-3. Confirm that `mpadmin2fa/mpadmin2fa.php` exists.
-4. Confirm that `mpadmin2fa/vendor-scoped/autoload.php` exists.
-5. Confirm that `mpadmin2fa/SBOM.json` exists.
-6. Confirm that `mpadmin2fa/SHA256SUMS` exists.
-7. Confirm that `documentation/` does not exist.
-8. Confirm that `docs/` does not exist.
-9. Confirm that `tests/` and `tools/` do not exist.
-10. Install this exact ZIP file on a clean PrestaShop 9 shop.
+The command **does not publish anything**.
 
-## Publish the release
+## Check the ZIP
+
+Before publication, confirm that:
+
+- every path starts with `mpadmin2fa/`;
+- `mpadmin2fa.php`, `vendor-scoped/autoload.php`, `SBOM.json`, and `SHA256SUMS` exist;
+- `documentation/`, `docs/`, `tests/`, `tools/`, and normal `vendor/` do not exist;
+- this exact ZIP installs on a clean PrestaShop 9 shop.
+
+## Publish safely
 
 > [!WARNING]
-> A pushed `v*` tag starts the publication workflow.
+> Pushing a `v*` tag starts the publication workflow.
 
-1. Push the `main` branch without tags.
-2. Review the exact remote commit.
+1. Push `main` **without tags**.
+2. Review the remote commit.
 3. Create one annotated `v3.*` tag on that commit.
-4. Show the tag and its file changes.
-5. Push only that tag.
-6. Check the workflow result.
-7. Download the published ZIP file.
-8. Compare its SHA-256 value with the published checksum.
+4. Inspect the tag and its changes.
+5. Push **only that tag**.
+6. Check the publication workflow.
+7. Download the published ZIP and compare its SHA-256 value.
 
-Do not use `git push --tags`.
-Do not use `git push --follow-tags`.
-Do not enable automatic tag push in an editor.
+**Never use** `git push --tags` or `git push --follow-tags` for this release.
 
 ## Backport a fix
 
-Develop the fix on its primary branch.
-Apply only the required commits to `main`.
-Adapt the fix to Symfony 6.4 and PHP 8.1 through 8.5.
-Run this branch's complete compatibility matrix.
-Make a separate version, tag, and package for this branch.
+Move only the required fix commits to `main`. Adapt them for Symfony 6.4 and PHP 8.1 through 8.5, then run this branch's complete compatibility matrix.

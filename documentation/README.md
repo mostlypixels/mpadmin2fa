@@ -1,38 +1,31 @@
 # Admin 2FA documentation for PrestaShop 9
 
-This documentation applies to the `main` branch.
+Use this folder to understand, test, and release the module.
 
-| Item | Supported value |
+## Supported versions
+
+| Item | This branch supports |
 | --- | --- |
-| Module release line | 3.x |
-| PrestaShop | 9.0 through 9.2 |
-| PHP runtime | 8.1 through 8.5 |
-| Release-build PHP | 8.1 through 8.4 |
+| **Git branch** | `main` |
+| **Module releases** | 3.x |
+| **PrestaShop** | 9.0 through 9.2 |
+| **PHP in the shop** | 8.1 through 8.5 |
+| **PHP used to build a ZIP** | 8.1 through 8.4 |
 
-PrestaShop 9.0 supports PHP 8.1 through PHP 8.4.
-PrestaShop 9.1 also supports PHP 8.5.
-The release-build tool does not support PHP 8.5.
-Use PHP 8.1 through PHP 8.4 to make the package.
-Use PHP 8.5 only for module runtime tests.
+**Important:** PrestaShop 9.0 supports PHP through 8.4. PrestaShop 9.1 also supports PHP 8.5. Test the final 9.2 release before publishing that claim.
 
-The module declares support through PrestaShop 9.2.
-Do not publish a 9.2 compatibility claim until its endpoint tests pass.
+## Find the right page
 
-## Select a document
+| I want to... | Read... |
+| --- | --- |
+| Start the test shop | [Docker](docker.md) |
+| Understand the employee experience | [How it works](how-it-works.md) |
+| Find the important code | [Architecture](architecture.md) |
+| Check supported versions | [Compatibility matrix](development-matrix.md) |
+| Build and publish a ZIP | [Release guide](release-strategy.md) |
 
-- [Use Docker](docker.md) to start the PrestaShop 9 test shop.
-- [Understand the module](how-it-works.md) to learn the employee and administrator tasks.
-- [Understand the architecture](architecture.md) to learn the software parts and data flows.
-- [Use the compatibility matrix](development-matrix.md) to test the supported PHP range.
-- [Prepare a release](release-strategy.md) to make a 3.x package.
+## About this folder
 
-## Documentation rules
+The **documentation stays in Git** so maintainers can read it.
 
-These files use ASD-STE100 Simplified Technical English.
-Use the same technical terms in all files.
-Use short sentences.
-Use one instruction in each numbered step.
-
-Keep this directory in Git.
-Do not put this directory in a module release.
-The release tools exclude `documentation/` and reject an archive that contains it.
+The **documentation is not included in release ZIP files**. The release tool rejects a ZIP that contains `documentation/` or the old `docs/` directory.

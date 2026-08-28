@@ -1,112 +1,96 @@
 # Architecture for PrestaShop 9
 
-## Purpose
+## One-minute overview
 
-Admin 2FA adds TOTP authentication to the PrestaShop back office.
-The module does not replace the employee password.
-It adds a second check after PrestaShop accepts the password.
+Admin 2FA sits **after the password check** and **before protected back-office access**.
 
-This branch supports 9.0 through 9.2 and PHP 8.1 through 8.5.
-The code uses PHP 8.1 syntax, typed properties, constructor property promotion, and attributes.
+```text
+Password accepted -> 2FA policy checked -> setup or code requested -> access granted
+```
 
-## Main parts
+Small security services make decisions. Controllers display pages. The repository reads and writes module data.
 
-| Part | Location | Purpose |
-| --- | --- | --- |
-| Module entry point | `mpadmin2fa.php` | Installs tables, hooks, tabs, and default policy values. |
-| Routes | `config/routes.yml` | Maps module URLs to controller actions. |
-| Service definitions | `config/admin/services.yml` | Connects module classes to PrestaShop services. |
-| Login gate | `src/EventSubscriber/AdminMfaSubscriber.php` | Applies enrollment, challenge, and step-up rules. |
-| Controller | `src/Controller/Admin/MfaController.php` | Handles forms, grids, redirects, and administrator actions. |
-| Security services | `src/Security/` | Checks TOTP codes, policy, sessions, rate limits, and keys. |
-| Repository | `src/Repository/SecurityRepository.php` | Reads and changes module data. |
-| Grids | `src/Grid/` | Shows employees, approvals, and audit events. |
-| Commands | `src/Command/` | Supplies key, audit, and factor maintenance. |
-| Templates | `views/templates/` | Shows the back-office user interface. |
+## Where to look
 
-## Request path
-
-1. PrestaShop accepts the employee password.
-2. The login subscriber creates clean module session data.
-3. The request subscriber reads the active employee.
-4. The policy service decides if the employee must use 2FA.
-5. The subscriber selects enrollment, challenge, or normal access.
-6. The controller validates the form and the CSRF token.
-7. The security service validates the new TOTP counter or recovery code.
-8. The repository changes the factor state and writes an audit event.
-9. The session service records the successful check.
-10. The controller sends the employee to a safe destination.
-
-## Framework adapter
-
-This branch uses Symfony 6.4.
-The security adapter uses `LoginSuccessEvent`, `LogoutEvent`, and `RequestEvent`.
-The repository uses the current Doctrine DBAL result API.
-
-PrestaShop 9 uses Symfony 6.4.
-The subscriber uses the current login, logout, and request events.
-The controller uses PHP attributes for access rules and service injection.
-The services file uses autowire and autoconfigure.
-
-The login guard rejects an insecure login when policy requires 2FA or the employee has an active factor.
-The guard closes the new security token before it sends the employee to the login page.
-
-Keep these framework differences in this branch.
-Do not merge a framework adapter from another PrestaShop line without a compatibility test.
-
-## Data model
-
-The installer creates six tables with the configured PrestaShop prefix.
-
-| Table | Stored data |
+| If you need to change... | Start here |
 | --- | --- |
-| `mp2fa_keyring` | Protected data keys and key versions. |
-| `mp2fa_employee` | Factor state, encrypted TOTP secret, and last accepted counter. |
+| Installation, hooks, or menu tabs | `mpadmin2fa.php` |
+| URLs | `config/routes.yml` |
+| Service wiring | `config/admin/services.yml` |
+| Sign-in and access rules | `src/EventSubscriber/AdminMfaSubscriber.php` |
+| HTTPS sign-in protection | `src/Http/LoginHttpsGuard.php` |
+| Pages and form actions | `src/Controller/Admin/MfaController.php` |
+| Codes, policy, sessions, limits, or keys | `src/Security/` |
+| Database access | `src/Repository/SecurityRepository.php` |
+| Employee, approval, and activity lists | `src/Grid/` |
+| Maintenance commands | `src/Command/` |
+| Back-office HTML | `views/templates/` |
+
+## Request flow
+
+1. **PrestaShop** accepts the employee password.
+2. The **login gate** clears old module session data.
+3. The **policy service** decides whether the employee needs 2FA.
+4. The employee goes to **setup**, a **code challenge**, or the requested page.
+5. The **controller** checks the form and its CSRF token.
+6. A **security service** checks the authenticator or recovery code.
+7. The **repository** saves the result and writes an activity event.
+
+## Version adapter
+
+| Concern | This branch uses |
+| --- | --- |
+| **PHP syntax** | PHP 8.1 features, typed properties, promotion, and attributes |
+| **Symfony** | 6.4 |
+| **Login events** | `LoginSuccessEvent`, `LogoutEvent`, and `RequestEvent` |
+| **Database API** | Current Doctrine DBAL result API |
+| **Controller access rules** | PHP attributes |
+| **Service setup** | Autowire and autoconfigure |
+
+The HTTPS guard rejects insecure protected sign-ins and closes the new security token.
+
+**Keep this adapter on this branch.** Do not copy an adapter from another PrestaShop line without compatibility tests.
+
+## Stored data
+
+The installer creates six tables. PrestaShop adds the configured table prefix.
+
+| Table | What it stores |
+| --- | --- |
+| `mp2fa_keyring` | Protected encryption keys and their versions. |
+| `mp2fa_employee` | Enrollment state and the encrypted authenticator secret. |
 | `mp2fa_recovery_code` | Hashed recovery codes and use dates. |
-| `mp2fa_approval` | Enrollment requests and approval decisions. |
-| `mp2fa_rate_limit` | Failure counts and temporary block times. |
-| `mp2fa_audit` | Security events, employee IDs, IP addresses, and metadata. |
+| `mp2fa_approval` | Setup requests and decisions. |
+| `mp2fa_rate_limit` | Failed-attempt counts and temporary blocks. |
+| `mp2fa_audit` | Security events and useful investigation data. |
 
-PrestaShop supplies the actual table prefix.
-The module removes these tables when an administrator uninstalls the module.
+Uninstalling the module removes these tables.
 
-## Secret protection
+## How secrets are protected
 
-1. The installer makes a random data key.
-2. The installer protects the data key with `_NEW_COOKIE_KEY_`.
-3. The key service encrypts each TOTP secret with the data key.
-4. The employee table stores the ciphertext and the data-key version.
-5. The keyring keeps old key versions during a controlled rotation.
+1. The installer creates a random **data key**.
+2. `_NEW_COOKIE_KEY_` protects that data key.
+3. The data key encrypts each authenticator secret.
+4. Key versions allow a controlled key change.
 
-The module does not store a TOTP secret as plain text after enrollment.
-The module stores recovery codes as password hashes.
-The module shows new recovery codes only in the employee session.
+Authenticator secrets are not stored as plain text after setup. Recovery codes are stored as password hashes and shown only once.
 
-The release package scopes third-party namespaces.
-This step prevents a Composer dependency conflict with PrestaShop or another module.
-The runtime dependencies are Google2FA 9, BaconQrCode 3, and Defuse PHP Encryption 2.4.
-The Composer PHP rule is `>=8.1`.
+## Failure and access rules
 
-## Failure behavior
+- A broken protected key **blocks protected access** instead of bypassing 2FA.
+- Repeated failures cause a temporary block and can send an alert.
+- Sensitive POST actions need both **PrestaShop permission** and a valid **CSRF token**.
+- Policy changes, approvals, and resets also need a **fresh authenticator code**.
+- Employees cannot approve or reset themselves from the employee list.
 
-The module blocks access when it cannot validate the protected data key.
-It returns a service-unavailable response for a protected request.
-It also sends a security alert when alert delivery is available.
+## Dependencies and releases
 
-The rate limiter uses a hash of the employee and request source.
-It does not store the raw rate-limit subject.
-The audit table can contain an IP address.
-Apply the configured retention period to this table.
+The release build moves third-party code into a private namespace. This prevents conflicts with PrestaShop and other modules.
 
-## Access control
+| Dependency | Release line |
+| --- | --- |
+| Google2FA | 9 |
+| BaconQrCode | 3 |
+| Defuse PHP Encryption | 2.4 |
 
-PrestaShop permissions control access to the module pages.
-A fresh TOTP check protects policy changes, approvals, and factor resets.
-POST actions also require a valid CSRF token.
-The module rejects a self-approval and a self-reset from the employee list.
-
-## Release boundary
-
-Keep this `documentation/` directory in Git.
-The scoped build excludes it before dependency installation.
-The archive check rejects both `documentation/` and the old `docs/` path.
+The module runs on PHP 8.1 through 8.5. The build excludes documentation, tests, tools, and the normal Composer vendor directory.

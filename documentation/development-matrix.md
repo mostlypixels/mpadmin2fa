@@ -1,70 +1,53 @@
 # Compatibility matrix for PrestaShop 9
 
-This matrix applies only to the `main` branch.
-The branch supports 9.0 through 9.2 and PHP 8.1 through 8.5.
+## Versions that must work
 
-## Required endpoints
-
-| Test boundary | PrestaShop | PHP | Purpose |
+| Test | PrestaShop | PHP | Why it matters |
 | --- | --- | --- | --- |
-| Minimum runtime | PrestaShop 9.0 | PHP 8.1 | Prove the minimum runtime. |
-| Highest 9.0 runtime | PrestaShop 9.0 | PHP 8.4 | Prove the highest PHP version for PrestaShop 9.0. |
-| Current upper runtime | PrestaShop 9.1 | PHP 8.5 | Prove the current highest PrestaShop 9 runtime. |
-| Declared future line | PrestaShop 9.2 | Use the official range | Test this line before its first module release. |
+| **Lowest runtime** | 9.0 | 8.1 | Protects shops on the oldest supported PHP. |
+| **Highest 9.0 runtime** | 9.0 | 8.4 | Checks the top of the 9.0 range. |
+| **Highest current runtime** | 9.1 | 8.5 | Checks the newest supported PHP. |
+| **Future declared line** | 9.2 | Official range | Must pass before publishing a 9.2 claim. |
 
-PrestaShop 9.0 supports PHP 8.1 through PHP 8.4.
-PrestaShop 9.1 also supports PHP 8.5.
-The release-build tool does not support PHP 8.5.
-Use PHP 8.1 through PHP 8.4 to make the package.
-Use PHP 8.5 only for module runtime tests.
+**Important:** PrestaShop 9.0 supports PHP through 8.4. PrestaShop 9.1 also supports PHP 8.5. Test the final 9.2 release before publishing that claim.
 
-The module declares support through PrestaShop 9.2.
-Do not publish a 9.2 compatibility claim until its endpoint tests pass.
+**Build ZIP files with PHP 8.1 through 8.4.** The build tool does not support PHP 8.5.
 
-## Local Docker baseline
+## Local Docker shop
 
-| Item | Value |
+| Item | Local value |
 | --- | --- |
-| Compose file | `docker-compose.yml` |
-| PrestaShop | the PrestaShop 9 development tree |
-| PHP | PHP 8.1 |
-| HTTPS store | https://localhost:9002/ |
-| Back office | https://localhost:9002/admin-dev/ |
-| Database | localhost:3396 |
+| **Compose file** | `docker-compose.yml` |
+| **PrestaShop** | PrestaShop 9 development tree |
+| **PHP** | 8.1 |
+| **Shop** | https://localhost:9002/ |
+| **Back office** | https://localhost:9002/admin-dev/ |
+| **Database port** | `3396` |
 
-The local stack is one endpoint of the compatibility matrix.
-Use a separate container or CI job for each other endpoint.
-Do not change the Composer platform to match only the local container.
+The local shop covers only one row of the matrix. Use separate containers or CI jobs for the other rows.
 
-## Release gate
+## What to check at each endpoint
 
-Run this gate at each required endpoint:
+| Area | Required checks |
+| --- | --- |
+| **Code** | Install locked dependencies, check PHP syntax, and run unit tests. |
+| **PrestaShop** | Install the module, compile both service containers, and list routes and commands. |
+| **Employee flow** | Enroll, sign in with a code, and use one recovery code. |
+| **Protected actions** | Test one module action, one theme action, and one employee reset. |
+| **Cleanup** | Uninstall and confirm that all six module tables are gone. |
 
-1. Install production dependencies from the lock file.
-2. Check all PHP files for syntax errors.
-3. Run the unit tests.
-4. Install the module on a clean shop.
-5. Compile the development and production service containers.
-6. List the module routes.
-7. List the maintenance commands.
-8. Enroll an employee with a TOTP factor.
-9. Test one normal login challenge.
-10. Test one recovery code.
-11. Test one protected module action.
-12. Test one protected theme action.
-13. Reset an employee factor.
-14. Uninstall the module.
-15. Confirm that the six module tables no longer exist.
+## Package check
 
-Run the scoped build one time with PHP 8.1 through 8.4.
-Then inspect the package.
-Confirm that it does not contain `documentation/`, `docs/`, tests, tools, or an unscoped vendor directory.
+Build the scoped package once with 8.1 through 8.4. Confirm that it contains `vendor-scoped/autoload.php`.
 
-## Change control
+Confirm that it does **not** contain:
 
-Run the complete matrix after a dependency update.
-Run the complete matrix after a framework adapter change.
-Run the complete matrix after a supported-version change.
+- `documentation/` or `docs/`;
+- `tests/` or `tools/`;
+- an unscoped `vendor/` directory.
 
-Do not raise the minimum PHP version because the development computer has a newer PHP version.
-Create a new compatibility branch when one code line cannot support both endpoints safely.
+## When to run the full matrix
+
+Run every endpoint after a **dependency change**, **framework adapter change**, or **supported-version change**.
+
+Do not raise the minimum PHP version only because a development computer uses a newer version. Create another compatibility branch when one safe code line cannot support both ends of the range.
