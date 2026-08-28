@@ -1,64 +1,51 @@
 # Compatibility matrix for PrestaShop 8
 
-This matrix applies only to the `2.x-ps8` branch.
-The branch supports 8.0 through 8.2 and PHP 7.2.5 through 8.1.
+## Versions that must work
 
-## Required endpoints
-
-| Test boundary | PrestaShop | PHP | Purpose |
+| Test | PrestaShop | PHP | Why it matters |
 | --- | --- | --- | --- |
-| Minimum boundary | PrestaShop 8.0 | PHP 7.2.5 | Prove the minimum supported runtime. |
-| Maximum boundary | PrestaShop 8.2 | PHP 8.1 | Prove the maximum supported runtime. |
+| **Lowest runtime** | 8.0 | 7.2.5 | Protects shops on the minimum PHP. |
+| **Highest runtime** | 8.2 | 8.1 | Checks the newest supported PHP. |
 
-PrestaShop 8 requires PHP 7.2.5 or a later supported version.
-PrestaShop 8 supports PHP through PHP 8.1.
-The Composer platform is PHP 7.2.5.
-This setting prevents a dependency update from silently raising the minimum PHP version.
+The Composer platform is **PHP 7.2.5**. This stops dependency updates from silently raising the minimum PHP version.
 
-## Local Docker baseline
+**Runtime and build PHP are different.** The shop can use PHP 7.2.5, but the ZIP builder needs PHP 8.1 through 8.4.
 
-| Item | Value |
+## Local Docker shop
+
+| Item | Local value |
 | --- | --- |
-| Compose file | `docker-compose.mpadmin2fa.yml` |
-| PrestaShop | PrestaShop 8.2.8 |
-| PHP | PHP 8.1 |
-| HTTPS store | https://localhost:8102/ |
-| Back office | https://localhost:8102/admin-dev/ |
-| Database | localhost:3316 |
+| **Compose file** | `docker-compose.mpadmin2fa.yml` |
+| **PrestaShop** | PrestaShop 8.2.8 |
+| **PHP** | 8.1 |
+| **Shop** | https://localhost:8102/ |
+| **Back office** | https://localhost:8102/admin-dev/ |
+| **Database port** | `3316` |
 
-The local stack is one endpoint of the compatibility matrix.
-Use a separate container or CI job for each other endpoint.
-Do not change the Composer platform to match only the local container.
+The local shop covers only one row of the matrix. Use separate containers or CI jobs for the other rows.
 
-## Release gate
+## What to check at each endpoint
 
-Run this gate at each required endpoint:
+| Area | Required checks |
+| --- | --- |
+| **Code** | Install locked dependencies, check PHP syntax, and run unit tests. |
+| **PrestaShop** | Install the module, compile both service containers, and list routes and commands. |
+| **Employee flow** | Enroll, sign in with a code, and use one recovery code. |
+| **Protected actions** | Test one module action, one theme action, and one employee reset. |
+| **Cleanup** | Uninstall and confirm that all six module tables are gone. |
 
-1. Install production dependencies from the lock file.
-2. Check all PHP files for syntax errors.
-3. Run the unit tests.
-4. Install the module on a clean shop.
-5. Compile the development and production service containers.
-6. List the module routes.
-7. List the maintenance commands.
-8. Enroll an employee with a TOTP factor.
-9. Test one normal login challenge.
-10. Test one recovery code.
-11. Test one protected module action.
-12. Test one protected theme action.
-13. Reset an employee factor.
-14. Uninstall the module.
-15. Confirm that the six module tables no longer exist.
+## Package check
 
-Run the scoped build one time with PHP 8.1 through 8.4.
-Then inspect the package.
-Confirm that it does not contain `documentation/`, `docs/`, tests, tools, or an unscoped vendor directory.
+Build the scoped package once with 8.1 through 8.4. Confirm that it contains `vendor-scoped/autoload.php`.
 
-## Change control
+Confirm that it does **not** contain:
 
-Run the complete matrix after a dependency update.
-Run the complete matrix after a framework adapter change.
-Run the complete matrix after a supported-version change.
+- `documentation/` or `docs/`;
+- `tests/` or `tools/`;
+- an unscoped `vendor/` directory.
 
-Do not raise the minimum PHP version because the development computer has a newer PHP version.
-Create a new compatibility branch when one code line cannot support both endpoints safely.
+## When to run the full matrix
+
+Run every endpoint after a **dependency change**, **framework adapter change**, or **supported-version change**.
+
+Do not raise the minimum PHP version only because a development computer uses a newer version. Create another compatibility branch when one safe code line cannot support both ends of the range.

@@ -1,34 +1,31 @@
 # Admin 2FA documentation for PrestaShop 8
 
-This documentation applies to the `2.x-ps8` branch.
+Use this folder to understand, test, and release the module.
 
-| Item | Supported value |
+## Supported versions
+
+| Item | This branch supports |
 | --- | --- |
-| Module release line | 2.x |
-| PrestaShop | 8.0 through 8.2 |
-| PHP runtime | 7.2.5 through 8.1 |
-| Release-build PHP | 8.1 through 8.4 |
+| **Git branch** | `2.x-ps8` |
+| **Module releases** | 2.x |
+| **PrestaShop** | 8.0 through 8.2 |
+| **PHP in the shop** | 7.2.5 through 8.1 |
+| **PHP used to build a ZIP** | 8.1 through 8.4 |
 
-PrestaShop 8 requires PHP 7.2.5 or a later supported version.
-PrestaShop 8 supports PHP through PHP 8.1.
-The Composer platform is PHP 7.2.5.
-This setting prevents a dependency update from silently raising the minimum PHP version.
+The Composer platform is **PHP 7.2.5**. This stops dependency updates from silently raising the minimum PHP version.
 
-## Select a document
+## Find the right page
 
-- [Use Docker](docker.md) to start the PrestaShop 8 test shop.
-- [Understand the module](how-it-works.md) to learn the employee and administrator tasks.
-- [Understand the architecture](architecture.md) to learn the software parts and data flows.
-- [Use the compatibility matrix](development-matrix.md) to test the supported PHP range.
-- [Prepare a release](release-strategy.md) to make a 2.x package.
+| I want to... | Read... |
+| --- | --- |
+| Start the test shop | [Docker](docker.md) |
+| Understand the employee experience | [How it works](how-it-works.md) |
+| Find the important code | [Architecture](architecture.md) |
+| Check supported versions | [Compatibility matrix](development-matrix.md) |
+| Build and publish a ZIP | [Release guide](release-strategy.md) |
 
-## Documentation rules
+## About this folder
 
-These files use ASD-STE100 Simplified Technical English.
-Use the same technical terms in all files.
-Use short sentences.
-Use one instruction in each numbered step.
+The **documentation stays in Git** so maintainers can read it.
 
-Keep this directory in Git.
-Do not put this directory in a module release.
-The release tools exclude `documentation/` and reject an archive that contains it.
+The **documentation is not included in release ZIP files**. The release tool rejects a ZIP that contains `documentation/` or the old `docs/` directory.
