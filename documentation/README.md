@@ -18,7 +18,6 @@ This branch does **not** support PrestaShop 1.7.0 through 1.7.7. The Composer pl
 
 | I want to... | Read... |
 | --- | --- |
-| Start the test shop | [Docker](docker.md) |
 | Understand the employee experience | [How it works](how-it-works.md) |
 | Find the important code | [Architecture](architecture.md) |
 | Check supported versions | [Compatibility matrix](development-matrix.md) |
