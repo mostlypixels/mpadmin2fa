@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mpadmin2fa\EventSubscriber;
 
 use Mpadmin2fa\Exception\MfaSecurityException;
+use Mpadmin2fa\Http\LoginHttpsGuard;
 use Mpadmin2fa\Http\StepUpResponseFactory;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
@@ -54,6 +55,7 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         private readonly SessionState $sessionState,
         private readonly SecurityAlertService $alerts,
         private readonly StepUpResponseFactory $stepUpResponses,
+        private readonly LoginHttpsGuard $loginHttpsGuard,
     ) {
     }
 
@@ -71,6 +73,14 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         $user = $event->getAuthenticatedToken()->getUser();
         if ($user instanceof Employee) {
             $this->sessionState->resetForLogin($user->getId());
+
+            if ($this->loginHttpsGuard->shouldReject(
+                $event->getRequest(),
+                $this->mfa->active($user->getId()),
+                $this->policy->requiresLoginMfa($user)
+            )) {
+                $event->setResponse($this->loginHttpsGuard->reject($event->getRequest()));
+            }
         }
     }
 
