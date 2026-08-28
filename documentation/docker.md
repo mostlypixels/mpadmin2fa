@@ -1,108 +1,89 @@
-# Use Docker for PrestaShop 1.7.8
+# Docker quick start for PrestaShop 1.7.8
 
-This branch uses an isolated PrestaShop 1.7.8 Docker stack.
-The stack has a separate database and separate host ports.
+Use this stack to run a disposable local shop for module development.
 
-## Prerequisites
+## Before you start
 
-Install Docker Engine with the Docker Compose plug-in.
-Make sure that the following ports are free:
+You need **Docker Engine** and the **Docker Compose plug-in**.
 
-- Store HTTP: http://localhost:8201/
-- Store HTTPS: https://localhost:8202/
-- Back office: https://localhost:8202/admin-dev/
-- Database: localhost:3326
-- Test mail: Not available in this stack
+| Service | Address |
+| --- | --- |
+| **Shop** | http://localhost:8201/ |
+| **Secure shop** | https://localhost:8202/ |
+| **Back office** | https://localhost:8202/admin-dev/ |
+| **Database** | `localhost:3326` |
+| **Test mail** | Not available |
 
-The local administrator account has these values:
+Local administrator: `demo@prestashop.com` / `Pr3st4Sh0P`
 
-- Email: `demo@prestashop.com`
-- Password: `Pr3st4Sh0P`
+**Use this account only in the local test shop.**
 
-Use this account only in the local test shop.
+## Start the shop
 
-## Start the stack
-
-1. Open a WSL terminal.
-2. Go to the PrestaShop 1.7 worktree root.
-3. Build and start the containers:
+1. Open a WSL terminal in the PrestaShop 1.7 worktree root.
+2. Start the containers:
 
 ```bash
 docker compose -f docker-compose.mpadmin2fa.yml up -d --build
 ```
 
-4. Show the container status:
+3. Check their status:
 
 ```bash
 docker compose -f docker-compose.mpadmin2fa.yml ps
 ```
 
-5. Open https://localhost:8202/admin-dev/ in a browser.
-6. Accept the local development certificate if the browser asks you.
-7. Sign in with the local administrator account.
+4. Open https://localhost:8202/admin-dev/ and sign in.
 
-The application container uses PHP 7.4.
-The database container supports PrestaShop 1.7.8.11.
+**Expected result:** the application and database containers show as running. Your browser might ask you to accept the local certificate.
 
-## Run module tests
+## Common tasks
 
-1. Keep the stack active.
-2. Run the unit tests as the web-server user:
+Run module tests:
 
 ```bash
 docker compose -f docker-compose.mpadmin2fa.yml exec --user www-data prestashop-git sh -lc 'cd modules/mpadmin2fa && composer test'
 ```
 
-3. Clear the PrestaShop cache after a service or route change:
+Clear the cache after changing a route or service:
 
 ```bash
 docker compose -f docker-compose.mpadmin2fa.yml exec --user www-data prestashop-git sh -lc 'rm -rf var/cache/dev/* var/cache/prod/*'
 ```
 
-4. Check the module routes:
+List module routes:
 
 ```bash
 docker compose -f docker-compose.mpadmin2fa.yml exec --user www-data prestashop-git php bin/console debug:router mpadmin2fa
 ```
 
-## Read logs
-
-Show the current application log:
+Show recent application errors:
 
 ```bash
 docker compose -f docker-compose.mpadmin2fa.yml exec --user www-data prestashop-git sh -lc 'tail -n 200 var/logs/dev.log'
 ```
 
-Show the container log:
+Show recent container messages:
 
 ```bash
 docker compose -f docker-compose.mpadmin2fa.yml logs --tail 200 prestashop-git
 ```
 
-## Stop the stack
+## Stop or remove the shop
 
-Stop the containers and keep the database:
+| Goal | Command | Database kept? |
+| --- | --- | --- |
+| **Stop for later** | `docker compose -f docker-compose.mpadmin2fa.yml stop` | Yes |
+| **Remove containers** | `docker compose -f docker-compose.mpadmin2fa.yml down` | Yes |
+| **Start again** | `docker compose -f docker-compose.mpadmin2fa.yml up -d` | Yes |
 
-```bash
-docker compose -f docker-compose.mpadmin2fa.yml stop
-```
-
-Remove the containers and keep the database volume:
-
-```bash
-docker compose -f docker-compose.mpadmin2fa.yml down
-```
-
-## Reset the test shop
+## Delete all local test data
 
 > [!WARNING]
-> The next command deletes the local test database.
-
-1. Confirm that you do not need the local test data.
-2. Remove the stack and its volume:
+> This command permanently deletes the local test database.
 
 ```bash
 docker compose -f docker-compose.mpadmin2fa.yml down --volumes
 ```
 
-3. Start the stack again.
+Run the start command again to create a clean shop.

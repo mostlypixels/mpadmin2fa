@@ -1,86 +1,79 @@
 # Release guide for PrestaShop 1.7.8
 
-This guide applies only to the `1.x-ps17` branch.
-This branch owns module line 1.x.
-Use tags that start with `v1.`.
+## Release identity
 
-## Version rules
+| Item | Required value |
+| --- | --- |
+| **Branch** | `1.x-ps17` |
+| **Module line** | 1.x |
+| **Tag prefix** | `v1.` |
+| **First public version** | `1.0.0` |
+| **Build PHP** | 8.1 through 8.4 |
 
-- Increase the patch number for a compatible fix.
-- Increase the minor number for a compatible feature.
-- Keep major version 1 for PrestaShop 1.7.8.
-- Use a suffix only for a real prerelease.
+The current `0.x` version is for development. Never reuse the same tag on another branch.
 
-The current `0.x` module version is a development version.
-Set the first public version on this branch to `1.0.0`.
-Do not reuse the same Git tag on another branch.
+## Choose the version number
 
-## Prepare the branch
+| Change | Version action |
+| --- | --- |
+| Compatible bug fix | Increase the **patch** number. |
+| Compatible feature | Increase the **minor** number. |
+| First public PrestaShop 1.7.8 release | Use **1.0.0**. |
+| Test release | Add a suffix such as `-rc.1`. |
 
-1. Select the `1.x-ps17` branch.
-2. Get the current remote changes with a fast-forward update.
-3. Add all required fixes for PrestaShop 1.7.8.
-4. Set `$this->version` in `mpadmin2fa.php`.
-5. Confirm the PrestaShop range in `$this->ps_versions_compliancy`.
-6. Confirm the PHP range in `composer.json`.
-7. Update these version-specific documents.
-8. Run the full [compatibility matrix](development-matrix.md).
-9. Run the unit tests.
-10. Build the scoped module.
-11. Confirm that the documentation is absent from the build.
-12. Review all branch changes.
-13. Commit the release preparation.
+## Prepare the release
 
-The module runtime supports PHP 7.1. The separate release-build tools require PHP 8.1 through PHP 8.4.
+1. Update `1.x-ps17` with a fast-forward pull.
+2. Set `$this->version` in `mpadmin2fa.php`.
+3. Check the PrestaShop range in `$this->ps_versions_compliancy`.
+4. Check the PHP range in `composer.json`.
+5. Update these documents when compatibility changed.
+6. Run the full [compatibility matrix](development-matrix.md).
+7. Review and commit the release changes.
 
-## Make the local package
+**Runtime and build PHP are different.** The shop can use PHP 7.1, but the ZIP builder needs PHP 8.1 through 8.4.
 
-Use a tag value that is equal to the module version:
+## Build the ZIP
+
+The tag text must match the module version:
 
 ```bash
 php tools/release.php v1.0.0
 ```
 
-The command validates Composer data.
-It runs the tests and makes the scoped module.
-It makes a ZIP file and a SHA-256 file in `dist/`.
-It does not publish a release.
+The command validates Composer data, runs tests, builds scoped dependencies, and writes two files to `dist/`:
 
-## Inspect the package
+| File | Purpose |
+| --- | --- |
+| `mpadmin2fa-v1.0.0.zip` | Installable module package. |
+| `mpadmin2fa-v1.0.0.zip.sha256` | File-integrity checksum. |
 
-1. Open the ZIP file list.
-2. Confirm that all entries start with `mpadmin2fa/`.
-3. Confirm that `mpadmin2fa/mpadmin2fa.php` exists.
-4. Confirm that `mpadmin2fa/vendor-scoped/autoload.php` exists.
-5. Confirm that `mpadmin2fa/SBOM.json` exists.
-6. Confirm that `mpadmin2fa/SHA256SUMS` exists.
-7. Confirm that `documentation/` does not exist.
-8. Confirm that `docs/` does not exist.
-9. Confirm that `tests/` and `tools/` do not exist.
-10. Install this exact ZIP file on a clean PrestaShop 1.7.8 shop.
+The command **does not publish anything**.
 
-## Publish the release
+## Check the ZIP
+
+Before publication, confirm that:
+
+- every path starts with `mpadmin2fa/`;
+- `mpadmin2fa.php`, `vendor-scoped/autoload.php`, `SBOM.json`, and `SHA256SUMS` exist;
+- `documentation/`, `docs/`, `tests/`, `tools/`, and normal `vendor/` do not exist;
+- this exact ZIP installs on a clean PrestaShop 1.7.8 shop.
+
+## Publish safely
 
 > [!WARNING]
-> A pushed `v*` tag starts the publication workflow.
+> Pushing a `v*` tag starts the publication workflow.
 
-1. Push the `1.x-ps17` branch without tags.
-2. Review the exact remote commit.
+1. Push `1.x-ps17` **without tags**.
+2. Review the remote commit.
 3. Create one annotated `v1.*` tag on that commit.
-4. Show the tag and its file changes.
-5. Push only that tag.
-6. Check the workflow result.
-7. Download the published ZIP file.
-8. Compare its SHA-256 value with the published checksum.
+4. Inspect the tag and its changes.
+5. Push **only that tag**.
+6. Check the publication workflow.
+7. Download the published ZIP and compare its SHA-256 value.
 
-Do not use `git push --tags`.
-Do not use `git push --follow-tags`.
-Do not enable automatic tag push in an editor.
+**Never use** `git push --tags` or `git push --follow-tags` for this release.
 
 ## Backport a fix
 
-Develop the fix on its primary branch.
-Apply only the required commits to `1.x-ps17`.
-Adapt the fix to Symfony 3.4 and PHP 7.1 through 7.4.
-Run this branch's complete compatibility matrix.
-Make a separate version, tag, and package for this branch.
+Move only the required fix commits to `1.x-ps17`. Adapt them for Symfony 3.4 and PHP 7.1 through 7.4, then run this branch's complete compatibility matrix.
