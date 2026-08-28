@@ -18,7 +18,6 @@ The Composer platform is **PHP 7.2.5**. This stops dependency updates from silen
 
 | I want to... | Read... |
 | --- | --- |
-| Start the test shop | [Docker](docker.md) |
 | Understand the employee experience | [How it works](how-it-works.md) |
 | Find the important code | [Architecture](architecture.md) |
 | Check supported versions | [Compatibility matrix](development-matrix.md) |

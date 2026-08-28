@@ -11,19 +11,6 @@ The Composer platform is **PHP 7.2.5**. This stops dependency updates from silen
 
 **Runtime and build PHP are different.** The shop can use PHP 7.2.5, but the ZIP builder needs PHP 8.1 through 8.4.
 
-## Local Docker shop
-
-| Item | Local value |
-| --- | --- |
-| **Compose file** | `docker-compose.mpadmin2fa.yml` |
-| **PrestaShop** | PrestaShop 8.2.8 |
-| **PHP** | 8.1 |
-| **Shop** | https://localhost:8102/ |
-| **Back office** | https://localhost:8102/admin-dev/ |
-| **Database port** | `3316` |
-
-The local shop covers only one row of the matrix. Use separate containers or CI jobs for the other rows.
-
 ## What to check at each endpoint
 
 | Area | Required checks |
