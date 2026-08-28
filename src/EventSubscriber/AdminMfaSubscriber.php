@@ -71,9 +71,13 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
     public function onLoginSuccess(LoginSuccessEvent $event): void
     {
         $user = $event->getAuthenticatedToken()->getUser();
-        if ($user instanceof Employee) {
-            $this->sessionState->resetForLogin($user->getId());
+        if (!$user instanceof Employee) {
+            return;
+        }
 
+        $this->sessionState->resetForLogin($user->getId());
+
+        try {
             if ($this->loginHttpsGuard->shouldReject(
                 $event->getRequest(),
                 $this->mfa->active($user->getId()),
@@ -81,6 +85,8 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
             )) {
                 $event->setResponse($this->loginHttpsGuard->reject($event->getRequest()));
             }
+        } catch (MfaSecurityException $exception) {
+            $event->setResponse($this->securityFailureResponse($user->getId(), $exception));
         }
     }
 
@@ -108,6 +114,13 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
 
         try {
             $active = $this->mfa->active($employee->getId());
+            $requiresLoginMfa = $this->policy->requiresLoginMfa($employee);
+
+            if ($this->loginHttpsGuard->shouldReject($request, $active, $requiresLoginMfa)) {
+                $event->setResponse($this->loginHttpsGuard->reject($request));
+
+                return;
+            }
 
             if ($this->sessionState->isRecoveryRestricted($employee->getId())) {
                 if ('mpadmin2fa_enroll' === $route) {
@@ -125,7 +138,7 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
                 return;
             }
 
-            if (!$active && $this->policy->requiresLoginMfa($employee)) {
+            if (!$active && $requiresLoginMfa) {
                 $event->setResponse($this->stepUpResponses->create(
                     $request,
                     $this->router->generate('mpadmin2fa_enroll')
@@ -158,15 +171,21 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
                 return;
             }
         } catch (MfaSecurityException $exception) {
-            $this->alerts->notify($employee->getId(), 'encryption_key.failure', [
-                'message' => $exception->getMessage(),
-            ]);
-            $event->setResponse(new Response(
-                'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
-                Response::HTTP_SERVICE_UNAVAILABLE,
-                ['Content-Type' => 'text/plain; charset=UTF-8']
-            ));
+            $event->setResponse($this->securityFailureResponse($employee->getId(), $exception));
         }
+    }
+
+    private function securityFailureResponse(int $employeeId, MfaSecurityException $exception): Response
+    {
+        $this->alerts->notify($employeeId, 'encryption_key.failure', [
+            'message' => $exception->getMessage(),
+        ]);
+
+        return new Response(
+            'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+            Response::HTTP_SERVICE_UNAVAILABLE,
+            ['Content-Type' => 'text/plain; charset=UTF-8']
+        );
     }
 
     private function safeReturnTarget(\Symfony\Component\HttpFoundation\Request $request): string
