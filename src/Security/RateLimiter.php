@@ -4,18 +4,15 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Security;
 
-use Mpadmin2fa\Repository\SecurityRepository;
+use Mpadmin2fa\Repository\FailureCounterInterface;
 use RuntimeException;
 
 final class RateLimiter
 {
-    private const FREE_FAILURES = 5;
-    private const MAX_DELAY_SECONDS = 3600;
-
-    /** @var SecurityRepository */
+    /** @var FailureCounterInterface */
     private $repository;
 
-    public function __construct(SecurityRepository $repository)
+    public function __construct(FailureCounterInterface $repository)
     {
         $this->repository = $repository;
     }
@@ -34,15 +31,8 @@ final class RateLimiter
     {
         $maximumFailures = 0;
         foreach ($this->subjects($employeeId, $ip) as $subject) {
-            $row = $this->repository->rateLimit($scope, $subject);
-            $failures = ((int) ($row['failures'] ?? 0)) + 1;
+            $failures = $this->repository->incrementFailure($scope, $subject);
             $maximumFailures = max($maximumFailures, $failures);
-            $blockedUntil = null;
-            if ($failures >= self::FREE_FAILURES) {
-                $delay = min(self::MAX_DELAY_SECONDS, 60 * (2 ** ($failures - self::FREE_FAILURES)));
-                $blockedUntil = gmdate('Y-m-d H:i:s', time() + $delay);
-            }
-            $this->repository->recordFailure($scope, $subject, $failures, $blockedUntil);
         }
 
         return $maximumFailures;

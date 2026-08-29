@@ -71,6 +71,13 @@ services:
   Mpadmin2fa\Http\LoginHttpsGuard:
     class: Mpadmin2fa\Http\LoginHttpsGuard
 
+  Mpadmin2fa\Http\LegacyAdminMfaAdapter:
+    class: Mpadmin2fa\Http\LegacyAdminMfaAdapter
+    public: true
+
+  Mpadmin2fa\Http\LegacyAdminRequestNormalizer:
+    class: Mpadmin2fa\Http\LegacyAdminRequestNormalizer
+
   Mpadmin2fa\Http\StepUpResponseFactory:
     class: Mpadmin2fa\Http\StepUpResponseFactory
 
@@ -80,8 +87,14 @@ services:
   Mpadmin2fa\Security\CookieKeyProvider:
     class: Mpadmin2fa\Security\CookieKeyProvider
 
+  Mpadmin2fa\Security\AdminMfaAccessPolicy:
+    class: Mpadmin2fa\Security\AdminMfaAccessPolicy
+
   Mpadmin2fa\Security\DashboardActivityWindow:
     class: Mpadmin2fa\Security\DashboardActivityWindow
+
+  Mpadmin2fa\Security\EnrollmentApprovalAuthorizer:
+    class: Mpadmin2fa\Security\EnrollmentApprovalAuthorizer
 
   Mpadmin2fa\Security\KeyManager:
     class: Mpadmin2fa\Security\KeyManager
@@ -136,6 +149,9 @@ services:
     class: Mpadmin2fa\Security\FactorConfirmationService
     arguments:
       $passwordEncoder: '@security.password_encoder'
+
+  Mpadmin2fa\Repository\FailureCounterInterface:
+    alias: Mpadmin2fa\Repository\SecurityRepository
 
   Mpadmin2fa\Repository\SecurityRepository:
     class: Mpadmin2fa\Repository\SecurityRepository

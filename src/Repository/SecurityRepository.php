@@ -10,7 +10,7 @@ use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Mpadmin2fa\Exception\MfaSecurityException;
 
-final class SecurityRepository
+final class SecurityRepository implements FailureCounterInterface
 {
     /** @var Connection */
     private $connection;
@@ -199,12 +199,35 @@ final class SecurityRepository
         return $row ?: null;
     }
 
-    public function recordFailure(string $scope, string $subjectHash, int $failures, ?string $blockedUntil): void
+    public function incrementFailure(string $scope, string $subjectHash): int
     {
-        $sql = 'INSERT INTO ' . $this->table('rate_limit')
-            . ' (scope, subject_hash, failures, blocked_until, date_upd) VALUES (?, ?, ?, ?, ?)'
-            . ' ON DUPLICATE KEY UPDATE failures = VALUES(failures), blocked_until = VALUES(blocked_until), date_upd = VALUES(date_upd)';
-        $this->connection->executeUpdate($sql, [$scope, $subjectHash, $failures, $blockedUntil, $this->now()]);
+        for ($attempt = 0; $attempt < 3; ++$attempt) {
+            $now = $this->now();
+            $this->connection->executeUpdate(
+                'INSERT IGNORE INTO ' . $this->table('rate_limit')
+                . ' (scope, subject_hash, failures, blocked_until, last_failure_at, date_upd)'
+                . ' VALUES (?, ?, 0, NULL, NULL, ?)',
+                [$scope, $subjectHash, $now]
+            );
+
+            $updated = $this->connection->executeUpdate(
+                'UPDATE ' . $this->table('rate_limit') . ' SET '
+                . 'blocked_until = CASE WHEN failures + 1 >= 5 '
+                . 'THEN DATE_ADD(?, INTERVAL LEAST(3600, 60 * POW(2, failures + 1 - 5)) SECOND) '
+                . 'ELSE NULL END, '
+                . 'last_failure_at = ?, date_upd = ?, failures = LAST_INSERT_ID(failures + 1) '
+                . 'WHERE scope = ? AND subject_hash = ?',
+                [$now, $now, $now, $scope, $subjectHash]
+            );
+            if (1 === $updated) {
+                $failures = (int) $this->connection->fetchColumn('SELECT LAST_INSERT_ID()');
+                if ($failures > 0) {
+                    return $failures;
+                }
+            }
+        }
+
+        throw new MfaSecurityException('Unable to record the authentication failure atomically.');
     }
 
     public function clearFailures(string $scope, string $subjectHash): void

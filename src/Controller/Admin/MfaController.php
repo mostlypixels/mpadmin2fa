@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Controller\Admin;
 
+use Mpadmin2fa\Exception\EnrollmentApprovalDenied;
 use Mpadmin2fa\Exception\MfaSecurityException;
 use Mpadmin2fa\Form\DisableFactorType;
 use Mpadmin2fa\Form\OneTimeCodeType;
@@ -15,6 +16,7 @@ use Mpadmin2fa\Grid\Filters\AuditEventFilters;
 use Mpadmin2fa\Grid\Filters\EmployeeFactorFilters;
 use Mpadmin2fa\Grid\Filters\PendingApprovalFilters;
 use Mpadmin2fa\Repository\SecurityRepository;
+use Mpadmin2fa\Security\EnrollmentApprovalAuthorizer;
 use Mpadmin2fa\Security\FactorConfirmationService;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
@@ -446,13 +448,27 @@ final class MfaController extends FrameworkBundleAdminController
         int $employeeId,
         SecurityRepository $repository,
         SessionState $sessionState,
-        Policy $policy
+        Policy $policy,
+        EnrollmentApprovalAuthorizer $approvalAuthorizer
     ): Response {
         $actor = $this->employee();
         $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_approve_' . $employeeId);
-        if ($actor->getId() === $employeeId) {
-            throw $this->createAccessDeniedException('Employees cannot approve their own 2FA setup.');
+        try {
+            $approvalAuthorizer->assertCanApprove(
+                $actor->getId(),
+                (int) $actor->getData()->id_profile,
+                $this->isGranted('update', 'AdminMpAdmin2faEnrollment'),
+                $employeeId,
+                defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1
+            );
+        } catch (EnrollmentApprovalDenied $exception) {
+            $repository->audit($actor->getId(), 'enrollment.approval_denied', $request->getClientIp(), [
+                'reason' => $exception->reason(),
+                'target_employee_id' => $employeeId,
+            ]);
+
+            throw $this->createAccessDeniedException($exception->getMessage(), $exception);
         }
 
         $repository->approveEnrollment($employeeId, $actor->getId());

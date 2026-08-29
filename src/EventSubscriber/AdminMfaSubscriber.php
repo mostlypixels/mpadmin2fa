@@ -7,6 +7,7 @@ namespace Mpadmin2fa\EventSubscriber;
 use Mpadmin2fa\Exception\MfaSecurityException;
 use Mpadmin2fa\Http\LoginHttpsGuard;
 use Mpadmin2fa\Http\StepUpResponseFactory;
+use Mpadmin2fa\Security\AdminMfaAccessPolicy;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
 use Mpadmin2fa\Security\ReturnTargetPolicy;
@@ -51,27 +52,8 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
     /** @var LoginHttpsGuard */
     private $loginHttpsGuard;
 
-    private const ALLOWED_ROUTES = [
-        'admin_logout',
-        'mpadmin2fa_challenge',
-        'mpadmin2fa_enroll',
-        'mpadmin2fa_recovery_codes',
-        'mpadmin2fa_replace',
-        'mpadmin2fa_disable',
-    ];
-
-    private const PROTECTED_ROUTES = [
-        'admin_module_configure_action',
-        'admin_module_import',
-        'admin_module_manage_action',
-        'admin_module_manage_action_bulk',
-        'admin_module_manage_update_all',
-        'admin_themes_enable',
-        'admin_themes_import',
-        'mpadmin2fa_admin_reset',
-        'mpadmin2fa_approve',
-        'mpadmin2fa_security_policy_update',
-    ];
+    /** @var AdminMfaAccessPolicy */
+    private $accessPolicy;
 
     public function __construct(
         TokenStorageInterface $tokenStorage,
@@ -82,7 +64,8 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         SessionState $sessionState,
         SecurityAlertService $alerts,
         StepUpResponseFactory $stepUpResponses,
-        LoginHttpsGuard $loginHttpsGuard
+        LoginHttpsGuard $loginHttpsGuard,
+        AdminMfaAccessPolicy $accessPolicy
     ) {
         $this->tokenStorage = $tokenStorage;
         $this->router = $router;
@@ -93,7 +76,7 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         $this->alerts = $alerts;
         $this->stepUpResponses = $stepUpResponses;
         $this->loginHttpsGuard = $loginHttpsGuard;
-
+        $this->accessPolicy = $accessPolicy;
     }
 
     public static function getSubscribedEvents(): array
@@ -145,54 +128,47 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
                 return;
             }
 
-            if ($this->sessionState->isRecoveryRestricted($employee->getId())) {
-                if ('mpadmin2fa_enroll' === $route) {
-                    return;
-                }
-                $event->setResponse($this->stepUpResponses->create(
-                    $request,
-                    $this->router->generate('mpadmin2fa_enroll')
+            $recoveryRestricted = $this->sessionState->isRecoveryRestricted($employee->getId());
+            $decision = $this->accessPolicy->decide(
+                'symfony',
+                $route,
+                '',
+                $request->isMethodSafe(),
+                $this->policy->requiresLoginMfa($employee),
+                $active,
+                $this->sessionState->isVerified($employee->getId()),
+                $this->sessionState->hasFreshVerification(
+                    $employee->getId(),
+                    $this->policy->stepUpSeconds()
+                ),
+                $recoveryRestricted
+            );
+            if (AdminMfaAccessPolicy::ALLOW === $decision) {
+                return;
+            }
+            if (AdminMfaAccessPolicy::DENY === $decision) {
+                $event->setResponse(new Response(
+                    'Access denied.',
+                    Response::HTTP_FORBIDDEN,
+                    ['Content-Type' => 'text/plain; charset=UTF-8']
                 ));
 
                 return;
             }
-
-            if (in_array($route, self::ALLOWED_ROUTES, true)) {
-                return;
-            }
-
-            if (!$active && $this->policy->requiresLoginMfa($employee)) {
-                $event->setResponse($this->stepUpResponses->create(
-                    $request,
-                    $this->router->generate('mpadmin2fa_enroll')
-                ));
-
-                return;
-            }
-
-            if ($active && !$this->sessionState->isVerified($employee->getId())) {
-                $event->setResponse($this->stepUpResponses->create(
-                    $request,
-                    $this->router->generate('mpadmin2fa_challenge')
-                ));
-
-                return;
-            }
-
-            if (in_array($route, self::PROTECTED_ROUTES, true)
-                && !$request->isMethodSafe()
-                && (!$active || !$this->sessionState->hasFreshVerification($employee->getId(), $this->policy->stepUpSeconds()))
-            ) {
+            if (AdminMfaAccessPolicy::REQUIRE_STEP_UP === $decision) {
                 $this->sessionState->setReturnTarget($this->safeReturnTarget($request));
-                $event->setResponse($this->stepUpResponses->create(
-                    $request,
-                    $active
-                        ? $this->router->generate('mpadmin2fa_challenge', ['step_up' => 1])
-                        : $this->router->generate('mpadmin2fa_enroll')
-                ));
-
-                return;
             }
+
+            $event->setResponse($this->stepUpResponses->create(
+                $request,
+                $active && !$recoveryRestricted
+                    ? $this->router->generate('mpadmin2fa_challenge', [
+                        'step_up' => AdminMfaAccessPolicy::REQUIRE_STEP_UP === $decision ? 1 : 0,
+                    ])
+                    : $this->router->generate('mpadmin2fa_enroll')
+            ));
+
+            return;
         } catch (MfaSecurityException $exception) {
             $this->alerts->notify($employee->getId(), 'encryption_key.failure', [
                 'message' => $exception->getMessage(),

@@ -70,6 +70,10 @@ jobs:
         working-directory: prestashop/modules/mpadmin2fa
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      - name: Scan PHP syntax
+        working-directory: prestashop/modules/mpadmin2fa
+        run: find . -path ./vendor -prune -o -path ./build -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
+
       - name: Run unit tests
         working-directory: prestashop/modules/mpadmin2fa
         run: composer test
@@ -100,3 +104,142 @@ jobs:
 
       - name: Verify the scoped release build
         run: composer build:scoped
+
+      - name: Upload the installable module
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpadmin2fa-ps17-package
+          path: build/mpadmin2fa/
+          if-no-files-found: error
+
+  lifecycle:
+    name: Packaged module lifecycle on PS 1.7
+    needs: package
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7.44
+        env:
+          MYSQL_ROOT_PASSWORD: prestashop
+          MYSQL_DATABASE: prestashop
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pprestashop"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Check out PrestaShop 1.7
+        uses: actions/checkout@v4
+        with:
+          repository: PrestaShop/PrestaShop
+          ref: 1.7.8.11
+          path: prestashop
+
+      - name: Set up PHP 7.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          extensions: gd, intl, mbstring, mysqli, pdo_mysql, zip
+          tools: composer:2.2
+          coverage: none
+
+      - name: Install PrestaShop dependencies
+        run: composer install --working-dir=prestashop --no-dev --prefer-dist --no-interaction --no-progress --no-scripts
+
+      - name: Download the installable module
+        uses: actions/download-artifact@v4
+        with:
+          name: mpadmin2fa-ps17-package
+          path: prestashop/modules/mpadmin2fa
+
+      - name: Install PrestaShop
+        run: |
+          php prestashop/install-dev/index_cli.php \
+            --domain=localhost \
+            --db_server=127.0.0.1 \
+            --db_name=prestashop \
+            --db_user=root \
+            --db_password=prestashop \
+            --prefix=ps_ \
+            --language=en \
+            --country=fr \
+            --email=demo@prestashop.com \
+            --password=Pr3st4Sh0P \
+            --ssl=0
+
+      - name: Install and compile the packaged module
+        run: |
+          php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction
+          php prestashop/bin/console cache:clear --env=prod --no-debug
+          php prestashop/bin/console debug:router --env=prod --no-debug | grep mpadmin2fa
+          php prestashop/bin/console list --raw --env=prod --no-debug | grep mpadmin2fa
+
+      - name: Verify clean-install state
+        run: |
+          php -r '
+          require "prestashop/config/config.inc.php";
+          $db = Db::getInstance();
+          $checks = [
+              "module version" => [(string) $db->getValue("SELECT version FROM ps_module WHERE name = \"mpadmin2fa\""), "0.2.8"],
+              "tables" => [(int) $db->getValue("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE \"ps_mp2fa_%\""), 6],
+              "tabs" => [(int) $db->getValue("SELECT COUNT(*) FROM ps_tab WHERE module = \"mpadmin2fa\""), 7],
+              "failure timestamp" => [(int) $db->getValue("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = \"ps_mp2fa_rate_limit\" AND column_name = \"last_failure_at\""), 1],
+              "dispatcher hook" => [(int) $db->getValue("SELECT COUNT(*) FROM ps_hook_module hm INNER JOIN ps_hook h ON h.id_hook = hm.id_hook INNER JOIN ps_module m ON m.id_module = hm.id_module WHERE m.name = \"mpadmin2fa\" AND h.name = \"actionDispatcherBefore\""), 1],
+              "navigation access" => [(int) $db->getValue("SELECT COUNT(*) FROM ps_access a INNER JOIN ps_authorization_role r ON r.id_authorization_role = a.id_authorization_role WHERE r.slug IN (\"ROLE_MOD_TAB_ADMINMPADMIN2FA_MTR_READ\", \"ROLE_MOD_TAB_ADMINMPADMIN2FA_READ\", \"ROLE_MOD_TAB_ADMINMPADMIN2FAAUTHENTICATOR_READ\")"), 3 * (int) $db->getValue("SELECT COUNT(*) FROM ps_profile")],
+          ];
+          foreach ($checks as $label => $check) {
+              if ($check[0] !== $check[1]) {
+                  throw new RuntimeException($label . " mismatch: " . var_export($check, true));
+              }
+          }
+          '
+
+      - name: Verify tab-stage failure rollback
+        run: |
+          php prestashop/bin/console prestashop:module uninstall mpadmin2fa --no-interaction
+          php -r '
+          require "prestashop/config/config.inc.php";
+          Db::getInstance()->execute("CREATE TRIGGER mp2fa_fail_tab_insert BEFORE INSERT ON ps_tab FOR EACH ROW SIGNAL SQLSTATE \"45000\" SET MESSAGE_TEXT = \"injected tab failure\"");
+          '
+          if php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction; then
+            echo "The injected installation failure unexpectedly succeeded."
+            exit 1
+          fi
+          php -r '
+          require "prestashop/config/config.inc.php";
+          $db = Db::getInstance();
+          $db->execute("DROP TRIGGER IF EXISTS mp2fa_fail_tab_insert");
+          foreach ([
+              "module" => "SELECT COUNT(*) FROM ps_module WHERE name = \"mpadmin2fa\"",
+              "tables" => "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE \"ps_mp2fa_%\"",
+              "tabs" => "SELECT COUNT(*) FROM ps_tab WHERE module = \"mpadmin2fa\"",
+              "configuration" => "SELECT COUNT(*) FROM ps_configuration WHERE name LIKE \"MP2FA_%\"",
+          ] as $label => $sql) {
+              if (0 !== (int) $db->getValue($sql)) {
+                  throw new RuntimeException($label . " remained after rollback.");
+              }
+          }
+          '
+
+      - name: Verify final install and uninstall cleanup
+        run: |
+          php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction
+          php prestashop/bin/console prestashop:module uninstall mpadmin2fa --no-interaction
+          php -r '
+          require "prestashop/config/config.inc.php";
+          $db = Db::getInstance();
+          foreach ([
+              "module" => "SELECT COUNT(*) FROM ps_module WHERE name = \"mpadmin2fa\"",
+              "tables" => "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE \"ps_mp2fa_%\"",
+              "tabs" => "SELECT COUNT(*) FROM ps_tab WHERE module = \"mpadmin2fa\"",
+              "roles" => "SELECT COUNT(*) FROM ps_authorization_role WHERE slug LIKE \"ROLE_MOD_TAB_ADMINMPADMIN2FA%\"",
+              "configuration" => "SELECT COUNT(*) FROM ps_configuration WHERE name LIKE \"MP2FA_%\"",
+          ] as $label => $sql) {
+              if (0 !== (int) $db->getValue($sql)) {
+                  throw new RuntimeException($label . " remained after uninstall.");
+              }
+          }
+          '

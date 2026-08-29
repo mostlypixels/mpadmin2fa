@@ -43,6 +43,23 @@ final class SchemaInstaller
         ]);
     }
 
+    public function ensureRateLimitLastFailureAt(): bool
+    {
+        $tableName = _DB_PREFIX_ . 'mp2fa_rate_limit';
+        $column = Db::getInstance()->getValue(
+            'SELECT COLUMN_NAME FROM information_schema.COLUMNS'
+            . ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "' . pSQL($tableName) . '"'
+            . ' AND COLUMN_NAME = "last_failure_at"'
+        );
+        if ('last_failure_at' === $column) {
+            return true;
+        }
+
+        return Db::getInstance()->execute(
+            'ALTER TABLE ' . $tableName . ' ADD last_failure_at DATETIME NULL AFTER blocked_until'
+        );
+    }
+
     public function uninstall(): bool
     {
         foreach (self::TABLES as $table) {
@@ -114,6 +131,7 @@ final class SchemaInstaller
                 subject_hash CHAR(64) NOT NULL,
                 failures INT UNSIGNED NOT NULL DEFAULT 0,
                 blocked_until DATETIME NULL,
+                last_failure_at DATETIME NULL,
                 date_upd DATETIME NOT NULL,
                 PRIMARY KEY (scope, subject_hash),
                 KEY mp2fa_rate_expiry (blocked_until)

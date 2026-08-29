@@ -46,6 +46,11 @@ run(
 );
 
 copyTree($stageRoot, $releaseRoot, [], false);
+$moduleEntrypoint = file_get_contents($releaseRoot . '/mpadmin2fa.php');
+if (!is_string($moduleEntrypoint) || preg_match('/^namespace\\s+/m', $moduleEntrypoint)) {
+    throw new RuntimeException('The PrestaShop module entrypoint must remain in the global namespace.');
+}
+
 removeTree($releaseRoot . '/vendor/composer');
 copyTree($stageRoot . '/vendor/composer', $releaseRoot . '/vendor/composer');
 copy($stageRoot . '/vendor/autoload.php', $releaseRoot . '/vendor/autoload.php');
@@ -53,9 +58,10 @@ if (!rename($releaseRoot . '/vendor', $releaseRoot . '/vendor-scoped')) {
     throw new RuntimeException('Unable to rename the scoped production dependency directory.');
 }
 writeScopedAutoload($releaseRoot . '/vendor-scoped');
-$smokeCode = 'require ' . var_export($releaseRoot . '/vendor-scoped/autoload.php', true) . '; echo strlen((new Mpadmin2fa\\Security\\TotpService())->generateSecret());';
+$composerBridge = writeComposerBridge($releaseRoot);
+$smokeCode = 'require ' . var_export($composerBridge, true) . '; echo strlen((new Mpadmin2fa\\Security\\TotpService())->generateSecret()), ":", (int) class_exists("Mpadmin2fa\\\\Install\\\\AdminTabHierarchy");';
 $smokeOutput = run(escapeshellarg(PHP_BINARY) . ' -d display_errors=1 -r ' . escapeshellarg($smokeCode), $releaseRoot, true);
-if ('32' !== $smokeOutput) {
+if ('32:1' !== $smokeOutput) {
     throw new RuntimeException('Scoped release TOTP smoke test failed.');
 }
 
@@ -128,6 +134,22 @@ PHP;
         throw new RuntimeException('Unable to augment the scoped Composer autoloader.');
     }
     file_put_contents($autoloadPath, $rewritten);
+}
+
+function writeComposerBridge(string $releaseRoot): string
+{
+    $vendorDirectory = $releaseRoot . '/vendor';
+    if (!is_dir($vendorDirectory) && !mkdir($vendorDirectory, 0775, true) && !is_dir($vendorDirectory)) {
+        throw new RuntimeException('Unable to create the Composer autoload bridge directory.');
+    }
+
+    $autoloadPath = $vendorDirectory . '/autoload.php';
+    file_put_contents(
+        $autoloadPath,
+        "<?php\n\nreturn require dirname(__DIR__) . '/vendor-scoped/autoload.php';\n"
+    );
+
+    return $autoloadPath;
 }
 
 function run(string $command, string $workingDirectory, bool $capture = false): string
