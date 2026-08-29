@@ -15,6 +15,7 @@ use Mpadmin2fa\Grid\Filters\AuditEventFilters;
 use Mpadmin2fa\Grid\Filters\EmployeeFactorFilters;
 use Mpadmin2fa\Grid\Filters\PendingApprovalFilters;
 use Mpadmin2fa\Repository\SecurityRepository;
+use Mpadmin2fa\Security\EnrollmentApprovalAuthorization;
 use Mpadmin2fa\Security\FactorConfirmationService;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
@@ -36,11 +37,11 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 
 final class MfaController extends FrameworkBundleAdminController
 {
-
     /** @var TokenStorageInterface */
     private $tokenStorage;
 
-    public function __construct(TokenStorageInterface $tokenStorage) {
+    public function __construct(TokenStorageInterface $tokenStorage)
+    {
         $this->tokenStorage = $tokenStorage;
         parent::__construct();
     }
@@ -437,7 +438,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
      * @DemoRestricted(redirectRoute="mpadmin2fa_enrollment_approvals")
      */
     public function approveEnrollment(
@@ -445,13 +446,26 @@ final class MfaController extends FrameworkBundleAdminController
         int $employeeId,
         SecurityRepository $repository,
         SessionState $sessionState,
-        Policy $policy
+        Policy $policy,
+        EnrollmentApprovalAuthorization $approvalAuthorization
     ): Response {
         $actor = $this->employee();
         $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_approve_' . $employeeId);
-        if ($actor->getId() === $employeeId) {
-            throw $this->createAccessDeniedException('Employees cannot approve their own 2FA setup.');
+        $denialReason = $approvalAuthorization->denialReason(
+            $actor->getId(),
+            (int) $actor->getData()->id_profile,
+            $employeeId,
+            $this->isGranted('update', 'AdminMpAdmin2faEnrollment'),
+            defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1
+        );
+        if (null !== $denialReason) {
+            $repository->audit($actor->getId(), 'enrollment.approval_denied', $request->getClientIp(), [
+                'reason' => $denialReason,
+                'target_employee_id' => $employeeId,
+            ]);
+
+            throw $this->createAccessDeniedException($denialReason);
         }
 
         $repository->approveEnrollment($employeeId, $actor->getId());

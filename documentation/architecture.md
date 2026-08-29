@@ -81,6 +81,8 @@ Authenticator secrets are not stored as plain text after setup. Recovery codes a
 - Sensitive POST actions need both **PrestaShop permission** and a valid **CSRF token**.
 - Policy changes, approvals, and resets also need a **fresh authenticator code**.
 - Employees cannot approve or reset themselves from the employee list.
+- Failed-attempt increments and lockout timestamps commit atomically. If a reset races a
+  failure, whichever database operation commits last defines the resulting state.
 
 ## Dependencies and releases
 

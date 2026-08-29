@@ -22,6 +22,7 @@ copyTree($moduleRoot, $stageRoot, [
     '.github',
     '.gitignore',
     '.phpunit.cache',
+    '.phpunit.result.cache',
     'build',
     'dist',
     'docs',

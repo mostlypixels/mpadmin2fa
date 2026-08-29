@@ -31,6 +31,12 @@ final class SchemaInstaller
             }
         }
 
+        if ((int) Db::getInstance()->getValue(
+            'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_keyring WHERE active = 1'
+        ) > 0) {
+            return true;
+        }
+
         $protected = KeyProtectedByPassword::createRandomPasswordProtectedKey(_NEW_COOKIE_KEY_);
 
         return Db::getInstance()->insert('mp2fa_keyring', [
@@ -45,13 +51,30 @@ final class SchemaInstaller
 
     public function uninstall(): bool
     {
+        $cleaned = true;
         foreach (self::TABLES as $table) {
-            if (!Db::getInstance()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . $table)) {
-                return false;
-            }
+            $cleaned = Db::getInstance()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . $table) && $cleaned;
         }
 
-        return true;
+        return $cleaned;
+    }
+
+    public function upgradeRateLimitTable(): bool
+    {
+        $column = Db::getInstance()->getValue(
+            'SELECT COLUMN_NAME FROM information_schema.COLUMNS'
+            . ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "' . pSQL(_DB_PREFIX_ . 'mp2fa_rate_limit') . '"'
+            . ' AND COLUMN_NAME = "last_failure_at"'
+        );
+        if ('last_failure_at' === $column) {
+            return true;
+        }
+
+        return Db::getInstance()->execute(
+            'ALTER TABLE ' . _DB_PREFIX_ . 'mp2fa_rate_limit ADD last_failure_at DATETIME NULL AFTER blocked_until'
+        ) && Db::getInstance()->execute(
+            'UPDATE ' . _DB_PREFIX_ . 'mp2fa_rate_limit SET last_failure_at = date_upd WHERE last_failure_at IS NULL'
+        );
     }
 
     private function statements(): array
@@ -114,7 +137,7 @@ final class SchemaInstaller
                 subject_hash CHAR(64) NOT NULL,
                 failures INT UNSIGNED NOT NULL DEFAULT 0,
                 blocked_until DATETIME NULL,
-                date_upd DATETIME NOT NULL,
+                last_failure_at DATETIME NOT NULL,
                 PRIMARY KEY (scope, subject_hash),
                 KEY mp2fa_rate_expiry (blocked_until)
             ) ENGINE=' . $engine . ' DEFAULT CHARSET=ascii',

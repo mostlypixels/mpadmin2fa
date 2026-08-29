@@ -181,7 +181,7 @@ function verifyArchive(string $archivePath): void
             throw new RuntimeException('Every archive entry must be inside mpadmin2fa/.');
         }
         $relative = substr($entry, strlen(MODULE_NAME) + 1);
-        foreach (['.git', '.github/', 'build/', 'dist/', 'docs/', 'documentation/', 'tests/', 'tools/', 'vendor/'] as $forbidden) {
+        foreach (['.git', '.github/', '.phpunit.result.cache', 'build/', 'dist/', 'docs/', 'documentation/', 'tests/', 'tools/', 'vendor/'] as $forbidden) {
             if (0 === strpos($relative, $forbidden)) {
                 throw new RuntimeException(sprintf('Development-only path found: %s', $entry));
             }

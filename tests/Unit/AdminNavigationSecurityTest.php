@@ -28,7 +28,7 @@ final class AdminNavigationSecurityTest extends TestCase
         yield 'authenticator page' => ['authenticator', 'read'];
         yield 'employee enrollment list' => ['enrollmentEmployees', 'read'];
         yield 'pending approvals' => ['enrollmentApprovals', 'read'];
-        yield 'approve enrollment' => ['approveEnrollment', 'update'];
+        yield 'approve enrollment baseline' => ['approveEnrollment', 'read'];
         yield 'reset employee factor' => ['adminReset', 'delete'];
         yield 'security policy' => ['securityPolicy', 'read'];
         yield 'update security policy' => ['updateSecurityPolicy', 'update'];

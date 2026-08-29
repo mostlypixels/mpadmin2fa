@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Mpadmin2fa\Http\LegacyAdminMfaAdapter;
 use Mpadmin2fa\Mail\MailThemeLayoutRegistrar;
 use Mpadmin2fa\Repository\SecurityRepository;
 use Mpadmin2fa\Security\DashboardActivityWindow;
@@ -30,7 +31,7 @@ class Mpadmin2fa extends Module
     {
         $this->name = 'mpadmin2fa';
         $this->tab = 'administration';
-        $this->version = '0.2.7';
+        $this->version = '0.2.8';
         $this->author = 'A vibe coder';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -118,6 +119,7 @@ class Mpadmin2fa extends Module
 
         try {
             $installed = parent::install()
+                && $this->registerHook('actionDispatcherBefore')
                 && $this->registerHook('actionAdminControllerSetMedia')
                 && $this->registerHook('actionObjectProfileDeleteAfter')
                 && $this->registerHook('dashboardZoneOne')
@@ -137,8 +139,24 @@ class Mpadmin2fa extends Module
         }
 
         if (!$installed) {
-            (new Mpadmin2fa\Install\SchemaInstaller())->uninstall();
-            parent::uninstall();
+            try {
+                if (!(new Mpadmin2fa\Install\SchemaInstaller())->uninstall()) {
+                    $this->_errors[] = $this->trans(
+                        'The failed installation could not remove every Admin 2FA database table.',
+                        [],
+                        'Modules.Mpadmin2fa.Admin'
+                    );
+                }
+            } catch (Throwable $cleanupException) {
+                $this->_errors[] = $cleanupException->getMessage();
+            }
+            if (!parent::uninstall()) {
+                $this->_errors[] = $this->trans(
+                    'The failed installation could not remove every native module record.',
+                    [],
+                    'Modules.Mpadmin2fa.Admin'
+                );
+            }
         }
 
         return $installed;
@@ -146,7 +164,7 @@ class Mpadmin2fa extends Module
 
     public function postInstall(): bool
     {
-        return $this->grantDefaultTabAccess();
+        return $this->reconcileAdminTabs();
     }
 
     public function uninstall(): bool
@@ -164,13 +182,23 @@ class Mpadmin2fa extends Module
             $cleaned = Configuration::deleteByName($key) && $cleaned;
         }
 
-        return $cleaned && parent::uninstall();
+        $moduleCleaned = parent::uninstall();
+
+        return $cleaned && $moduleCleaned;
     }
 
     /**
      * Reconcile the visible tab hierarchy when upgrading an existing installation.
      */
     public function upgradeAdminTabs(): bool
+    {
+        return $this->reconcileAdminTabs();
+    }
+
+    /**
+     * Idempotently repair the native PS 8 menu hierarchy and default access.
+     */
+    public function reconcileAdminTabs(): bool
     {
         $definitions = (new Mpadmin2fa\Install\AdminTabHierarchy())->buildUpgradeDefinitions($this->tabs);
 
@@ -225,6 +253,25 @@ class Mpadmin2fa extends Module
         }
 
         $this->context->controller->addJS($this->_path . 'views/js/admin-step-up.js');
+    }
+
+    /**
+     * Stop legacy back-office requests before their controller is instantiated.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function hookActionDispatcherBefore(array $params): void
+    {
+        $response = $this->get(LegacyAdminMfaAdapter::class)->enforce(
+            $this->context,
+            (int) ($params['controller_type'] ?? -1)
+        );
+        if (null === $response) {
+            return;
+        }
+
+        $response->send();
+        exit;
     }
 
     /**

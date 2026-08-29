@@ -27,6 +27,11 @@ final class Policy
 
     public function requiresLoginMfa(Employee $employee): bool
     {
+        return $this->requiresLoginMfaForProfile((int) $employee->getData()->id_profile);
+    }
+
+    public function requiresLoginMfaForProfile(int $profileId): bool
+    {
         $mode = (string) ($this->configuration->get(self::CONFIG_MODE) ?: 'superadmins');
         if ('all' === $mode) {
             return true;
@@ -35,10 +40,10 @@ final class Policy
         if ('profiles' === $mode) {
             $profiles = array_filter(array_map('intval', explode(',', (string) $this->configuration->get(self::CONFIG_PROFILES))));
 
-            return in_array((int) $employee->getData()->id_profile, $profiles, true);
+            return in_array($profileId, $profiles, true);
         }
 
-        return (int) $employee->getData()->id_profile === (defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1);
+        return $profileId === (defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1);
     }
 
     public function requiresEnrollmentApproval(Employee $employee): bool
