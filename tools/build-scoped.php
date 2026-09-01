@@ -29,6 +29,7 @@ copyTree($moduleRoot, $stageRoot, [
     'NUL',
     'php-scoper.inc.php',
     'phpunit.xml.dist',
+    'prestashop',
     'tests',
     'tools',
     'vendor',
