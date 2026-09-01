@@ -35,6 +35,7 @@ copyTree($moduleRoot, $stageRoot, [
     'vendor',
 ]);
 
+run('composer config autoloader-suffix MpAdmin2FaScoped', $stageRoot);
 run('composer install --no-dev --prefer-dist --no-interaction --no-progress', $stageRoot);
 
 putenv('MP2FA_SCOPE_ROOT=' . $stageRoot);
@@ -55,7 +56,20 @@ if (!rename($releaseRoot . '/vendor', $releaseRoot . '/vendor-scoped')) {
 }
 writeScopedAutoload($releaseRoot . '/vendor-scoped');
 writePrestaShopAutoloadBridge($releaseRoot);
+
+$composerAutoload = file_get_contents($releaseRoot . '/vendor-scoped/composer/autoload_real.php');
+if (false === $composerAutoload || !str_contains($composerAutoload, 'ComposerAutoloaderInitMpAdmin2FaScoped')) {
+    throw new RuntimeException('The scoped release Composer autoloader does not have its package-specific suffix.');
+}
+
 assertModuleNamespacesPreserved($releaseRoot);
+$autoloadSmokeCode = 'require ' . var_export($moduleRoot . '/vendor/autoload.php', true)
+    . '; require ' . var_export($releaseRoot . '/vendor-scoped/autoload.php', true)
+    . '; echo "ok";';
+$autoloadSmokeOutput = run(escapeshellarg(PHP_BINARY) . ' -d display_errors=1 -r ' . escapeshellarg($autoloadSmokeCode), $releaseRoot, true);
+if ('ok' !== $autoloadSmokeOutput) {
+    throw new RuntimeException('Scoped release Composer autoloader collision smoke test failed.');
+}
 $smokeCode = 'require ' . var_export($releaseRoot . '/vendor-scoped/autoload.php', true) . '; echo strlen((new Mpadmin2fa\\Security\\TotpService())->generateSecret());';
 $smokeOutput = run(escapeshellarg(PHP_BINARY) . ' -d display_errors=1 -r ' . escapeshellarg($smokeCode), $releaseRoot, true);
 if ('32' !== $smokeOutput) {
