@@ -39,8 +39,9 @@ final class DashboardEnrollmentTest extends TestCase
         $module = file_get_contents(dirname(__DIR__, 2) . '/mpadmin2fa.php');
 
         self::assertIsString($module);
-        self::assertStringContainsString("registerHook('dashboardZoneOne')", $module);
-        self::assertStringContainsString("registerHook('displayAdminDashboardZoneOne')", $module);
+        self::assertStringContainsString("'dashboardZoneOne'", $module);
+        self::assertStringContainsString("'displayAdminDashboardZoneOne'", $module);
+        self::assertStringContainsString('registerRequiredHooks()', $module);
         self::assertStringContainsString(
             '%not_enrolled% out of your %total% employees are not enrolled in the',
             $module

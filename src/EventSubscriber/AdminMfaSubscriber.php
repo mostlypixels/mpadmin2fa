@@ -7,6 +7,7 @@ namespace Mpadmin2fa\EventSubscriber;
 use Mpadmin2fa\Exception\MfaSecurityException;
 use Mpadmin2fa\Http\LoginHttpsGuard;
 use Mpadmin2fa\Http\StepUpResponseFactory;
+use Mpadmin2fa\Security\AdminMfaAccessPolicy;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
 use Mpadmin2fa\Security\ReturnTargetPolicy;
@@ -24,28 +25,6 @@ use Symfony\Component\Security\Http\Event\LogoutEvent;
 
 final class AdminMfaSubscriber implements EventSubscriberInterface
 {
-    private const ALLOWED_ROUTES = [
-        'admin_logout',
-        'mpadmin2fa_challenge',
-        'mpadmin2fa_enroll',
-        'mpadmin2fa_recovery_codes',
-        'mpadmin2fa_replace',
-        'mpadmin2fa_disable',
-    ];
-
-    private const PROTECTED_ROUTES = [
-        'admin_module_configure_action',
-        'admin_module_import',
-        'admin_module_manage_action',
-        'admin_module_manage_action_bulk',
-        'admin_module_manage_update_all',
-        'admin_themes_enable',
-        'admin_themes_import',
-        'mpadmin2fa_admin_reset',
-        'mpadmin2fa_approve',
-        'mpadmin2fa_security_policy_update',
-    ];
-
     public function __construct(
         private readonly Security $security,
         private readonly RouterInterface $router,
@@ -56,6 +35,7 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         private readonly SecurityAlertService $alerts,
         private readonly StepUpResponseFactory $stepUpResponses,
         private readonly LoginHttpsGuard $loginHttpsGuard,
+        private readonly AdminMfaAccessPolicy $accessPolicy,
     ) {
     }
 
@@ -122,54 +102,41 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
                 return;
             }
 
-            if ($this->sessionState->isRecoveryRestricted($employee->getId())) {
-                if ('mpadmin2fa_enroll' === $route) {
-                    return;
-                }
-                $event->setResponse($this->stepUpResponses->create(
-                    $request,
-                    $this->router->generate('mpadmin2fa_enroll')
-                ));
+            $recoveryRestricted = $this->sessionState->isRecoveryRestricted($employee->getId());
+            $decision = $this->accessPolicy->decide(
+                $employee->getId(),
+                $requiresLoginMfa,
+                $active,
+                $this->sessionState->isVerified($employee->getId()),
+                $recoveryRestricted,
+                $this->sessionState->hasFreshVerification($employee->getId(), $this->policy->stepUpSeconds()),
+                $request->isMethodSafe(),
+                $route,
+                (string) $request->attributes->get('_legacy_controller', ''),
+                $this->requestAction($request),
+            );
+
+            if (AdminMfaAccessPolicy::ALLOW === $decision) {
+                return;
+            }
+
+            if (AdminMfaAccessPolicy::DENY === $decision) {
+                $event->setResponse(new Response('Access denied.', Response::HTTP_FORBIDDEN));
 
                 return;
             }
 
-            if (in_array($route, self::ALLOWED_ROUTES, true)) {
-                return;
-            }
-
-            if (!$active && $requiresLoginMfa) {
-                $event->setResponse($this->stepUpResponses->create(
-                    $request,
-                    $this->router->generate('mpadmin2fa_enroll')
-                ));
-
-                return;
-            }
-
-            if ($active && !$this->sessionState->isVerified($employee->getId())) {
-                $event->setResponse($this->stepUpResponses->create(
-                    $request,
-                    $this->router->generate('mpadmin2fa_challenge')
-                ));
-
-                return;
-            }
-
-            if (in_array($route, self::PROTECTED_ROUTES, true)
-                && !$request->isMethodSafe()
-                && (!$active || !$this->sessionState->hasFreshVerification($employee->getId(), $this->policy->stepUpSeconds()))
-            ) {
+            if (AdminMfaAccessPolicy::REQUIRE_STEP_UP === $decision) {
                 $this->sessionState->setReturnTarget($this->safeReturnTarget($request));
-                $event->setResponse($this->stepUpResponses->create(
-                    $request,
-                    $active
-                        ? $this->router->generate('mpadmin2fa_challenge', ['step_up' => 1])
-                        : $this->router->generate('mpadmin2fa_enroll')
-                ));
-
-                return;
             }
+            $event->setResponse($this->stepUpResponses->create(
+                $request,
+                $active && !$recoveryRestricted
+                    ? $this->router->generate('mpadmin2fa_challenge', [
+                        'step_up' => AdminMfaAccessPolicy::REQUIRE_STEP_UP === $decision ? 1 : 0,
+                    ])
+                    : $this->router->generate('mpadmin2fa_enroll'),
+            ));
         } catch (MfaSecurityException $exception) {
             $event->setResponse($this->securityFailureResponse($employee->getId(), $exception));
         }
@@ -186,6 +153,26 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
             Response::HTTP_SERVICE_UNAVAILABLE,
             ['Content-Type' => 'text/plain; charset=UTF-8']
         );
+    }
+
+    private function requestAction(\Symfony\Component\HttpFoundation\Request $request): string
+    {
+        $requestParameters = $request->request->all();
+        $queryParameters = $request->query->all();
+        foreach (['action', 'submitAction'] as $parameter) {
+            $value = $requestParameters[$parameter] ?? $queryParameters[$parameter] ?? null;
+            if (is_scalar($value) && '' !== (string) $value) {
+                return (string) $value;
+            }
+        }
+
+        foreach (array_keys(array_merge($queryParameters, $requestParameters)) as $parameter) {
+            if (preg_match('/^(?:submit|bulk|delete|disable|enable|import|install|reset|uninstall|update|upgrade)/i', $parameter)) {
+                return $parameter;
+            }
+        }
+
+        return '';
     }
 
     private function safeReturnTarget(\Symfony\Component\HttpFoundation\Request $request): string

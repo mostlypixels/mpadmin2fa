@@ -15,6 +15,7 @@ use Mpadmin2fa\Grid\Filters\AuditEventFilters;
 use Mpadmin2fa\Grid\Filters\EmployeeFactorFilters;
 use Mpadmin2fa\Grid\Filters\PendingApprovalFilters;
 use Mpadmin2fa\Repository\SecurityRepository;
+use Mpadmin2fa\Security\EnrollmentApprovalAuthorization;
 use Mpadmin2fa\Security\FactorConfirmationService;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
@@ -441,12 +442,25 @@ final class MfaController extends PrestaShopAdminController
         SecurityRepository $repository,
         SessionState $sessionState,
         Policy $policy,
+        EnrollmentApprovalAuthorization $approvalAuthorization,
     ): Response {
         $actor = $this->employee($security);
         $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_approve_' . $employeeId);
-        if ($actor->getId() === $employeeId) {
-            throw $this->createAccessDeniedException('Employees cannot approve their own 2FA setup.');
+        $denialReason = $approvalAuthorization->denialReason(
+            $actor->getId(),
+            $actor->getProfileId(),
+            $employeeId,
+            $security->isGranted('update', 'AdminMpAdmin2faEnrollment'),
+            defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1,
+        );
+        if (null !== $denialReason) {
+            $repository->audit($actor->getId(), 'enrollment.approval_denied', $request->getClientIp(), [
+                'reason' => $denialReason,
+                'target_employee_id' => $employeeId,
+            ]);
+
+            throw $this->createAccessDeniedException($denialReason);
         }
 
         $repository->approveEnrollment($employeeId, $actor->getId());

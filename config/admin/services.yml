@@ -22,6 +22,9 @@ services:
       $connection: '@doctrine.dbal.default_connection'
       $dbPrefix: '%database_prefix%'
 
+  Mpadmin2fa\Http\LegacyAdminMfaAdapter:
+    public: true
+
   Mpadmin2fa\Security\SecurityActivityAccess:
     public: true
 

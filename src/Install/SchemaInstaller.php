@@ -31,6 +31,12 @@ final class SchemaInstaller
             }
         }
 
+        if ((int) Db::getInstance()->getValue(
+            'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_keyring WHERE active = 1',
+        ) > 0) {
+            return true;
+        }
+
         $protected = KeyProtectedByPassword::createRandomPasswordProtectedKey(_NEW_COOKIE_KEY_);
 
         return Db::getInstance()->insert('mp2fa_keyring', [
@@ -45,13 +51,12 @@ final class SchemaInstaller
 
     public function uninstall(): bool
     {
+        $cleaned = true;
         foreach (self::TABLES as $table) {
-            if (!Db::getInstance()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . $table)) {
-                return false;
-            }
+            $cleaned = Db::getInstance()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . $table) && $cleaned;
         }
 
-        return true;
+        return $cleaned;
     }
 
     private function statements(): array
@@ -114,7 +119,7 @@ final class SchemaInstaller
                 subject_hash CHAR(64) NOT NULL,
                 failures INT UNSIGNED NOT NULL DEFAULT 0,
                 blocked_until DATETIME NULL,
-                date_upd DATETIME NOT NULL,
+                last_failure_at DATETIME NOT NULL,
                 PRIMARY KEY (scope, subject_hash),
                 KEY mp2fa_rate_expiry (blocked_until)
             ) ENGINE=' . $engine . ' DEFAULT CHARSET=ascii',
@@ -130,5 +135,42 @@ final class SchemaInstaller
                 KEY mp2fa_audit_date (date_add)
             ) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
         ];
+    }
+
+    public function upgradeRateLimitTable(): bool
+    {
+        $database = Db::getInstance();
+        $table = _DB_PREFIX_ . 'mp2fa_rate_limit';
+        $hasLastFailureAt = $this->columnExists($table, 'last_failure_at');
+        $hasLegacyDate = $this->columnExists($table, 'date_upd');
+
+        if (!$hasLastFailureAt && !$database->execute(
+            'ALTER TABLE ' . $table . ' ADD last_failure_at DATETIME NULL AFTER blocked_until'
+        )) {
+            return false;
+        }
+
+        if ($hasLegacyDate && !$database->execute(
+            'UPDATE ' . $table . ' SET last_failure_at = date_upd WHERE last_failure_at IS NULL'
+        )) {
+            return false;
+        }
+
+        if (!$database->execute(
+            'ALTER TABLE ' . $table . ' MODIFY last_failure_at DATETIME NOT NULL'
+        )) {
+            return false;
+        }
+
+        return !$hasLegacyDate || $database->execute('ALTER TABLE ' . $table . ' DROP COLUMN date_upd');
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        return $column === Db::getInstance()->getValue(
+            'SELECT COLUMN_NAME FROM information_schema.COLUMNS'
+            . ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "' . pSQL($table) . '"'
+            . ' AND COLUMN_NAME = "' . pSQL($column) . '"'
+        );
     }
 }

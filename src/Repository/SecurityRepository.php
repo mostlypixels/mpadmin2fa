@@ -15,6 +15,7 @@ final class SecurityRepository
     private const IMPORTANT_DASHBOARD_EVENTS = [
         'enrollment.failed',
         'enrollment.approved',
+        'enrollment.approval_denied',
         'challenge.failed',
         'step_up.failed',
         'factor_change.failed',
@@ -191,12 +192,35 @@ final class SecurityRepository
         return $row ?: null;
     }
 
-    public function recordFailure(string $scope, string $subjectHash, int $failures, ?string $blockedUntil): void
-    {
+    public function incrementFailure(
+        string $scope,
+        string $subjectHash,
+        int $freeFailures,
+        int $maximumDelaySeconds,
+    ): int {
+        $freeFailures = max(1, $freeFailures);
+        $maximumDelaySeconds = max(60, $maximumDelaySeconds);
+        $maximumExponent = max(0, (int) ceil(log($maximumDelaySeconds / 60, 2)));
+        $delay = 'LEAST(' . $maximumDelaySeconds
+            . ', 60 * POW(2, LEAST(' . $maximumExponent
+            . ', LAST_INSERT_ID() - ' . $freeFailures . ')))';
         $sql = 'INSERT INTO ' . $this->table('rate_limit')
-            . ' (scope, subject_hash, failures, blocked_until, date_upd) VALUES (?, ?, ?, ?, ?)'
-            . ' ON DUPLICATE KEY UPDATE failures = VALUES(failures), blocked_until = VALUES(blocked_until), date_upd = VALUES(date_upd)';
-        $this->connection->executeStatement($sql, [$scope, $subjectHash, $failures, $blockedUntil, $this->now()]);
+            . ' (scope, subject_hash, failures, blocked_until, last_failure_at)'
+            . ' VALUES (?, ?, LAST_INSERT_ID(1), NULL, ?)'
+            . ' ON DUPLICATE KEY UPDATE failures = LAST_INSERT_ID(failures + 1),'
+            . ' blocked_until = CASE WHEN LAST_INSERT_ID() >= ' . $freeFailures
+            . ' THEN CASE WHEN blocked_until IS NULL'
+            . ' OR blocked_until < DATE_ADD(UTC_TIMESTAMP(), INTERVAL ' . $delay . ' SECOND)'
+            . ' THEN DATE_ADD(UTC_TIMESTAMP(), INTERVAL ' . $delay . ' SECOND)'
+            . ' ELSE blocked_until END ELSE blocked_until END,'
+            . ' last_failure_at = VALUES(last_failure_at)';
+        $this->connection->executeStatement($sql, [$scope, $subjectHash, $this->now()]);
+        $failures = (int) $this->connection->fetchOne('SELECT LAST_INSERT_ID()');
+        if ($failures < 1) {
+            throw new MfaSecurityException('The failed-attempt counter could not be updated.');
+        }
+
+        return $failures;
     }
 
     public function clearFailures(string $scope, string $subjectHash): void
@@ -300,6 +324,7 @@ final class SecurityRepository
             . 'CASE a.event'
             . ' WHEN "enrollment.failed" THEN "Authenticator setup failed"'
             . ' WHEN "enrollment.approved" THEN "2FA setup approved"'
+            . ' WHEN "enrollment.approval_denied" THEN "2FA setup approval denied"'
             . ' WHEN "challenge.failed" THEN "Sign-in 2FA failed"'
             . ' WHEN "step_up.failed" THEN "Security-change 2FA failed"'
             . ' WHEN "factor_change.failed" THEN "Authenticator-settings check failed"'

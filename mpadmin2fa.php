@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Mpadmin2fa\Http\LegacyAdminMfaAdapter;
+use Mpadmin2fa\Install\AdminTabLifecycle;
+use Mpadmin2fa\Install\SchemaInstaller;
 use Mpadmin2fa\Mail\MailThemeLayoutRegistrar;
 use Mpadmin2fa\Repository\SecurityRepository;
 use Mpadmin2fa\Security\DashboardActivityWindow;
@@ -26,11 +29,14 @@ if (is_file(__DIR__ . '/vendor-scoped/autoload.php')) {
 
 class Mpadmin2fa extends Module
 {
+    /** @var array<int, array<string, mixed>> */
+    private array $declaredTabs = [];
+
     public function __construct()
     {
         $this->name = 'mpadmin2fa';
         $this->tab = 'administration';
-        $this->version = '0.2.7';
+        $this->version = '0.2.8';
         $this->author = 'A vibe coder';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -44,7 +50,7 @@ class Mpadmin2fa extends Module
             $tabNames['security'][$locale] = $this->trans('Security', [], 'Modules.Mpadmin2fa.Admin', $locale);
             $tabNames['activity'][$locale] = $this->trans('Activity log', [], 'Modules.Mpadmin2fa.Admin', $locale);
         }
-        $this->tabs = [
+        $this->declaredTabs = [
             [
                 'route_name' => 'mpadmin2fa_settings',
                 'class_name' => 'AdminMpAdmin2fa',
@@ -91,6 +97,7 @@ class Mpadmin2fa extends Module
                 'wording_domain' => 'Modules.Mpadmin2fa.Admin',
             ],
         ];
+        $this->tabs = [];
 
         parent::__construct();
 
@@ -116,55 +123,68 @@ class Mpadmin2fa extends Module
             return false;
         }
 
+        $parentAttempted = false;
         try {
-            $installed = parent::install()
-                && $this->registerHook('actionAdminControllerSetMedia')
-                && $this->registerHook('actionObjectProfileDeleteAfter')
-                && $this->registerHook('dashboardZoneOne')
-                && $this->registerHook('displayAdminDashboardZoneOne')
-                && $this->registerHook(ThemeCatalogInterface::LIST_MAIL_THEMES_HOOK)
-                && (new Mpadmin2fa\Install\SchemaInstaller())->install()
-                && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_MODE, 'superadmins')
-                && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_PROFILES, '')
-                && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_STEP_UP_SECONDS, 300)
-                && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_PASSWORD_MAX_AGE, 900)
-                && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_AUDIT_DAYS, 90)
-                && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_APPROVAL_PROFILES, '')
-                && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_SECURITY_RECIPIENTS, '');
+            $parentAttempted = true;
+            if (!parent::install()) {
+                throw new RuntimeException('PrestaShop could not install the module.');
+            }
+            if (!(new SchemaInstaller())->install()) {
+                throw new RuntimeException('The 2FA database schema could not be installed.');
+            }
+            if (!$this->installConfiguration()) {
+                throw new RuntimeException('The 2FA configuration could not be installed.');
+            }
+            if (!$this->registerRequiredHooks()) {
+                throw new RuntimeException('The 2FA hooks could not be registered.');
+            }
+            if (!$this->reconcileAdminTabs()) {
+                throw new RuntimeException('The 2FA admin tabs or profile access could not be installed.');
+            }
+
+            return true;
         } catch (Throwable $exception) {
             $this->_errors[] = $exception->getMessage();
-            $installed = false;
-        }
+            $this->rollbackInstall($parentAttempted);
 
-        if (!$installed) {
-            (new Mpadmin2fa\Install\SchemaInstaller())->uninstall();
-            parent::uninstall();
+            return false;
         }
-
-        return $installed;
     }
 
     public function postInstall(): bool
     {
-        return $this->grantDefaultTabAccess();
+        return $this->reconcileAdminTabs();
     }
 
     public function uninstall(): bool
     {
-        $cleaned = (new Mpadmin2fa\Install\SchemaInstaller())->uninstall();
-        foreach ([
-            Mpadmin2fa\Security\Policy::CONFIG_MODE,
-            Mpadmin2fa\Security\Policy::CONFIG_PROFILES,
-            Mpadmin2fa\Security\Policy::CONFIG_STEP_UP_SECONDS,
-            Mpadmin2fa\Security\Policy::CONFIG_PASSWORD_MAX_AGE,
-            Mpadmin2fa\Security\Policy::CONFIG_AUDIT_DAYS,
-            Mpadmin2fa\Security\Policy::CONFIG_APPROVAL_PROFILES,
-            Mpadmin2fa\Security\Policy::CONFIG_SECURITY_RECIPIENTS,
-        ] as $key) {
-            $cleaned = Configuration::deleteByName($key) && $cleaned;
+        $cleaned = true;
+        try {
+            $cleaned = (new AdminTabLifecycle())->remove($this->name, $this->declaredTabs) && $cleaned;
+        } catch (Throwable $exception) {
+            $this->_errors[] = $exception->getMessage();
+            $cleaned = false;
+        }
+        try {
+            $cleaned = $this->deleteConfiguration() && $cleaned;
+        } catch (Throwable $exception) {
+            $this->_errors[] = $exception->getMessage();
+            $cleaned = false;
+        }
+        try {
+            $cleaned = (new SchemaInstaller())->uninstall() && $cleaned;
+        } catch (Throwable $exception) {
+            $this->_errors[] = $exception->getMessage();
+            $cleaned = false;
+        }
+        try {
+            $cleaned = parent::uninstall() && $cleaned;
+        } catch (Throwable $exception) {
+            $this->_errors[] = $exception->getMessage();
+            $cleaned = false;
         }
 
-        return $cleaned && parent::uninstall();
+        return $cleaned;
     }
 
     /**
@@ -172,38 +192,12 @@ class Mpadmin2fa extends Module
      */
     public function upgradeAdminTabs(): bool
     {
-        $definitions = (new Mpadmin2fa\Install\AdminTabHierarchy())->buildUpgradeDefinitions($this->tabs);
+        return $this->reconcileAdminTabs();
+    }
 
-        foreach ($definitions as $definition) {
-            $parentId = (int) Tab::getIdFromClassName($definition['parent_class_name']);
-            if ($parentId <= 0) {
-                return false;
-            }
-
-            $tabId = (int) Tab::getIdFromClassName($definition['class_name']);
-            $tab = $tabId > 0 ? new Tab($tabId) : new Tab();
-            $tab->active = (bool) $definition['visible'];
-            $tab->enabled = true;
-            $tab->class_name = $definition['class_name'];
-            $tab->route_name = $definition['route_name'];
-            $tab->module = $this->name;
-            $tab->icon = $definition['icon'] ?? null;
-            $tab->wording = $definition['wording'];
-            $tab->wording_domain = $definition['wording_domain'];
-            $tab->id_parent = $parentId;
-
-            $localizedNames = $definition['name'];
-            $fallbackName = reset($localizedNames);
-            foreach (Language::getLanguages(false) as $language) {
-                $tab->name[(int) $language['id_lang']] = $localizedNames[$language['locale']] ?? $fallbackName;
-            }
-
-            if (!($tabId > 0 ? $tab->save() : $tab->add())) {
-                return false;
-            }
-        }
-
-        return $this->grantDefaultTabAccess();
+    public function reconcileAdminTabs(): bool
+    {
+        return (new AdminTabLifecycle())->reconcile($this->name, $this->declaredTabs);
     }
 
     public function getContent(): string
@@ -225,6 +219,25 @@ class Mpadmin2fa extends Module
         }
 
         $this->context->controller->addJS($this->_path . 'views/js/admin-step-up.js');
+    }
+
+    /**
+     * Stop legacy back-office requests before their controller action runs.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function hookActionDispatcherBefore(array $params): void
+    {
+        $response = $this->get(LegacyAdminMfaAdapter::class)->enforce(
+            $this->context,
+            (int) ($params['controller_type'] ?? -1),
+        );
+        if (null === $response) {
+            return;
+        }
+
+        $response->send();
+        exit;
     }
 
     /**
@@ -410,27 +423,84 @@ class Mpadmin2fa extends Module
         ];
     }
 
-    private function grantDefaultTabAccess(): bool
+    /**
+     * @return string[]
+     */
+    private function configurationKeys(): array
     {
-        $tabIds = [
-            (int) Tab::getIdFromClassName('AdminMpAdmin2fa_MTR'),
-            (int) Tab::getIdFromClassName('AdminMpAdmin2fa'),
-            (int) Tab::getIdFromClassName('AdminMpAdmin2faAuthenticator'),
+        return [
+            Mpadmin2fa\Security\Policy::CONFIG_APPROVAL_PROFILES,
+            Mpadmin2fa\Security\Policy::CONFIG_AUDIT_DAYS,
+            Mpadmin2fa\Security\Policy::CONFIG_MODE,
+            Mpadmin2fa\Security\Policy::CONFIG_PASSWORD_MAX_AGE,
+            Mpadmin2fa\Security\Policy::CONFIG_PROFILES,
+            Mpadmin2fa\Security\Policy::CONFIG_SECURITY_RECIPIENTS,
+            Mpadmin2fa\Security\Policy::CONFIG_STEP_UP_SECONDS,
         ];
-        if (in_array(0, $tabIds, true)) {
-            return false;
+    }
+
+    private function deleteConfiguration(): bool
+    {
+        $cleaned = true;
+        foreach ($this->configurationKeys() as $key) {
+            $cleaned = Configuration::deleteByName($key) && $cleaned;
         }
 
-        $access = new Access();
-        $languageId = (int) Configuration::get('PS_LANG_DEFAULT');
-        foreach (Profile::getProfiles($languageId) as $profile) {
-            foreach ($tabIds as $tabId) {
-                if ('ok' !== $access->updateLgcAccess((int) $profile['id_profile'], $tabId, 'view', true, false)) {
-                    return false;
-                }
+        return $cleaned;
+    }
+
+    private function installConfiguration(): bool
+    {
+        return Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_MODE, 'superadmins')
+            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_PROFILES, '')
+            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_STEP_UP_SECONDS, 300)
+            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_PASSWORD_MAX_AGE, 900)
+            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_AUDIT_DAYS, 90)
+            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_APPROVAL_PROFILES, '')
+            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_SECURITY_RECIPIENTS, '');
+    }
+
+    private function registerRequiredHooks(): bool
+    {
+        foreach ([
+            'actionAdminControllerSetMedia',
+            'actionDispatcherBefore',
+            'actionObjectProfileDeleteAfter',
+            'dashboardZoneOne',
+            'displayAdminDashboardZoneOne',
+            ThemeCatalogInterface::LIST_MAIL_THEMES_HOOK,
+        ] as $hook) {
+            if (!$this->registerHook($hook)) {
+                return false;
             }
         }
 
         return true;
+    }
+
+    private function rollbackInstall(bool $parentAttempted): void
+    {
+        try {
+            (new AdminTabLifecycle())->remove($this->name, $this->declaredTabs);
+        } catch (Throwable $exception) {
+            $this->_errors[] = $exception->getMessage();
+        }
+        try {
+            $this->deleteConfiguration();
+        } catch (Throwable $exception) {
+            $this->_errors[] = $exception->getMessage();
+        }
+        try {
+            (new SchemaInstaller())->uninstall();
+        } catch (Throwable $exception) {
+            $this->_errors[] = $exception->getMessage();
+        }
+        if ($parentAttempted && (int) $this->id > 0) {
+            try {
+                parent::uninstall();
+            } catch (Throwable $exception) {
+                $this->_errors[] = $exception->getMessage();
+            }
+        }
     }
 }

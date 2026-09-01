@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Security;
 
-use Db;
 use Mpadmin2fa\Repository\SecurityRepository;
 use RuntimeException;
 
@@ -31,9 +30,13 @@ final class RateLimiter
     {
         $maximumFailures = 0;
         foreach ($this->subjects($employeeId, $ip) as $subject) {
-            $this->recordFailureAtomically($scope, $subject);
-            $row = $this->repository->rateLimit($scope, $subject);
-            $maximumFailures = max($maximumFailures, (int) ($row['failures'] ?? 0));
+            $failures = $this->repository->incrementFailure(
+                $scope,
+                $subject,
+                self::FREE_FAILURES,
+                self::MAX_DELAY_SECONDS,
+            );
+            $maximumFailures = max($maximumFailures, $failures);
         }
 
         return $maximumFailures;
@@ -43,26 +46,6 @@ final class RateLimiter
     {
         foreach ($this->subjects($employeeId, $ip) as $subject) {
             $this->repository->clearFailures($scope, $subject);
-        }
-    }
-
-    private function recordFailureAtomically(string $scope, string $subject): void
-    {
-        $table = '`' . _DB_PREFIX_ . 'mp2fa_rate_limit`';
-        $now = pSQL(gmdate('Y-m-d H:i:s'));
-        $sql = 'INSERT INTO ' . $table
-            . ' (scope, subject_hash, failures, blocked_until, date_upd) VALUES ('
-            . '"' . pSQL($scope) . '", "' . pSQL($subject) . '", 1, NULL, "' . $now . '")'
-            . ' ON DUPLICATE KEY UPDATE'
-            . ' blocked_until = CASE WHEN failures + 1 >= ' . self::FREE_FAILURES
-            . ' THEN DATE_ADD(UTC_TIMESTAMP(), INTERVAL LEAST('
-            . self::MAX_DELAY_SECONDS . ', 60 * POW(2, failures + 1 - ' . self::FREE_FAILURES . ')) SECOND)'
-            . ' ELSE NULL END,'
-            . ' failures = failures + 1,'
-            . ' date_upd = "' . $now . '"';
-
-        if (!Db::getInstance()->execute($sql)) {
-            throw new RuntimeException('Unable to update the two-factor authentication rate limit.');
         }
     }
 
