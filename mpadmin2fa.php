@@ -32,6 +32,9 @@ class Mpadmin2fa extends Module
     /** @var array<int, array<string, mixed>> */
     private $declaredTabs = [];
 
+    /** @var bool */
+    private $installationFailed = false;
+
     public function __construct()
     {
         $this->name = 'mpadmin2fa';
@@ -117,6 +120,7 @@ class Mpadmin2fa extends Module
 
     public function install(): bool
     {
+        $this->installationFailed = false;
         $this->suppressAutomaticTabRegistration();
         if (!is_file(__DIR__ . '/vendor/autoload.php') && !is_file(__DIR__ . '/vendor-scoped/autoload.php')) {
             $this->_errors[] = $this->trans('The production dependencies are missing.', [], 'Modules.Mpadmin2fa.Admin');
@@ -153,6 +157,8 @@ class Mpadmin2fa extends Module
             return true;
         } catch (Throwable $exception) {
             $this->_errors[] = $exception->getMessage();
+            $this->installationFailed = true;
+            $this->guardFailedInstallEvent();
             $this->rollbackInstall($parentAttempted);
 
             return false;
@@ -488,6 +494,24 @@ class Mpadmin2fa extends Module
         }
 
         return true;
+    }
+
+    private function guardFailedInstallEvent(): void
+    {
+        try {
+            $dispatcher = $this->get('event_dispatcher');
+            if ($dispatcher instanceof Symfony\Component\EventDispatcher\EventDispatcherInterface) {
+                $dispatcher->addListener(
+                    PrestaShopBundle\Event\ModuleManagementEvent::INSTALL,
+                    new Mpadmin2fa\Install\FailedInstallEventGuard($this->name, function (): bool {
+                        return $this->installationFailed;
+                    }),
+                    PHP_INT_MAX
+                );
+            }
+        } catch (Throwable $exception) {
+            $this->_errors[] = $exception->getMessage();
+        }
     }
 
     private function rollbackInstall(bool $parentAttempted): void
