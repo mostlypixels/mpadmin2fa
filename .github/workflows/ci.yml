@@ -168,6 +168,9 @@ jobs:
           node-version: '16'
 
       - name: Build storefront and back-office assets
+        env:
+          # PS 8.0.0's historic css-loader/webpack peers predate npm 7 enforcement.
+          npm_config_legacy_peer_deps: ${{ matrix.prestashop == '8.0.0' && 'true' || 'false' }}
         run: |
           bash prestashop/tools/assets/build.sh front-classic
           bash prestashop/tools/assets/build.sh admin-default
