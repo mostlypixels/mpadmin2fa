@@ -23,6 +23,8 @@ services:
 
   Mpadmin2fa\Configuration\SecurityPolicyConfiguration:
     class: Mpadmin2fa\Configuration\SecurityPolicyConfiguration
+    arguments:
+      $configuration: '@prestashop.adapter.legacy.configuration'
 
   Mpadmin2fa\EventSubscriber\AdminMfaSubscriber:
     class: Mpadmin2fa\EventSubscriber\AdminMfaSubscriber
@@ -104,6 +106,8 @@ services:
 
   Mpadmin2fa\Security\Policy:
     class: Mpadmin2fa\Security\Policy
+    arguments:
+      $configuration: '@prestashop.adapter.legacy.configuration'
 
   Mpadmin2fa\Security\ProfilePolicyCleaner:
     class: Mpadmin2fa\Security\ProfilePolicyCleaner
@@ -128,6 +132,8 @@ services:
 
   Mpadmin2fa\Security\SecurityAlertService:
     class: Mpadmin2fa\Security\SecurityAlertService
+    arguments:
+      $configuration: '@prestashop.adapter.legacy.configuration'
 
   Mpadmin2fa\Security\SessionState:
     class: Mpadmin2fa\Security\SessionState

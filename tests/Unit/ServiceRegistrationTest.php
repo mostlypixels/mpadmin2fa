@@ -30,6 +30,21 @@ final class ServiceRegistrationTest extends TestCase
         return $container;
     }
 
+    public function testConfigurationDependenciesUseTheNativeServiceOnEarlyPs8(): void
+    {
+        $container = $this->loadServicesAfterClassResolution();
+        foreach ([
+            'Mpadmin2fa\Configuration\SecurityPolicyConfiguration',
+            'Mpadmin2fa\Security\Policy',
+            'Mpadmin2fa\Security\SecurityAlertService',
+        ] as $service) {
+            self::assertSame(
+                'prestashop.adapter.legacy.configuration',
+                (string) $container->getDefinition($service)->getArgument('$configuration')
+            );
+        }
+    }
+
     public function testModuleServicesDoNotDependOnEarlierCompilerPasses(): void
     {
         $container = $this->loadServicesAfterClassResolution();
