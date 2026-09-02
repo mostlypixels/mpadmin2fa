@@ -63,8 +63,13 @@ $request = static function (string $path, ?array $post = null, bool $ajax = fals
     if (false === $body) {
         throw new RuntimeException('HTTPS request failed: ' . curl_error($client));
     }
+    $status = (int) curl_getinfo($client, CURLINFO_RESPONSE_CODE);
     file_put_contents($runtime . '/last-response.html', $body);
-    return ['status' => (int) curl_getinfo($client, CURLINFO_RESPONSE_CODE), 'headers' => $headers, 'body' => $body];
+    if ($status >= 500 && preg_match('/<title>(.*?)<\/title>/s', $body, $match)) {
+        // Only the error title: never dump cookies, form tokens, or complete debug pages.
+        echo 'HTTP ' . $status . ' response: ' . html_entity_decode(strip_tags($match[1]), ENT_QUOTES) . PHP_EOL;
+    }
+    return ['status' => $status, 'headers' => $headers, 'body' => $body];
 };
 $check = static function (bool $condition, string $label) use (&$count, &$failures): void {
     ++$count;
@@ -98,7 +103,7 @@ foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
 }
 $challengeUrl = '/admin-dev/index.php/modules/mpadmin2fa/challenge?token=' . Tools::getAdminToken($employeeId);
 $response = $request($challengeUrl);
-$check(200 === $response['status'], 'the actual challenge form renders');
+$check(200 === $response['status'], 'the actual challenge form renders (HTTP ' . $response['status'] . ')');
 $document = new DOMDocument();
 @$document->loadHTML($response['body']);
 $xpath = new DOMXPath($document);
