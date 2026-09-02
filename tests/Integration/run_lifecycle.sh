@@ -13,6 +13,12 @@ state verify-install
 state verify-repeated-install
 php "$MP2FA_PS_ROOT/bin/console" cache:clear --env=prod --no-debug
 php "$MP2FA_PS_ROOT/bin/console" debug:router --env=prod --no-debug | grep mpadmin2fa
+php "$MP2FA_PS_ROOT/bin/console" debug:event-dispatcher kernel.request --env=prod --no-debug | grep -F 'AdminMfaSubscriber::onKernelRequest'
+php "$MP2FA_PS_ROOT/bin/console" debug:event-dispatcher security.interactive_login --env=prod --no-debug | grep -F 'AdminMfaSubscriber::onLoginSuccess'
+commands="$(php "$MP2FA_PS_ROOT/bin/console" list --raw --env=prod --no-debug)"
+for command in mpadmin2fa:key:health mpadmin2fa:key:rotate mpadmin2fa:audit:prune mpadmin2fa:factor:reset; do
+  grep -F "$command" <<< "$commands"
+done
 state prepare-upgrade
 module upgrade
 state verify-install
