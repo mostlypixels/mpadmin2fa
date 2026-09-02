@@ -30,11 +30,13 @@ copyTree($moduleRoot, $stageRoot, [
     'NUL',
     'php-scoper.inc.php',
     'phpunit.xml.dist',
+    'prestashop',
     'tests',
     'tools',
     'vendor',
 ]);
 
+run('composer config autoloader-suffix MpAdmin2FaScoped', $stageRoot);
 run('composer install --no-dev --prefer-dist --no-interaction --no-progress', $stageRoot);
 
 putenv('MP2FA_SCOPE_ROOT=' . $stageRoot);
@@ -54,6 +56,23 @@ if (!rename($releaseRoot . '/vendor', $releaseRoot . '/vendor-scoped')) {
     throw new RuntimeException('Unable to rename the scoped production dependency directory.');
 }
 writeScopedAutoload($releaseRoot . '/vendor-scoped');
+writePrestaShopAutoloadBridge($releaseRoot);
+assertModuleNamespacesPreserved($releaseRoot);
+$composerAutoload = file_get_contents($releaseRoot . '/vendor-scoped/composer/autoload_real.php');
+if (false === $composerAutoload || !str_contains($composerAutoload, 'ComposerAutoloaderInitMpAdmin2FaScoped')) {
+    throw new RuntimeException('The scoped release Composer autoloader does not have its package-specific suffix.');
+}
+$autoloadSmokeCode = 'require ' . var_export($moduleRoot . '/vendor/autoload.php', true)
+    . '; require ' . var_export($releaseRoot . '/vendor-scoped/autoload.php', true)
+    . '; echo "ok";';
+$autoloadSmokeOutput = run(escapeshellarg(PHP_BINARY) . ' -d display_errors=1 -r ' . escapeshellarg($autoloadSmokeCode), $releaseRoot, true);
+if ('ok' !== $autoloadSmokeOutput) {
+    throw new RuntimeException('Scoped release Composer autoloader collision smoke test failed.');
+}
+if (is_dir($releaseRoot . '/prestashop')) {
+    throw new RuntimeException('The PrestaShop test checkout leaked into the scoped release.');
+}
+
 $smokeCode = 'require ' . var_export($releaseRoot . '/vendor-scoped/autoload.php', true) . '; echo strlen((new Mpadmin2fa\\Security\\TotpService())->generateSecret());';
 $smokeOutput = run(escapeshellarg(PHP_BINARY) . ' -d display_errors=1 -r ' . escapeshellarg($smokeCode), $releaseRoot, true);
 if ('32' !== $smokeOutput) {
@@ -99,6 +118,47 @@ sort($checksums);
 file_put_contents($releaseRoot . '/SHA256SUMS', implode(PHP_EOL, $checksums) . PHP_EOL);
 
 fwrite(STDOUT, 'Scoped release created at ' . $releaseRoot . PHP_EOL);
+
+function assertModuleNamespacesPreserved(string $releaseRoot): void
+{
+    $scopedModuleNamespace = 'namespace MpAdmin2Fa\Mpadmin2faVendor\Mpadmin2fa';
+    foreach (phpFiles($releaseRoot . '/src') as $file) {
+        if (str_contains(file_get_contents($file), $scopedModuleNamespace)) {
+            throw new RuntimeException('The release builder scoped a module-owned class: ' . $file);
+        }
+    }
+
+    $entrypoint = file_get_contents($releaseRoot . '/mpadmin2fa.php');
+    if (preg_match('/namespace\s+MpAdmin2Fa\\\\Mpadmin2faVendor\s*;/', $entrypoint)) {
+        throw new RuntimeException('The release builder scoped the global PrestaShop module class.');
+    }
+
+    foreach (['Access', 'Configuration', 'Context', 'Db', 'Dispatcher', 'Language', 'Mail', 'Module', 'Profile', 'Tab', 'Tools', 'Validate'] as $legacyClass) {
+        $scopedLegacyClass = sprintf('MpAdmin2Fa%1$sMpadmin2faVendor%1$s%s', chr(92), $legacyClass);
+        foreach (phpFiles($releaseRoot . '/src') as $file) {
+            if (str_contains(file_get_contents($file), $scopedLegacyClass)) {
+                throw new RuntimeException('The release builder scoped PrestaShop class ' . $legacyClass . ': ' . $file);
+            }
+        }
+    }
+}
+
+function writePrestaShopAutoloadBridge(string $releaseRoot): void
+{
+    $vendorDirectory = $releaseRoot . '/vendor';
+    if (!mkdir($vendorDirectory, 0775, true) && !is_dir($vendorDirectory)) {
+        throw new RuntimeException('Unable to create the PrestaShop autoload bridge directory.');
+    }
+
+    $contents = <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+return require dirname(__DIR__) . '/vendor-scoped/autoload.php';
+PHP;
+    file_put_contents($vendorDirectory . '/autoload.php', $contents . PHP_EOL);
+}
 
 function writeScopedAutoload(string $vendorDirectory): void
 {

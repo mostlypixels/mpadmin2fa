@@ -72,7 +72,7 @@ final class AtomicRateLimitIntegrationTest extends TestCase
                 ],
                 $pipes,
                 dirname(__DIR__, 2),
-                ['MP2FA_PS_ROOT' => dirname(__DIR__, 4)]
+                ['MP2FA_PS_ROOT' => getenv('MP2FA_PS_ROOT') ?: dirname(__DIR__, 4)]
             );
             self::assertIsResource($process);
             fclose($pipes[0]);

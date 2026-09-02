@@ -58,7 +58,8 @@ final class StepUpResponseFactoryTest extends TestCase
 
         self::assertIsString($module);
         self::assertIsString($javascript);
-        self::assertStringContainsString("registerHook('actionAdminControllerSetMedia')", $module);
+        self::assertStringContainsString("'actionAdminControllerSetMedia'", $module);
+        self::assertStringContainsString('$this->registerHook($hook)', $module);
         self::assertStringContainsString('X-Mpadmin2fa-Redirect', $javascript);
     }
 }

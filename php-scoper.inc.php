@@ -13,30 +13,36 @@ return [
             $scopeRoot . '/src',
             $scopeRoot . '/vendor',
         ]),
-        Finder::create()->files()->depth('== 0')->name('mpadmin2fa.php')->in($scopeRoot),
     ],
     'exclude-namespaces' => [
         'Composer',
         'Doctrine',
+        'Mpadmin2fa',
         'PrestaShop',
         'PrestaShopBundle',
         'Psr',
         'Symfony',
         'Twig',
     ],
-    'expose-namespaces' => ['Mpadmin2fa'],
     'patchers' => [
         static function (string $filePath, string $prefix, string $contents): string {
             return str_replace('#[\SensitiveParameter] ', '', $contents);
         },
     ],
     'exclude-classes' => [
+        'Access',
         'Configuration',
+        'Context',
         'Db',
+        'Dispatcher',
         'Language',
         'Mail',
         'Module',
+        'Mpadmin2fa',
+        'Profile',
+        'Tab',
         'Tools',
+        'Validate',
     ],
     'exclude-functions' => ['pSQL'],
     'exclude-constants' => [
