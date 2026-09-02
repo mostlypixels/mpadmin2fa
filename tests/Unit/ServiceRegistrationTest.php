@@ -45,6 +45,17 @@ final class ServiceRegistrationTest extends TestCase
         }
     }
 
+    public function testLegacyRequestsUseTheSameNativeSessionAndEmployeeProvider(): void
+    {
+        $container = $this->loadServicesAfterClassResolution();
+        foreach (['Mpadmin2fa\Security\SessionState', 'Mpadmin2fa\Http\LegacyAdminMfaAdapter'] as $id) {
+            self::assertSame('session', (string) $container->getDefinition($id)->getArgument('$session'));
+            self::assertTrue($container->getDefinition($id)->isPublic());
+        }
+        self::assertSame('prestashop.security.admin.provider', (string) $container
+            ->getDefinition('Mpadmin2fa\Http\LegacyAdminMfaAdapter')->getArgument('$userProvider'));
+    }
+
     public function testModuleServicesDoNotDependOnEarlierCompilerPasses(): void
     {
         $container = $this->loadServicesAfterClassResolution();
@@ -65,6 +76,7 @@ final class ServiceRegistrationTest extends TestCase
         $container = $this->loadServicesAfterClassResolution();
         $subscriber = $container->getDefinition(AdminMfaSubscriber::class);
         self::assertTrue($subscriber->hasTag('kernel.event_subscriber'));
+        self::assertLessThan(0, AdminMfaSubscriber::getSubscribedEvents()['kernel.request'][1]);
 
         $controller = $container->getDefinition(MfaController::class);
         self::assertTrue($controller->hasTag('controller.service_arguments'));

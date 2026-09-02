@@ -83,7 +83,8 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
     {
         return [
             SecurityEvents::INTERACTIVE_LOGIN => ['onLoginSuccess', -64],
-            KernelEvents::REQUEST => ['onKernelRequest', 5],
+            // PS8 restores its native employee token at priority 0.
+            KernelEvents::REQUEST => ['onKernelRequest', -8],
         ];
     }
 

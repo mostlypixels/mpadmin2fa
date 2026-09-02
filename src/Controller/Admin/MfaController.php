@@ -262,7 +262,8 @@ final class MfaController extends FrameworkBundleAdminController
             $mfa->reset($employee->getId(), $employee->getId(), $request->getClientIp(), 'self-disable');
             $sessionState->clear();
 
-            return $this->redirectToRoute('admin_logout');
+            return new RedirectResponse($this->get('prestashop.adapter.legacy.context')
+                ->getAdminLink('AdminLogin', true, ['logout' => 1]));
         } catch (MfaSecurityException|RuntimeException $exception) {
             $this->addFlash('error', $exception->getMessage());
 
@@ -534,7 +535,7 @@ final class MfaController extends FrameworkBundleAdminController
             }
         }
 
-        throw new RuntimeException('No supported PrestaShop dashboard route is available.');
+        return $this->get('prestashop.adapter.legacy.context')->getAdminLink('AdminDashboard');
     }
 
     private function employee(): Employee

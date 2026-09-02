@@ -79,6 +79,8 @@ services:
 
   Mpadmin2fa\Http\LoginHttpsGuard:
     class: Mpadmin2fa\Http\LoginHttpsGuard
+    arguments:
+      $legacyContext: '@prestashop.adapter.legacy.context'
 
   Mpadmin2fa\Http\StepUpResponseFactory:
     class: Mpadmin2fa\Http\StepUpResponseFactory
@@ -137,6 +139,9 @@ services:
 
   Mpadmin2fa\Security\SessionState:
     class: Mpadmin2fa\Security\SessionState
+    public: true
+    arguments:
+      $session: '@session'
 
   Mpadmin2fa\Security\TotpService:
     class: Mpadmin2fa\Security\TotpService
@@ -168,6 +173,9 @@ services:
   Mpadmin2fa\Http\LegacyAdminMfaAdapter:
     class: Mpadmin2fa\Http\LegacyAdminMfaAdapter
     public: true
+    arguments:
+      $session: '@session'
+      $userProvider: '@prestashop.security.admin.provider'
 
   Mpadmin2fa\Security\SecurityActivityAccess:
     class: Mpadmin2fa\Security\SecurityActivityAccess

@@ -42,8 +42,8 @@ This command is destructive to the module's data in the selected shop. It create
 
 ## Still pending
 
-- First remote run of the new lifecycle matrix; local PHP 7.2 lint is not full PS 8.0.0 lifecycle evidence.
-- Installed-package request/browser parity and the remaining security request scenarios.
+- Baseline remote lifecycle matrix passed on both targets in [run 33618337257](https://github.com/mostlypixels/mpadmin2fa/actions/runs/33618337257). The later request checkpoint is tracked in [ps8-request-verification.md](ps8-request-verification.md).
+- Full installed-package request/browser parity and the remaining security request scenarios; see the request checkpoint for the completed login/MFA slice.
 - A genuine historical-package upgrade matrix beyond the simulated 0.2.7 schema/hook/access fixture.
 
 The existing `documentation/audit-fix-plan.md` edits were preserved and are not included in this checkpoint.

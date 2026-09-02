@@ -8,10 +8,10 @@ require_once dirname(__DIR__, 4) . '/vendor/autoload.php';
 
 use Mpadmin2fa\Http\LoginHttpsGuard;
 use PHPUnit\Framework\TestCase;
+use PrestaShop\PrestaShop\Adapter\LegacyContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
-use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final class LoginHttpsGuardTest extends TestCase
@@ -45,18 +45,22 @@ final class LoginHttpsGuardTest extends TestCase
         $tokenStorage = $this->createMock(TokenStorageInterface::class);
         $tokenStorage->expects(self::once())->method('setToken')->with(null);
 
-        $router = $this->createMock(RouterInterface::class);
-        $router->expects(self::once())
-            ->method('generate')
-            ->with('admin_login')
-            ->willReturn('/admin/login');
+        $employee = new class() {
+            public $loggedOut = false;
+            public function logout(): void { $this->loggedOut = true; }
+        };
+        $legacy = $this->createMock(LegacyContext::class);
+        $legacy->method('getContext')->willReturn((object) ['employee' => $employee]);
+        $legacy->expects(self::once())->method('getAdminLink')
+            ->with('AdminLogin', false)->willReturn('/admin/index.php?controller=AdminLogin');
 
         $request = Request::create('http://example.test/admin/login', 'POST');
         $request->setSession(new Session(new MockArraySessionStorage()));
 
-        $response = (new LoginHttpsGuard($tokenStorage, $router))->reject($request);
+        $response = (new LoginHttpsGuard($tokenStorage, $legacy))->reject($request);
+        self::assertTrue($employee->loggedOut);
 
-        self::assertSame('/admin/login', $response->getTargetUrl());
+        self::assertSame('/admin/index.php?controller=AdminLogin', $response->getTargetUrl());
         self::assertSame(
             [LoginHttpsGuard::ERROR_MESSAGE],
             $request->getSession()->getFlashBag()->peek('error')
@@ -67,7 +71,7 @@ final class LoginHttpsGuardTest extends TestCase
     {
         return new LoginHttpsGuard(
             $this->createStub(TokenStorageInterface::class),
-            $this->createStub(RouterInterface::class)
+            $this->createStub(LegacyContext::class)
         );
     }
 }

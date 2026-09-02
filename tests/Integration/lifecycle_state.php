@@ -69,7 +69,8 @@ switch ($action) {
             . ' INNER JOIN ' . $prefix . 'hook h ON h.id_hook = hm.id_hook'
             . ' INNER JOIN ' . $prefix . 'module m ON m.id_module = hm.id_module'
             . ' WHERE m.name = ' . $moduleSql . ' AND h.name IN ("actionDispatcherBefore", "actionAdminControllerSetMedia",'
-            . ' "actionObjectProfileDeleteAfter", "dashboardZoneOne", "displayAdminDashboardZoneOne", "actionListMailThemes")', 6);
+            . ' "actionObjectProfileDeleteAfter", "dashboardZoneOne", "displayAdminDashboardZoneOne", "actionListMailThemes",'
+            . ' "actionAdminLoginControllerLoginAfter")', 7);
         $profiles = (int) $database->getValue('SELECT COUNT(*) FROM ' . $prefix . 'profile');
         if ($profiles < 2) {
             throw new RuntimeException('Clean-install coverage requires an ordinary profile.');
@@ -106,7 +107,7 @@ switch ($action) {
         $execute('DELETE hm FROM ' . $prefix . 'hook_module hm'
             . ' INNER JOIN ' . $prefix . 'hook h ON h.id_hook = hm.id_hook'
             . ' INNER JOIN ' . $prefix . 'module m ON m.id_module = hm.id_module'
-            . ' WHERE m.name = ' . $moduleSql . ' AND h.name = "actionDispatcherBefore"');
+            . ' WHERE m.name = ' . $moduleSql . ' AND h.name IN ("actionDispatcherBefore", "actionAdminLoginControllerLoginAfter")');
         $execute('DELETE a FROM ' . $prefix . 'access a'
             . ' INNER JOIN ' . $prefix . 'authorization_role r ON r.id_authorization_role = a.id_authorization_role'
             . ' WHERE a.id_profile <> ' . (int) _PS_ADMIN_PROFILE_ . ' AND r.slug LIKE "ROLE_MOD_TAB_ADMINMPADMIN2FA%"');

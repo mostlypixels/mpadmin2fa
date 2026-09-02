@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Http;
 
+use PrestaShop\PrestaShop\Adapter\LegacyContext;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final class LoginHttpsGuard
@@ -15,17 +15,17 @@ final class LoginHttpsGuard
     /** @var TokenStorageInterface */
     private $tokenStorage;
 
-    /** @var RouterInterface */
-    private $router;
+    /** @var LegacyContext */
+    private $legacyContext;
 
     public const ERROR_MESSAGE = 'A secure HTTPS connection is required to log in with two-factor authentication.';
 
     public function __construct(
         TokenStorageInterface $tokenStorage,
-        RouterInterface $router
+        LegacyContext $legacyContext
     ) {
         $this->tokenStorage = $tokenStorage;
-        $this->router = $router;
+        $this->legacyContext = $legacyContext;
     }
 
     public function shouldReject(Request $request, bool $factorActive, bool $factorRequired): bool
@@ -35,10 +35,14 @@ final class LoginHttpsGuard
 
     public function reject(Request $request): RedirectResponse
     {
+        $employee = $this->legacyContext->getContext()->employee;
+        if (null !== $employee) {
+            $employee->logout();
+        }
         $this->tokenStorage->setToken(null);
         $request->getSession()->invalidate();
         $request->getSession()->getFlashBag()->add('error', self::ERROR_MESSAGE);
 
-        return new RedirectResponse($this->router->generate('admin_login'));
+        return new RedirectResponse($this->legacyContext->getAdminLink('AdminLogin', false));
     }
 }

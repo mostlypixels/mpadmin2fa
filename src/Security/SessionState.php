@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Security;
 
-use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 final class SessionState
 {
     private const KEY = 'mpadmin2fa';
 
-    /** @var RequestStack */
-    private $requestStack;
+    /** @var SessionInterface */
+    private $session;
 
-    public function __construct(RequestStack $requestStack)
+    public function __construct(SessionInterface $session)
     {
-        $this->requestStack = $requestStack;
+        // PS8 removes the Symfony request before dispatching a legacy controller.
+        $this->session = $session;
     }
 
     public function resetForLogin(int $employeeId): void
@@ -39,10 +40,7 @@ final class SessionState
 
     public function clear(): void
     {
-        $request = $this->requestStack->getCurrentRequest();
-        if (null !== $request) {
-            $request->getSession()->remove(self::KEY);
-        }
+        $this->session->remove(self::KEY);
     }
 
     public function isVerified(int $employeeId): bool
@@ -116,16 +114,11 @@ final class SessionState
 
     private function read(): array
     {
-        $request = $this->requestStack->getCurrentRequest();
-
-        return null !== $request ? (array) $request->getSession()->get(self::KEY, []) : [];
+        return (array) $this->session->get(self::KEY, []);
     }
 
     private function write(array $state): void
     {
-        $request = $this->requestStack->getCurrentRequest();
-        if (null !== $request) {
-            $request->getSession()->set(self::KEY, $state);
-        }
+        $this->session->set(self::KEY, $state);
     }
 }

@@ -240,13 +240,30 @@ class Mpadmin2fa extends Module
     }
 
     /**
+     * PS8 password logins do not dispatch Symfony's interactive-login event.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function hookActionAdminLoginControllerLoginAfter(array $params): void
+    {
+        $response = $this->adminService(LegacyAdminMfaAdapter::class)->onLogin($this->context);
+        if (null !== $response) {
+            $response->send();
+            exit;
+        }
+    }
+
+    /**
      * Stop legacy back-office requests before their controller is instantiated.
      *
      * @param array<string, mixed> $params
      */
     public function hookActionDispatcherBefore(array $params): void
     {
-        $response = $this->get(LegacyAdminMfaAdapter::class)->enforce(
+        if ((int) ($params['controller_type'] ?? -1) !== Dispatcher::FC_ADMIN) {
+            return;
+        }
+        $response = $this->adminService(LegacyAdminMfaAdapter::class)->enforce(
             $this->context,
             (int) ($params['controller_type'] ?? -1)
         );
@@ -356,7 +373,7 @@ class Mpadmin2fa extends Module
      */
     private function dashboardEnrollmentTemplateData(): array
     {
-        $repository = $this->get(SecurityRepository::class);
+        $repository = $this->adminService(SecurityRepository::class);
         $summary = [
             'not_enrolled' => 0,
             'total' => 0,
@@ -365,7 +382,7 @@ class Mpadmin2fa extends Module
             $summary = $repository->activeEmployeeEnrollmentSummary();
         }
 
-        $access = $this->get(SecurityActivityAccess::class);
+        $access = $this->adminService(SecurityActivityAccess::class);
         $canViewSecurityActivity = $access instanceof SecurityActivityAccess && $access->canRead();
         $windowHours = 48;
         $securityEvents = [];
@@ -478,10 +495,22 @@ class Mpadmin2fa extends Module
             && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_SECURITY_RECIPIENTS, '');
     }
 
+    private function adminService(string $id)
+    {
+        // Use the booted admin kernel even when a hook has a legacy Context container.
+        $container = PrestaShop\PrestaShop\Adapter\SymfonyContainer::getInstance();
+        if (null === $container) {
+            throw new RuntimeException('The back-office security container is unavailable.');
+        }
+
+        return $container->get($id);
+    }
+
     private function registerRequiredHooks(): bool
     {
         foreach ([
             'actionAdminControllerSetMedia',
+            'actionAdminLoginControllerLoginAfter',
             'actionDispatcherBefore',
             'actionObjectProfileDeleteAfter',
             'dashboardZoneOne',

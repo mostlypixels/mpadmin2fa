@@ -8,7 +8,7 @@
       <div class="alert alert-warning">Another SuperAdmin must approve your first 2FA setup. They may be asked to confirm their own 2FA first. You cannot access other back-office pages until they approve it.</div>
       <p>Your request is waiting for approval. Select "Check again" after a SuperAdmin approves it.</p>
       <a class="btn btn-outline-secondary" href="{{ path('mpadmin2fa_enroll') }}">Check again</a>
-      <a class="btn btn-link" href="{{ path('admin_logout') }}">Log out</a>
+      <a class="btn btn-link" href="{{ getAdminLink('AdminLogin', true, {'logout': 1}) }}">Log out</a>
     </div>
   </div>
 </div></div>

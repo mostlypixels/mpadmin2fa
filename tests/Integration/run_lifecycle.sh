@@ -22,6 +22,7 @@ done
 state prepare-upgrade
 module upgrade
 state verify-install
+bash "$module_root/tests/Integration/run_requests.sh"
 php "$module_root/vendor/bin/phpunit" --do-not-cache-result -c "$module_root/phpunit.xml.dist" \
   "$module_root/tests/Integration/AtomicRateLimitIntegrationTest.php"
 module uninstall

@@ -102,7 +102,7 @@ jobs:
         run: composer build:scoped
 
   lifecycle:
-    name: Packaged lifecycle / PS ${{ matrix.prestashop }} / PHP ${{ matrix.php }}
+    name: Packaged lifecycle and requests / PS ${{ matrix.prestashop }} / PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -191,8 +191,14 @@ jobs:
           rsync -a build/mpadmin2fa/ prestashop/modules/mpadmin2fa/
           find prestashop/modules/mpadmin2fa -name '*.php' -print0 | xargs -0 -n1 php -l
 
-      - name: Verify clean install, upgrade, atomic counting, and every failure stage
+      - name: Install an isolated HTTPS request-test runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php${{ matrix.php }}
+
+      - name: Verify lifecycle, real HTTPS requests, and every failure stage
         env:
           MP2FA_INTEGRATION: '1'
           MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop
+          MP2FA_APACHE_PHP_MODULE: /usr/lib/apache2/modules/libphp${{ matrix.php }}.so
         run: bash tests/Integration/run_lifecycle.sh

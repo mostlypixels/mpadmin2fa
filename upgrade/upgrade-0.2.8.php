@@ -11,5 +11,7 @@ function upgrade_module_0_2_8(Mpadmin2fa $module): bool
     return (new Mpadmin2fa\Install\SchemaInstaller())->upgradeRateLimitTable()
         && ($module->isRegisteredInHook('actionDispatcherBefore')
             || $module->registerHook('actionDispatcherBefore'))
+        && ($module->isRegisteredInHook('actionAdminLoginControllerLoginAfter')
+            || $module->registerHook('actionAdminLoginControllerLoginAfter'))
         && $module->reconcileAdminTabs();
 }

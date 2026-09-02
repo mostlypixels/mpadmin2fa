@@ -15,12 +15,25 @@ use Mpadmin2fa\Security\SessionState;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\Routing\RouterInterface;
 
 final class LegacyAdminMfaAdapter
 {
     /** @var RequestStack */
     private $requestStack;
+
+    /** @var SessionInterface */
+    private $session;
+
+    /** @var TokenStorageInterface */
+    private $tokenStorage;
+
+    /** @var UserProviderInterface */
+    private $userProvider;
 
     /** @var RouterInterface */
     private $router;
@@ -46,11 +59,17 @@ final class LegacyAdminMfaAdapter
     /** @var SecurityRepository */
     private $repository;
 
+    /** @var LoginHttpsGuard */
+    private $loginHttpsGuard;
+
     /** @var SecurityAlertService */
     private $alerts;
 
     public function __construct(
         RequestStack $requestStack,
+        SessionInterface $session,
+        TokenStorageInterface $tokenStorage,
+        UserProviderInterface $userProvider,
         RouterInterface $router,
         MfaManager $mfa,
         Policy $policy,
@@ -59,9 +78,13 @@ final class LegacyAdminMfaAdapter
         ReturnTargetPolicy $returnTargets,
         StepUpResponseFactory $responses,
         SecurityRepository $repository,
-        SecurityAlertService $alerts
+        SecurityAlertService $alerts,
+        LoginHttpsGuard $loginHttpsGuard
     ) {
         $this->requestStack = $requestStack;
+        $this->session = $session;
+        $this->tokenStorage = $tokenStorage;
+        $this->userProvider = $userProvider;
         $this->router = $router;
         $this->mfa = $mfa;
         $this->policy = $policy;
@@ -71,6 +94,7 @@ final class LegacyAdminMfaAdapter
         $this->responses = $responses;
         $this->repository = $repository;
         $this->alerts = $alerts;
+        $this->loginHttpsGuard = $loginHttpsGuard;
     }
 
     public function enforce(\Context $context, int $controllerType): ?Response
@@ -79,19 +103,37 @@ final class LegacyAdminMfaAdapter
             return null;
         }
 
-        $request = $this->requestStack->getCurrentRequest();
         $employee = $context->employee;
-        if (null === $request || !\Validate::isLoadedObject($employee) || (int) $employee->id <= 0) {
+        if (!\Validate::isLoadedObject($employee) || (int) $employee->id <= 0 || !$employee->isLoggedBack()) {
             return null;
+        }
+
+        $request = $this->requestStack->getCurrentRequest() ?? Request::createFromGlobals();
+        if (!$request->hasSession()) {
+            $request->setSession($this->session);
+        }
+        // PS8's 404-to-legacy fallback never reaches its native security listener.
+        // Restore the same token from the already authenticated native cookie.
+        if (null === $this->tokenStorage->getToken()) {
+            $user = $this->userProvider->loadUserByUsername($employee->email);
+            $this->tokenStorage->setToken(new UsernamePasswordToken($user, null, 'admin', $user->getRoles()));
         }
 
         $employeeId = (int) $employee->id;
         $profileId = (int) $employee->id_profile;
         $controller = $this->controller($request);
         $action = $this->action($request);
+        if (0 === strcasecmp($controller, 'AdminLogin') && $request->query->has('logout')) {
+            $this->sessionState->clear();
+
+            return null;
+        }
 
         try {
             $active = $this->mfa->active($employeeId);
+            if ($this->loginHttpsGuard->shouldReject($request, $active, $this->policy->requiresLoginMfaForProfile($profileId))) {
+                return $this->loginHttpsGuard->reject($request);
+            }
             $decision = $this->accessPolicy->decide(
                 $employeeId,
                 $this->policy->requiresLoginMfaForProfile($profileId),
@@ -139,6 +181,38 @@ final class LegacyAdminMfaAdapter
                 ['Content-Type' => 'text/plain; charset=UTF-8']
             );
         }
+    }
+
+    public function onLogin(\Context $context): ?Response
+    {
+        $employee = $context->employee;
+        $this->sessionState->resetForLogin((int) $employee->id);
+        $request = $this->requestStack->getCurrentRequest() ?? Request::createFromGlobals();
+        if (!$request->hasSession()) {
+            $request->setSession($this->session);
+        }
+        try {
+            if ($this->loginHttpsGuard->shouldReject(
+                $request,
+                $this->mfa->active((int) $employee->id),
+                $this->policy->requiresLoginMfaForProfile((int) $employee->id_profile)
+            )) {
+                $response = $this->loginHttpsGuard->reject($request);
+
+                return $request->isXmlHttpRequest()
+                    ? new \Symfony\Component\HttpFoundation\JsonResponse([
+                        'hasErrors' => true,
+                        'errors' => [LoginHttpsGuard::ERROR_MESSAGE],
+                    ], Response::HTTP_FORBIDDEN)
+                    : $response;
+            }
+        } catch (MfaSecurityException $exception) {
+            $this->loginHttpsGuard->reject($request);
+
+            return new Response('Two-factor authentication is unavailable.', Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        return null;
     }
 
     private function controller(Request $request): string
