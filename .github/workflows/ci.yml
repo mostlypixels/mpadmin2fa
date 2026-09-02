@@ -193,6 +193,8 @@ jobs:
 
       - name: Install an isolated HTTPS request-test runtime
         run: |
+          # setup-php can use cached binaries without enabling the PHP package repository.
+          sudo add-apt-repository --yes ppa:ondrej/php
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php${{ matrix.php }}
 
