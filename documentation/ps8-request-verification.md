@@ -25,7 +25,7 @@ On PS 8.2.8 / PHP 8.1.33 / MySQL 5.7.44, using a disposable shop and the rebuilt
 
 ## Running
 
-The lifecycle harness now also needs Apache, the matching Apache PHP module, OpenSSL, cURL and setsid. It starts its own non-privileged server on loopback ports 8443 and 8080, uses a newly generated test certificate with certificate verification enabled, and stops that server on exit. Runtime logs and disposable cookies remain in a private temporary directory for diagnosis.
+The lifecycle harness now also needs Apache, the matching Apache PHP module, OpenSSL, cURL and setsid. Build both back-office themes as well as Classic: the native admin header requires the generated `public/preload.tpl` files, even for HTTP-only tests. It starts its own non-privileged server on loopback ports 8443 and 8080, uses a newly generated test certificate with certificate verification enabled, and stops that server on exit. Runtime logs and disposable cookies remain in a private temporary directory for diagnosis.
 
 Use the existing lifecycle command only against an explicitly disposable installed shop. To rerun just the request slice, install the built package first:
 

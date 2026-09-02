@@ -167,8 +167,11 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Build Classic theme assets
-        run: bash prestashop/tools/assets/build.sh front-classic
+      - name: Build storefront and back-office assets
+        run: |
+          bash prestashop/tools/assets/build.sh front-classic
+          bash prestashop/tools/assets/build.sh admin-default
+          bash prestashop/tools/assets/build.sh admin-new-theme
 
       - name: Install the disposable PrestaShop shop
         run: |
