@@ -24,10 +24,15 @@ $employeeId = (int) Db::getInstance()->getValue('SELECT id_employee FROM ' . _DB
 if ($employeeId <= 0 || !Module::isInstalled('mpadmin2fa')) {
     throw new RuntimeException('Expected the disposable CI employee and installed package.');
 }
+$recoveryCode = 'A1B2C-D3E4F-56789-ABCDE';
 $secret = (new Mpadmin2fa\Security\TotpService())->generateSecret();
 $encrypted = $keys->encrypt($secret);
 $repository->savePendingEnrollment($employeeId, $encrypted['ciphertext'], $encrypted['key_version']);
-$repository->activateEnrollment($employeeId, (int) floor(time() / 30) - 2, []);
+$repository->activateEnrollment(
+    $employeeId,
+    (int) floor(time() / 30) - 2,
+    [password_hash($recoveryCode, PASSWORD_DEFAULT)]
+);
 Configuration::updateValue('PS_SSL_ENABLED', 1);
 Configuration::updateValue('PS_SSL_ENABLED_EVERYWHERE', 1);
 Configuration::updateValue('PS_COOKIE_CHECKIP', 0);
@@ -79,6 +84,27 @@ $check = static function (bool $condition, string $label) use (&$count, &$failur
         $failures[] = $label;
     }
 };
+$totp = static function (string $totpSecret): array {
+    $bits = '';
+    foreach (str_split($totpSecret) as $character) {
+        $bits .= str_pad(decbin(strpos('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', $character)), 5, '0', STR_PAD_LEFT);
+    }
+    $binary = '';
+    foreach (str_split($bits, 8) as $byte) {
+        if (8 === strlen($byte)) {
+            $binary .= chr(bindec($byte));
+        }
+    }
+    $counter = (int) floor(time() / 30);
+    $hash = hash_hmac('sha1', pack('N2', 0, $counter), $binary, true);
+    $offset = ord(substr($hash, -1)) & 15;
+    $number = unpack('N', substr($hash, $offset, 4))[1] & 0x7fffffff;
+
+    return [
+        'code' => str_pad((string) ($number % 1000000), 6, '0', STR_PAD_LEFT),
+        'counter' => $counter,
+    ];
+};
 $login = $request('/admin-dev/index.php?controller=AdminLogin', [
     'email' => 'demo@prestashop.com',
     'passwd' => 'Pr3st4Sh0P',
@@ -103,6 +129,7 @@ foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
         $kind . ' AJAX request is blocked until MFA verification (HTTP ' . $response['status'] . ')');
 }
 $challengeUrl = '/admin-dev/index.php/modules/mpadmin2fa/challenge?token=' . Tools::getAdminToken($employeeId);
+$enrollUrl = '/admin-dev/index.php/modules/mpadmin2fa/enroll?token=' . Tools::getAdminToken($employeeId);
 $response = $request($challengeUrl);
 $check(200 === $response['status'], 'the actual challenge form renders (HTTP ' . $response['status'] . ')');
 $document = new DOMDocument();
@@ -114,21 +141,9 @@ if ('' === $csrf) {
     throw new RuntimeException('Challenge rendering failed; inspect the private request-test logs.');
 }
 // Independent RFC 6238 fixture; do not call the module verifier to produce its input.
-$bits = '';
-foreach (str_split($secret) as $character) {
-    $bits .= str_pad(decbin(strpos('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', $character)), 5, '0', STR_PAD_LEFT);
-}
-$binary = '';
-foreach (str_split($bits, 8) as $byte) {
-    if (8 === strlen($byte)) {
-        $binary .= chr(bindec($byte));
-    }
-}
-$counter = (int) floor(time() / 30);
-$hash = hash_hmac('sha1', pack('N2', 0, $counter), $binary, true);
-$offset = ord(substr($hash, -1)) & 15;
-$number = unpack('N', substr($hash, $offset, 4))[1] & 0x7fffffff;
-$code = str_pad((string) ($number % 1000000), 6, '0', STR_PAD_LEFT);
+$authenticatorCode = $totp($secret);
+$counter = $authenticatorCode['counter'];
+$code = $authenticatorCode['code'];
 $response = $request($challengeUrl, ['one_time_code' => ['code' => $code, '_token' => 'invalid', 'submit' => '']]);
 $check(200 === $response['status'] && (int) $repository->factor($employeeId)['last_counter'] < $counter,
     'invalid form CSRF cannot consume a valid authenticator code');
@@ -140,6 +155,11 @@ foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
     $response = $request($url);
     $check(200 === $response['status'], $kind . ' admin read succeeds after MFA (HTTP ' . $response['status'] . ')');
 }
+$response = $request($enrollUrl);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/authenticator')
+    && 'active' === $repository->factor($employeeId)['status'],
+    'an active factor cannot bypass replacement confirmation through direct enrollment');
 $securityPolicy = '/admin-dev/index.php/modules/mpadmin2fa/security?token=' . Tools::getAdminToken($employeeId);
 $legacySensitive = '/admin-dev/index.php?controller=AdminModules&token='
     . Tools::getAdminToken('AdminModules' . (int) Tab::getIdFromClassName('AdminModules') . $employeeId)
@@ -172,17 +192,13 @@ $document = new DOMDocument();
 $xpath = new DOMXPath($document);
 $stepUpCsrf = $xpath->evaluate('string(//input[@name="one_time_code[_token]"]/@value)');
 $check(200 === $response['status'] && '' !== $stepUpCsrf, 'the expired-session step-up form renders with CSRF protection');
-$stepUpCounter = (int) floor(time() / 30);
-$stepUpHash = hash_hmac('sha1', pack('N2', 0, $stepUpCounter), $binary, true);
-$stepUpOffset = ord(substr($stepUpHash, -1)) & 15;
-$stepUpNumber = unpack('N', substr($stepUpHash, $stepUpOffset, 4))[1] & 0x7fffffff;
-$stepUpCode = str_pad((string) ($stepUpNumber % 1000000), 6, '0', STR_PAD_LEFT);
+$stepUpAuthenticator = $totp($secret);
 $response = $request($stepUpUrl, ['one_time_code' => [
-    'code' => $stepUpCode, '_token' => $stepUpCsrf, 'submit' => '',
+    'code' => $stepUpAuthenticator['code'], '_token' => $stepUpCsrf, 'submit' => '',
 ]]);
 $check(302 === $response['status']
     && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge')
-    && (int) $repository->factor($employeeId)['last_counter'] === $stepUpCounter,
+    && (int) $repository->factor($employeeId)['last_counter'] === $stepUpAuthenticator['counter'],
     'a new authenticator code completes expired-session step-up and returns to the admin');
 foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null]] as $kind => $sensitiveRequest) {
     $response = $request($sensitiveRequest[0], $sensitiveRequest[1]);
@@ -216,6 +232,104 @@ $check(403 === $response['status'] && true === ($data['hasErrors'] ?? null),
 $response = $request($legacy);
 $check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', 'AdminLogin'),
     'rejected insecure login leaves no authenticated native session');
+
+curl_setopt($client, CURLOPT_COOKIELIST, 'ALL');
+$login = $request('/admin-dev/index.php?controller=AdminLogin', [
+    'email' => 'demo@prestashop.com', 'passwd' => 'Pr3st4Sh0P', 'submitLogin' => '1', 'ajax' => '1',
+], true);
+$data = json_decode($login['body'], true);
+$check(200 === $login['status'] && false === ($data['hasErrors'] ?? null),
+    'a secure password login starts the recovery scenario');
+$response = $request($challengeUrl);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$recoveryCsrf = $xpath->evaluate('string(//input[@name="recovery_code_challenge[_token]"]/@value)');
+$check(200 === $response['status'] && '' !== $recoveryCsrf,
+    'the real recovery-code challenge renders with CSRF protection');
+$response = $request($challengeUrl, ['recovery_code_challenge' => [
+    'recovery_code' => $recoveryCode, '_token' => 'invalid', 'submit' => '',
+]]);
+$unusedRecoveryCodes = (int) Db::getInstance()->getValue(
+    'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_recovery_code'
+    . ' WHERE id_employee = ' . $employeeId . ' AND used_at IS NOT NULL'
+);
+$check(200 === $response['status'] && 0 === $unusedRecoveryCodes,
+    'invalid recovery-form CSRF cannot consume a valid backup code');
+$response = $request($challengeUrl, ['recovery_code_challenge' => [
+    'recovery_code' => $recoveryCode, '_token' => $recoveryCsrf, 'submit' => '',
+]]);
+$usedRecoveryCodes = (int) Db::getInstance()->getValue(
+    'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_recovery_code'
+    . ' WHERE id_employee = ' . $employeeId . ' AND used_at IS NOT NULL'
+);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll')
+    && 1 === $usedRecoveryCodes,
+    'a valid recovery code is consumed once and redirects immediately to replacement enrollment');
+foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
+    $response = $request($url);
+    $check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
+        'the recovery-restricted session blocks ' . $kind . ' admin access');
+}
+$response = $request($challengeUrl);
+$check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
+    'the recovery-restricted session cannot return to the ordinary challenge');
+$replaceUrl = '/admin-dev/index.php/modules/mpadmin2fa/factor/replace?token=' . Tools::getAdminToken($employeeId);
+$response = $request($replaceUrl, []);
+$check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
+    'the recovery-restricted session cannot bypass enrollment through the normal replacement action');
+$response = $request($enrollUrl);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$replacementSecret = trim($xpath->evaluate('string(//p[strong[contains(., "Manual setup key")]]/code)'));
+$enrollmentCsrf = $xpath->evaluate('string(//input[@name="one_time_code[_token]"]/@value)');
+$check(200 === $response['status']
+    && '' !== $replacementSecret
+    && '' !== $enrollmentCsrf
+    && 'pending' === $repository->factor($employeeId)['status'],
+    'only replacement enrollment is available and it creates a pending factor');
+foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
+    $response = $request($url);
+    $check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
+        $kind . ' admin access remains blocked while replacement is pending');
+}
+$replacementAuthenticator = $totp($replacementSecret);
+$response = $request($enrollUrl, ['one_time_code' => [
+    'code' => $replacementAuthenticator['code'], '_token' => 'invalid', 'submit' => '',
+]]);
+$check(200 === $response['status'] && 'pending' === $repository->factor($employeeId)['status'],
+    'invalid enrollment CSRF cannot activate the replacement factor');
+$response = $request($enrollUrl, ['one_time_code' => [
+    'code' => $replacementAuthenticator['code'], '_token' => $enrollmentCsrf, 'submit' => '',
+]]);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/recovery-codes')
+    && 'active' === $repository->factor($employeeId)['status'],
+    'valid CSRF and a code from the new secret activate the replacement factor');
+foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
+    $response = $request($url);
+    $check(200 === $response['status'],
+        $kind . ' admin access resumes only after replacement activation');
+}
+$recoveryCodesUrl = '/admin-dev/index.php/modules/mpadmin2fa/recovery-codes?token=' . Tools::getAdminToken($employeeId);
+$response = $request($recoveryCodesUrl);
+preg_match_all('/[A-F0-9]{5}(?:-[A-F0-9]{5}){3}/', $response['body'], $newRecoveryCodes);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$acknowledgementCsrf = $xpath->evaluate('string(//input[@name="recovery_code_acknowledgement[_token]"]/@value)');
+$check(200 === $response['status'] && 10 === count(array_unique($newRecoveryCodes[0])) && '' !== $acknowledgementCsrf,
+    'replacement recovery codes are shown once with acknowledgement CSRF protection');
+$response = $request($recoveryCodesUrl, ['recovery_code_acknowledgement' => [
+    'saved' => '1', '_token' => $acknowledgementCsrf, 'submit' => '',
+]]);
+$check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', 'AdminDashboard'),
+    'acknowledging the replacement recovery codes returns to the native dashboard');
+$response = $request($recoveryCodesUrl);
+$check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/authenticator'),
+    'acknowledged recovery codes cannot be displayed a second time');
 curl_close($client);
 if ($failures) {
     throw new RuntimeException(count($failures) . ' live-request checks failed out of ' . $count . '.');
