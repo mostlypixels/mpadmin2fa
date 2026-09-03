@@ -31,6 +31,7 @@ $repository->activateEnrollment($employeeId, (int) floor(time() / 30) - 2, []);
 Configuration::updateValue('PS_SSL_ENABLED', 1);
 Configuration::updateValue('PS_SSL_ENABLED_EVERYWHERE', 1);
 Configuration::updateValue('PS_COOKIE_CHECKIP', 0);
+Configuration::updateValue('MP2FA_STEP_UP_SECONDS', 60);
 
 $client = curl_init();
 curl_setopt_array($client, [
@@ -138,6 +139,56 @@ $check(302 === $response['status'] && false !== strpos($response['headers']['loc
 foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
     $response = $request($url);
     $check(200 === $response['status'], $kind . ' admin read succeeds after MFA (HTTP ' . $response['status'] . ')');
+}
+$securityPolicy = '/admin-dev/index.php/modules/mpadmin2fa/security?token=' . Tools::getAdminToken($employeeId);
+$legacySensitive = '/admin-dev/index.php?controller=AdminModules&token='
+    . Tools::getAdminToken('AdminModules' . (int) Tab::getIdFromClassName('AdminModules') . $employeeId)
+    . '&action=install&module_name=mp2fa_missing_request_fixture';
+$response = $request($securityPolicy, []);
+$check(200 === $response['status'] && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
+    'fresh MFA admits a modern sensitive POST before its invalid form can mutate policy');
+$response = $request($legacySensitive);
+$check($response['status'] < 500 && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
+    'fresh MFA admits a legacy sensitive action using a deliberately missing module');
+
+echo 'Waiting for the configured step-up window to expire.' . PHP_EOL;
+sleep(61);
+foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null]] as $kind => $sensitiveRequest) {
+    $response = $request($sensitiveRequest[0], $sensitiveRequest[1]);
+    $check(302 === $response['status']
+        && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge')
+        && false !== strpos($response['headers']['location'] ?? '', 'step_up=1'),
+        'expired MFA blocks the ' . $kind . ' sensitive action with a step-up challenge');
+}
+$response = $request($securityPolicy, [], true);
+$check(403 === $response['status']
+    && false !== strpos($response['headers']['x-mpadmin2fa-redirect'] ?? '', '/mpadmin2fa/challenge')
+    && false !== strpos($response['headers']['x-mpadmin2fa-redirect'] ?? '', 'step_up=1'),
+    'expired MFA blocks an AJAX sensitive mutation with the step-up response contract');
+$stepUpUrl = $challengeUrl . '&step_up=1';
+$response = $request($stepUpUrl);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$stepUpCsrf = $xpath->evaluate('string(//input[@name="one_time_code[_token]"]/@value)');
+$check(200 === $response['status'] && '' !== $stepUpCsrf, 'the expired-session step-up form renders with CSRF protection');
+$stepUpCounter = (int) floor(time() / 30);
+$stepUpHash = hash_hmac('sha1', pack('N2', 0, $stepUpCounter), $binary, true);
+$stepUpOffset = ord(substr($stepUpHash, -1)) & 15;
+$stepUpNumber = unpack('N', substr($stepUpHash, $stepUpOffset, 4))[1] & 0x7fffffff;
+$stepUpCode = str_pad((string) ($stepUpNumber % 1000000), 6, '0', STR_PAD_LEFT);
+$response = $request($stepUpUrl, ['one_time_code' => [
+    'code' => $stepUpCode, '_token' => $stepUpCsrf, 'submit' => '',
+]]);
+$check(302 === $response['status']
+    && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge')
+    && (int) $repository->factor($employeeId)['last_counter'] === $stepUpCounter,
+    'a new authenticator code completes expired-session step-up and returns to the admin');
+foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null]] as $kind => $sensitiveRequest) {
+    $response = $request($sensitiveRequest[0], $sensitiveRequest[1]);
+    $check($response['status'] < 500
+        && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
+        'fresh step-up admits the ' . $kind . ' sensitive action without performing a real mutation');
 }
 $response = $request($challengeUrl, ['one_time_code' => ['code' => $code, '_token' => $csrf, 'submit' => '']]);
 $check(200 === $response['status'] && false !== strpos($response['body'], 'already been used'),
