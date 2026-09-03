@@ -150,6 +150,7 @@ services:
     class: Mpadmin2fa\Controller\Admin\MfaController
     public: true
     bind:
+      $configuration: '@prestashop.adapter.legacy.configuration'
       $employeeFactorGridFactory: '@mpadmin2fa.grid.factory.employee_factor'
       $pendingApprovalGridFactory: '@mpadmin2fa.grid.factory.pending_approval'
       $auditEventGridFactory: '@mpadmin2fa.grid.factory.audit_event'

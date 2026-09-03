@@ -22,6 +22,7 @@ use Mpadmin2fa\Security\Policy;
 use Mpadmin2fa\Security\SecurityAlertCatalog;
 use Mpadmin2fa\Security\SessionState;
 use Mpadmin2fa\Security\TotpService;
+use PrestaShop\PrestaShop\Core\ConfigurationInterface;
 use PrestaShop\PrestaShop\Core\Form\FormHandlerInterface;
 use PrestaShop\PrestaShop\Core\Grid\GridFactoryInterface;
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
@@ -308,7 +309,8 @@ final class MfaController extends FrameworkBundleAdminController
     public function settings(
         Request $request,
         MfaManager $mfa,
-        SecurityAlertCatalog $alertCatalog
+        SecurityAlertCatalog $alertCatalog,
+        ConfigurationInterface $configuration
     ): Response {
         $employee = $this->employee();
 
@@ -319,7 +321,7 @@ final class MfaController extends FrameworkBundleAdminController
             'can_open_enrollment' => $this->isGranted('read', 'AdminMpAdmin2faEnrollment'),
             'can_open_security' => $this->isGranted('read', 'AdminMpAdmin2faSecurity'),
             'https_active' => $request->isSecure(),
-            'https_configured' => 1 === (int) $this->getConfiguration()->get('PS_SSL_ENABLED'),
+            'https_configured' => 1 === (int) $configuration->get('PS_SSL_ENABLED'),
             'security_alerts' => $alertCatalog->all(),
         ]);
     }

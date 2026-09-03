@@ -82,6 +82,10 @@ final class ServiceRegistrationTest extends TestCase
         self::assertTrue($controller->hasTag('controller.service_arguments'));
         self::assertTrue($controller->isPublic());
         self::assertTrue($controller->hasMethodCall('setContainer'));
+        self::assertSame(
+            'prestashop.adapter.legacy.configuration',
+            (string) $controller->getBindings()['$configuration']->getValues()[0]
+        );
     }
 
     public function testFormsAndCommandsAreExplicitlyTagged(): void
