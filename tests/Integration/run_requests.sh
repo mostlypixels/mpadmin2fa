@@ -6,6 +6,8 @@ set -euo pipefail
 module_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 runtime="$(mktemp -d /tmp/mp2fa-requests.XXXXXX)"
 chmod 700 "$runtime"
+mkdir "$runtime/php-sessions"
+chmod 700 "$runtime/php-sessions"
 export MP2FA_REQUEST_RUNTIME="$runtime"
 # A CLI install may leave the separately compiled web/dev container stale.
 php "$MP2FA_PS_ROOT/bin/console" cache:clear --env=dev --no-warmup
@@ -47,6 +49,7 @@ DirectoryIndex index.php
 <Directory "$MP2FA_PS_ROOT">
   Require all granted
   AllowOverride All
+  php_admin_value session.save_path "$runtime/php-sessions"
 </Directory>
 <FilesMatch "\\.php$">
   SetHandler application/x-httpd-php

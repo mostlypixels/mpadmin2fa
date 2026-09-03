@@ -70,4 +70,13 @@ final class RemediationArchitectureTest extends TestCase
         self::assertStringContainsString("'.phpunit.result.cache'", $build);
         self::assertStringContainsString("'.phpunit.result.cache'", $release);
     }
+
+    public function testHttpsHarnessUsesAPrivateWritablePhpSessionDirectory(): void
+    {
+        $harness = (string) file_get_contents(dirname(__DIR__, 2) . '/tests/Integration/run_requests.sh');
+
+        self::assertStringContainsString('mkdir "$runtime/php-sessions"', $harness);
+        self::assertStringContainsString('chmod 700 "$runtime/php-sessions"', $harness);
+        self::assertStringContainsString('php_admin_value session.save_path "$runtime/php-sessions"', $harness);
+    }
 }
