@@ -214,4 +214,22 @@ final class AdminNavigationSecurityTest extends TestCase
             dirname(__DIR__, 2) . '/views/templates/admin/security/activity.html.twig'
         ));
     }
+
+    public function testActiveFactorIsHandledBeforeNewEnrollmentApproval(): void
+    {
+        $controller = file_get_contents(dirname(__DIR__, 2) . '/src/Controller/Admin/MfaController.php');
+
+        self::assertIsString($controller);
+        $enroll = substr(
+            $controller,
+            strpos($controller, 'public function enroll'),
+            strpos($controller, 'public function recoveryCodes') - strpos($controller, 'public function enroll')
+        );
+        $activeFactorCheck = strpos($enroll, '$mfa->active($employee->getId())');
+        $approvalCheck = strpos($enroll, '$policy->requiresEnrollmentApproval($employee)');
+
+        self::assertIsInt($activeFactorCheck);
+        self::assertIsInt($approvalCheck);
+        self::assertLessThan($approvalCheck, $activeFactorCheck);
+    }
 }

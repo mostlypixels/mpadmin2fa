@@ -122,6 +122,12 @@ final class MfaController extends FrameworkBundleAdminController
         $authorizedReplacement = $recoveryReplacement
             || $sessionState->isEnrollmentReplacementAuthorized($employee->getId());
 
+        if ($mfa->active($employee->getId()) && !$recoveryReplacement) {
+            $this->addFlash('info', 'Your authenticator is already active.');
+
+            return $this->redirectToRoute('mpadmin2fa_authenticator');
+        }
+
         if (!$authorizedReplacement
             && $policy->requiresEnrollmentApproval($employee)
             && $repository->hasActiveSuperAdminFactor(defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1)
@@ -132,12 +138,6 @@ final class MfaController extends FrameworkBundleAdminController
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/approval_pending.html.twig', [
                 'layoutTitle' => 'Waiting for approval',
             ]);
-        }
-
-        if ($mfa->active($employee->getId()) && !$recoveryReplacement) {
-            $this->addFlash('info', 'Your authenticator is already active.');
-
-            return $this->redirectToRoute('mpadmin2fa_authenticator');
         }
 
         try {
