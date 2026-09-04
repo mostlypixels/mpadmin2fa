@@ -5,7 +5,9 @@ declare(strict_types=1);
 // Run only against an explicitly disposable, installed shop and its scoped package.
 $root = getenv('MP2FA_PS_ROOT');
 $runtime = getenv('MP2FA_REQUEST_RUNTIME');
-if ('1' !== getenv('MP2FA_INTEGRATION') || !$root || !$runtime || 'cli' !== PHP_SAPI) {
+$testEmail = getenv('MP2FA_TEST_EMAIL');
+$testPassword = getenv('MP2FA_TEST_PASSWORD');
+if ('1' !== getenv('MP2FA_INTEGRATION') || !$root || !$runtime || !$testEmail || !$testPassword || 'cli' !== PHP_SAPI) {
     throw new RuntimeException('The HTTPS request harness requires an explicitly disposable shop.');
 }
 define('_PS_ADMIN_DIR_', $root . '/admin-dev');
@@ -20,7 +22,9 @@ $keys = new Mpadmin2fa\Security\KeyManager(
     new Mpadmin2fa\Security\CookieKeyProvider(),
     new Mpadmin2fa\Security\ProtectedKeyRewrapper()
 );
-$employeeId = (int) Db::getInstance()->getValue('SELECT id_employee FROM ' . _DB_PREFIX_ . 'employee WHERE email = "demo@prestashop.com"');
+$employeeId = (int) Db::getInstance()->getValue(
+    'SELECT id_employee FROM ' . _DB_PREFIX_ . 'employee WHERE email = "' . pSQL($testEmail) . '"'
+);
 if ($employeeId <= 0 || !Module::isInstalled('mpadmin2fa')) {
     throw new RuntimeException('Expected the disposable CI employee and installed package.');
 }
@@ -136,10 +140,10 @@ $totp = static function (string $totpSecret): array {
         'counter' => $counter,
     ];
 };
-$loginEmployee = static function (string $email) use ($request): array {
+$loginEmployee = static function (string $email) use ($request, $testPassword): array {
     return $request('/admin-dev/index.php?controller=AdminLogin', [
         'email' => $email,
-        'passwd' => 'Pr3st4Sh0P',
+        'passwd' => $testPassword,
         'submitLogin' => '1',
         'ajax' => '1',
     ], true);
@@ -201,8 +205,8 @@ $check(200 === $response['status'] && 1 === $approvalCount($approvalEmployeeId),
 $clearBrowserSession();
 
 $login = $request('/admin-dev/index.php?controller=AdminLogin', [
-    'email' => 'demo@prestashop.com',
-    'passwd' => 'Pr3st4Sh0P',
+    'email' => $testEmail,
+    'passwd' => $testPassword,
     'submitLogin' => '1',
     'ajax' => '1',
 ], true);
@@ -392,7 +396,7 @@ $response = $request($challengeUrl, ['one_time_code' => ['code' => $code, '_toke
 $check(200 === $response['status'] && false !== strpos($response['body'], 'already been used'),
     'reusing the same authenticator code is rejected');
 $login = $request('/admin-dev/index.php?controller=AdminLogin', [
-    'email' => 'demo@prestashop.com', 'passwd' => 'Pr3st4Sh0P', 'submitLogin' => '1', 'ajax' => '1',
+    'email' => $testEmail, 'passwd' => $testPassword, 'submitLogin' => '1', 'ajax' => '1',
 ], true);
 $data = json_decode($login['body'], true);
 $check(false === ($data['hasErrors'] ?? null), 'a fresh password login succeeds');
@@ -406,7 +410,7 @@ $check(false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/cha
     'native logout remains available before MFA');
 curl_setopt($client, CURLOPT_COOKIELIST, 'ALL');
 $response = $request('/admin-dev/index.php?controller=AdminLogin', [
-    'email' => 'demo@prestashop.com', 'passwd' => 'Pr3st4Sh0P', 'submitLogin' => '1', 'ajax' => '1',
+    'email' => $testEmail, 'passwd' => $testPassword, 'submitLogin' => '1', 'ajax' => '1',
 ], true, false);
 $data = json_decode($response['body'], true);
 $check(403 === $response['status'] && true === ($data['hasErrors'] ?? null),
@@ -417,7 +421,7 @@ $check(302 === $response['status'] && false !== strpos($response['headers']['loc
 
 curl_setopt($client, CURLOPT_COOKIELIST, 'ALL');
 $login = $request('/admin-dev/index.php?controller=AdminLogin', [
-    'email' => 'demo@prestashop.com', 'passwd' => 'Pr3st4Sh0P', 'submitLogin' => '1', 'ajax' => '1',
+    'email' => $testEmail, 'passwd' => $testPassword, 'submitLogin' => '1', 'ajax' => '1',
 ], true);
 $data = json_decode($login['body'], true);
 $check(200 === $login['status'] && false === ($data['hasErrors'] ?? null),

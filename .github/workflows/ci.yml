@@ -176,6 +176,13 @@ jobs:
           bash prestashop/tools/assets/build.sh admin-default
           bash prestashop/tools/assets/build.sh admin-new-theme
 
+      - name: Generate disposable test credentials
+        run: |
+          test_password="$(openssl rand -hex 24)"
+          echo "::add-mask::$test_password"
+          printf 'MP2FA_TEST_EMAIL=mp2fa-ci-%s-%s@example.test\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'MP2FA_TEST_PASSWORD=%s\n' "$test_password" >> "$GITHUB_ENV"
+
       - name: Install the disposable PrestaShop shop
         run: |
           php prestashop/install-dev/index_cli.php \
@@ -187,8 +194,8 @@ jobs:
             --prefix=ps_ \
             --language=en \
             --country=fr \
-            --email=demo@prestashop.com \
-            --password=Pr3st4Sh0P \
+            --email="$MP2FA_TEST_EMAIL" \
+            --password="$MP2FA_TEST_PASSWORD" \
             --ssl=0
 
       - name: Place only the built package in the installed shop
