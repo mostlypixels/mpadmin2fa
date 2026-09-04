@@ -85,7 +85,7 @@ jobs:
         run: composer test
 
   lifecycle:
-    name: Locally built package lifecycle on PS 9.0.2
+    name: Packaged lifecycle and baseline requests on PS 9.0.2
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -133,8 +133,18 @@ jobs:
           mkdir -p prestashop/modules/mpadmin2fa
           rsync -a --delete build/mpadmin2fa/ prestashop/modules/mpadmin2fa/
 
-      - name: Build Classic theme assets
-        run: bash prestashop/tools/assets/build.sh front-classic --force
+      - name: Build storefront and back-office assets
+        run: |
+          bash prestashop/tools/assets/build.sh front-classic --force
+          bash prestashop/tools/assets/build.sh admin-default --force
+          bash prestashop/tools/assets/build.sh admin-new-theme --force
+
+      - name: Generate disposable test credentials
+        run: |
+          test_password="$(openssl rand -hex 24)"
+          echo "::add-mask::$test_password"
+          printf 'MP2FA_TEST_EMAIL=mp2fa-ci-%s-%s@example.test\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'MP2FA_TEST_PASSWORD=%s\n' "$test_password" >> "$GITHUB_ENV"
 
       - name: Install PrestaShop
         run: |
@@ -147,8 +157,8 @@ jobs:
             --prefix=ps_ \
             --language=en \
             --country=fr \
-            --email=demo@prestashop.com \
-            --password=Pr3st4Sh0P \
+            --email="$MP2FA_TEST_EMAIL" \
+            --password="$MP2FA_TEST_PASSWORD" \
             --ssl=0
 
       - name: Install and compile the locally built module
@@ -165,6 +175,19 @@ jobs:
           php prestashop/bin/console prestashop:module upgrade mpadmin2fa --no-interaction
           MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-install
           MP2FA_INTEGRATION=1 MP2FA_PS_ROOT="$PWD/prestashop" php vendor/bin/phpunit -c phpunit.xml.dist --filter AtomicRateLimitIntegrationTest tests/Integration/AtomicRateLimitIntegrationTest.php
+
+      - name: Install isolated HTTPS request-test runtime
+        run: |
+          sudo add-apt-repository --yes ppa:ondrej/php
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php8.1
+
+      - name: Verify real HTTPS login and MFA requests
+        env:
+          MP2FA_INTEGRATION: '1'
+          MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop
+          MP2FA_APACHE_PHP_MODULE: /usr/lib/apache2/modules/libphp8.1.so
+        run: bash tests/Integration/run_requests.sh
 
       - name: Verify tab-stage failure rollback
         run: |
