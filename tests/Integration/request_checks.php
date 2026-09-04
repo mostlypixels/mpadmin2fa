@@ -42,7 +42,12 @@ Configuration::updateValue('PS_COOKIE_CHECKIP', 0);
 $secret = (new Mpadmin2fa\Security\TotpService())->generateSecret();
 $encrypted = $keys->encrypt($secret);
 $repository->savePendingEnrollment($employeeId, $encrypted['ciphertext'], $encrypted['key_version']);
-$repository->activateEnrollment($employeeId, (int) floor(time() / 30) - 2, []);
+$recoveryCode = 'A1B2C-D3E4F-56789-ABCDE';
+$repository->activateEnrollment(
+    $employeeId,
+    (int) floor(time() / 30) - 2,
+    [password_hash($recoveryCode, PASSWORD_DEFAULT)]
+);
 
 $client = curl_init();
 curl_setopt_array($client, [
@@ -270,6 +275,117 @@ $check(302 === $response['status']
     && false !== strpos($response['headers']['location'] ?? '', '/login'),
     'rejected insecure login leaves no authenticated native session');
 
+
+curl_setopt($client, CURLOPT_COOKIELIST, 'ALL');
+$response = $login();
+$check(302 === $response['status'], 'a secure password login starts the recovery scenario');
+$response = $request($challengeUrl);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$recoveryCsrf = $xpath->evaluate('string(//input[@name="recovery_code_challenge[_token]"]/@value)');
+$check(200 === $response['status'] && '' !== $recoveryCsrf,
+    'the real recovery-code challenge renders with CSRF protection');
+$response = $request($challengeUrl, ['recovery_code_challenge' => [
+    'recovery_code' => $recoveryCode,
+    '_token' => 'invalid',
+    'submit' => '',
+]]);
+$usedRecoveryCodes = (int) Db::getInstance()->getValue(
+    'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_recovery_code'
+    . ' WHERE id_employee = ' . $employeeId . ' AND used_at IS NOT NULL'
+);
+$check(200 === $response['status'] && 0 === $usedRecoveryCodes,
+    'invalid recovery-form CSRF cannot consume a valid backup code');
+$response = $request($challengeUrl, ['recovery_code_challenge' => [
+    'recovery_code' => $recoveryCode,
+    '_token' => $recoveryCsrf,
+    'submit' => '',
+]]);
+$usedRecoveryCodes = (int) Db::getInstance()->getValue(
+    'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_recovery_code'
+    . ' WHERE id_employee = ' . $employeeId . ' AND used_at IS NOT NULL'
+);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll')
+    && 1 === $usedRecoveryCodes,
+    'a valid recovery code is consumed once and redirects immediately to replacement enrollment');
+foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
+    $response = $request($url);
+    $check(302 === $response['status']
+        && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
+        'the recovery-restricted session blocks ' . $kind . ' admin access');
+}
+$response = $request($challengeUrl);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
+    'the recovery-restricted session cannot return to the ordinary challenge');
+$replaceUrl = '/admin-dev/index.php/modules/mpadmin2fa/factor/replace?token=' . Tools::getAdminToken($employeeId);
+$response = $request($replaceUrl, []);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
+    'the recovery-restricted session cannot bypass enrollment through the normal replacement action');
+$response = $request($enrollUrl);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$replacementSecret = trim($xpath->evaluate('string(//p[strong[contains(., "Manual setup key")]]/code)'));
+$enrollmentCsrf = $xpath->evaluate('string(//input[@name="one_time_code[_token]"]/@value)');
+$check(200 === $response['status']
+    && '' !== $replacementSecret
+    && '' !== $enrollmentCsrf
+    && 'pending' === $repository->factor($employeeId)['status'],
+    'only replacement enrollment is available and it creates a pending factor');
+foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
+    $response = $request($url);
+    $check(302 === $response['status']
+        && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
+        $kind . ' admin access remains blocked while replacement is pending');
+}
+$replacementAuthenticator = $totp($replacementSecret);
+$response = $request($enrollUrl, ['one_time_code' => [
+    'code' => $replacementAuthenticator['code'],
+    '_token' => 'invalid',
+    'submit' => '',
+]]);
+$check(200 === $response['status'] && 'pending' === $repository->factor($employeeId)['status'],
+    'invalid enrollment CSRF cannot activate the replacement factor');
+$response = $request($enrollUrl, ['one_time_code' => [
+    'code' => $replacementAuthenticator['code'],
+    '_token' => $enrollmentCsrf,
+    'submit' => '',
+]]);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/recovery-codes')
+    && 'active' === $repository->factor($employeeId)['status'],
+    'valid CSRF and a code from the new secret activate the replacement factor');
+foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
+    $response = $request($url);
+    $check(200 === $response['status'], $kind . ' admin access resumes only after replacement activation');
+}
+$recoveryCodesUrl = '/admin-dev/index.php/modules/mpadmin2fa/recovery-codes?token=' . Tools::getAdminToken($employeeId);
+$response = $request($recoveryCodesUrl);
+preg_match_all('/[A-F0-9]{5}(?:-[A-F0-9]{5}){3}/', $response['body'], $newRecoveryCodes);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$acknowledgementCsrf = $xpath->evaluate('string(//input[@name="recovery_code_acknowledgement[_token]"]/@value)');
+$check(200 === $response['status']
+    && 10 === count(array_unique($newRecoveryCodes[0]))
+    && '' !== $acknowledgementCsrf,
+    'replacement recovery codes are shown once with acknowledgement CSRF protection');
+$response = $request($recoveryCodesUrl, ['recovery_code_acknowledgement' => [
+    'saved' => '1',
+    '_token' => $acknowledgementCsrf,
+    'submit' => '',
+]]);
+$check(302 === $response['status']
+    && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/recovery-codes'),
+    'acknowledging the replacement recovery codes returns to the native admin');
+$response = $request($recoveryCodesUrl);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/authenticator'),
+    'acknowledged recovery codes cannot be displayed a second time');
 curl_close($client);
 if ($failures) {
     throw new RuntimeException(count($failures) . ' live-request checks failed out of ' . $count . '.');
