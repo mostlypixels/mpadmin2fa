@@ -304,7 +304,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function settings(
         Request $request,
@@ -327,7 +327,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function authenticator(
         FactorConfirmationService $confirmation,
@@ -345,7 +345,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function enrollmentEmployees(
         EmployeeFactorFilters $filters,
@@ -358,7 +358,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function enrollmentApprovals(
         PendingApprovalFilters $filters,
@@ -371,7 +371,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function securityPolicy(
         FormHandlerInterface $securityPolicyFormHandler
@@ -386,7 +386,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))")
      * @DemoRestricted(redirectRoute="mpadmin2fa_security_policy")
      */
     public function updateSecurityPolicy(
@@ -428,7 +428,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function securityActivity(
         AuditEventFilters $filters,
@@ -441,7 +441,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      * @DemoRestricted(redirectRoute="mpadmin2fa_enrollment_approvals")
      */
     public function approveEnrollment(
@@ -481,7 +481,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('delete', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('delete', request.get('_legacy_controller'))")
      * @DemoRestricted(redirectRoute="mpadmin2fa_enrollment_employees")
      */
     public function adminReset(

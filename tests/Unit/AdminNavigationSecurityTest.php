@@ -45,6 +45,7 @@ final class AdminNavigationSecurityTest extends TestCase
             sprintf("@AdminSecurity(\"is_granted('%s', request.get('_legacy_controller'))\"", $permission),
             $docComment
         );
+        self::assertStringNotContainsString('admin_homepage', $docComment);
     }
 
     public function testRoutesUseASeparatePermissionScopeForEachSidebarSection(): void
