@@ -19,6 +19,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use PrestaShopBundle\Security\Attribute\AdminSecurity;
 use ReflectionMethod;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Yaml\Yaml;
 
 final class AdminNavigationSecurityTest extends TestCase
@@ -46,6 +49,41 @@ final class AdminNavigationSecurityTest extends TestCase
             sprintf("is_granted('%s', request.get('_legacy_controller'))", $permission),
             $attributes[0]->newInstance()->getAttribute()
         );
+    }
+
+    public function testDashboardRedirectFallsBackToNativeAdminHomepage(): void
+    {
+        $routes = new RouteCollection();
+        $routes->add('admin_homepage', new Route('/'));
+        $router = $this->createMock(RouterInterface::class);
+        $router->method('getRouteCollection')->willReturn($routes);
+        $router->expects(self::once())
+            ->method('generate')
+            ->with('admin_homepage')
+            ->willReturn('/admin-dev/index.php/');
+
+        $method = new ReflectionMethod(MfaController::class, 'dashboardUrl');
+        $method->setAccessible(true);
+
+        self::assertSame(
+            '/admin-dev/index.php/',
+            $method->invoke(new MfaController(), $router)
+        );
+    }
+
+    public function testActiveFactorIsRedirectedBeforeNewEnrollmentApprovalIsConsidered(): void
+    {
+        $controller = file_get_contents(dirname(__DIR__, 2) . '/src/Controller/Admin/MfaController.php');
+
+        self::assertIsString($controller);
+        $activeGuard = strpos(
+            $controller,
+            '$mfa->active($employee->getId()) && !$authorizedReplacement'
+        );
+        $approvalGuard = strpos($controller, '$policy->requiresEnrollmentApproval($employee)');
+        self::assertIsInt($activeGuard);
+        self::assertIsInt($approvalGuard);
+        self::assertLessThan($approvalGuard, $activeGuard);
     }
 
     public function testRoutesUseASeparatePermissionScopeForEachSidebarSection(): void

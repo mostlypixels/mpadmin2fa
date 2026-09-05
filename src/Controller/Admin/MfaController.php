@@ -118,6 +118,12 @@ final class MfaController extends PrestaShopAdminController
         $authorizedReplacement = $recoveryReplacement
             || $sessionState->isEnrollmentReplacementAuthorized($employee->getId());
 
+        if ($mfa->active($employee->getId()) && !$authorizedReplacement) {
+            $this->addFlash('info', 'Your authenticator is already active.');
+
+            return $this->redirectToRoute('mpadmin2fa_authenticator');
+        }
+
         if (!$authorizedReplacement
             && $policy->requiresEnrollmentApproval($employee)
             && $repository->hasActiveSuperAdminFactor(defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1)
@@ -128,12 +134,6 @@ final class MfaController extends PrestaShopAdminController
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/approval_pending.html.twig', [
                 'layoutTitle' => 'Waiting for approval',
             ]);
-        }
-
-        if ($mfa->active($employee->getId()) && !$recoveryReplacement) {
-            $this->addFlash('info', 'Your authenticator is already active.');
-
-            return $this->redirectToRoute('mpadmin2fa_authenticator');
         }
 
         try {
@@ -523,7 +523,9 @@ final class MfaController extends PrestaShopAdminController
 
     private function dashboardUrl(RouterInterface $router): string
     {
-        foreach (['admin_dashboard_index', 'admin_dashboard'] as $routeName) {
+        // The dashboard route is feature-flagged in some PrestaShop 9 installs.
+        // The admin homepage remains available and resolves the native landing page.
+        foreach (['admin_dashboard_index', 'admin_dashboard', 'admin_homepage'] as $routeName) {
             if (null !== $router->getRouteCollection()->get($routeName)) {
                 return $router->generate($routeName);
             }
