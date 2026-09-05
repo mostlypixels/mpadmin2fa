@@ -74,4 +74,4 @@ Local verification used a disposable copy of PS 8.2.8, PHP 8.1.33, MySQL 5.7.44,
 
 Both packaged lifecycle targets, PS 8.0.0 / PHP 7.2 and PS 8.2.8 / PHP 8.1, completed 64 HTTPS checks, 21 browser checks, 2 database tests / 30 assertions, the pinned historical 0.2.7 upgrade with data-preservation and repair checks, and all five rollback/reinstallation stages. The three unit-test jobs and isolated scoped-package job also passed. No CI-specific product or harness correction was needed after local validation.
 
-The surrounding PS8 checkout remains unchanged. Existing edits to documentation/audit-fix-plan.md remain preserved and uncommitted.
+The surrounding PS8 checkout remains unchanged. The obsolete audit remediation plan was removed after delivery and successful CI validation; these verification checkpoints retain the findings, fixes, evidence, and coverage boundaries.

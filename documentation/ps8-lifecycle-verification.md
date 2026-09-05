@@ -43,4 +43,4 @@ This command is destructive to the module's data in the selected shop. It create
 - Later HTTP and browser coverage is recorded in the [request checkpoint](ps8-request-verification.md) and [browser checkpoint](ps8-browser-upgrade-verification.md).
 - The subsequent [browser and historical upgrade checkpoint](ps8-browser-upgrade-verification.md) replaces the simulated fixture with a package built from pinned 0.2.7 source.
 
-The existing `documentation/audit-fix-plan.md` edits were preserved and are not included in this checkpoint.
+The audit remediation plan was subsequently retired after the [completed browser and historical upgrade validation](ps8-browser-upgrade-verification.md).
