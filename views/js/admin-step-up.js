@@ -11,9 +11,22 @@
     this.addEventListener('loadend', function () {
       var redirectUrl = this.getResponseHeader('X-Mpadmin2fa-Redirect');
 
-      if (redirectUrl) {
-        window.location.assign(redirectUrl);
+      if (!redirectUrl) {
+        return;
       }
+
+      var target = new URL(redirectUrl, window.location.href);
+      var current = new URL(window.location.href);
+
+      // Native background requests are also gated during enrollment/challenge.
+      // Keep the form in place when that response points to the form already open.
+      if (target.origin === current.origin && target.pathname === current.pathname
+          && target.searchParams.get('controller') === current.searchParams.get('controller')
+          && (target.searchParams.get('step_up') || '0') === (current.searchParams.get('step_up') || '0')) {
+        return;
+      }
+
+      window.location.assign(target.href);
     }, {once: true});
 
     return originalSend.apply(this, arguments);

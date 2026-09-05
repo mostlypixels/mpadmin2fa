@@ -10,3 +10,4 @@
 .DS_Store
 *.log
 config.xml
+/tests/Browser/node_modules/

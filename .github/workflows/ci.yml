@@ -128,6 +128,8 @@ jobs:
     steps:
       - name: Check out the module
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Check out PrestaShop
         uses: actions/checkout@v5
@@ -150,6 +152,11 @@ jobs:
           composer build:tools
           composer build:scoped
           (cd build/mpadmin2fa && sha256sum --check --quiet SHA256SUMS)
+
+      - name: Build the pinned historical 0.2.7 package
+        env:
+          MP2FA_HISTORICAL_OUTPUT: ${{ runner.temp }}/mp2fa-historical
+        run: bash tests/Integration/build_historical_package.sh
 
       - name: Set up target PHP
         uses: shivammathur/setup-php@v2
@@ -175,6 +182,17 @@ jobs:
           bash prestashop/tools/assets/build.sh front-classic
           bash prestashop/tools/assets/build.sh admin-default
           bash prestashop/tools/assets/build.sh admin-new-theme
+
+      - name: Set up isolated browser test tools
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install browser test dependencies
+        working-directory: tests/Browser
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
 
       - name: Generate disposable test credentials
         run: |
@@ -211,9 +229,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php${{ matrix.php }}
 
-      - name: Verify lifecycle, real HTTPS requests, and every failure stage
+      - name: Verify lifecycle, historical upgrade, HTTPS, browser, and rollback
         env:
           MP2FA_INTEGRATION: '1'
+          MP2FA_HISTORICAL_OUTPUT: ${{ runner.temp }}/mp2fa-historical
           MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop
           MP2FA_APACHE_PHP_MODULE: /usr/lib/apache2/modules/libphp${{ matrix.php }}.so
         run: bash tests/Integration/run_lifecycle.sh

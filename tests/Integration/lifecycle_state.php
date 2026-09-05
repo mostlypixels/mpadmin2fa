@@ -99,20 +99,6 @@ switch ($action) {
         $assertCount('preserved module', 'SELECT COUNT(*) FROM ' . $prefix . 'module WHERE name = ' . $moduleSql, 1);
         break;
 
-    case 'prepare-upgrade':
-        $execute('ALTER TABLE ' . $prefix . 'mp2fa_rate_limit ADD date_upd DATETIME NULL AFTER blocked_until');
-        $execute('UPDATE ' . $prefix . 'mp2fa_rate_limit SET date_upd = last_failure_at');
-        $execute('ALTER TABLE ' . $prefix . 'mp2fa_rate_limit DROP COLUMN last_failure_at');
-        $execute('UPDATE ' . $prefix . 'module SET version = "0.2.7" WHERE name = ' . $moduleSql);
-        $execute('DELETE hm FROM ' . $prefix . 'hook_module hm'
-            . ' INNER JOIN ' . $prefix . 'hook h ON h.id_hook = hm.id_hook'
-            . ' INNER JOIN ' . $prefix . 'module m ON m.id_module = hm.id_module'
-            . ' WHERE m.name = ' . $moduleSql . ' AND h.name IN ("actionDispatcherBefore", "actionAdminLoginControllerLoginAfter")');
-        $execute('DELETE a FROM ' . $prefix . 'access a'
-            . ' INNER JOIN ' . $prefix . 'authorization_role r ON r.id_authorization_role = a.id_authorization_role'
-            . ' WHERE a.id_profile <> ' . (int) _PS_ADMIN_PROFILE_ . ' AND r.slug LIKE "ROLE_MOD_TAB_ADMINMPADMIN2FA%"');
-        break;
-
     case 'prepare-failure':
         $verifyCleanup();
         $stage = (string) ($argv[2] ?? '');

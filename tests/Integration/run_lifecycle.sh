@@ -3,6 +3,7 @@ set -euo pipefail
 
 : "${MP2FA_PS_ROOT:?Point MP2FA_PS_ROOT at a disposable installed shop}"
 : "${MP2FA_INTEGRATION:?Set MP2FA_INTEGRATION=1 to enable destructive lifecycle tests}"
+: "${MP2FA_HISTORICAL_OUTPUT:?Build the pinned historical package before running lifecycle tests}"
 module_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 state() { php "$module_root/tests/Integration/lifecycle_state.php" "$@"; }
 module() { php "$MP2FA_PS_ROOT/bin/console" prestashop:module "$@" mpadmin2fa --no-interaction; }
@@ -19,14 +20,12 @@ commands="$(php "$MP2FA_PS_ROOT/bin/console" list --raw --env=prod --no-debug)"
 for command in mpadmin2fa:key:health mpadmin2fa:key:rotate mpadmin2fa:audit:prune mpadmin2fa:factor:reset; do
   grep -F "$command" <<< "$commands"
 done
-state prepare-upgrade
-module upgrade
-state verify-install
 bash "$module_root/tests/Integration/run_requests.sh"
 php "$module_root/vendor/bin/phpunit" --do-not-cache-result -c "$module_root/phpunit.xml.dist" \
   "$module_root/tests/Integration/AtomicRateLimitIntegrationTest.php"
 module uninstall
 state verify-cleanup
+bash "$module_root/tests/Integration/run_historical_upgrade.sh"
 
 for stage in schema configuration hook tab access; do
   state prepare-failure "$stage"

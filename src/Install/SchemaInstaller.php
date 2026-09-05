@@ -66,14 +66,27 @@ final class SchemaInstaller
             . ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "' . pSQL(_DB_PREFIX_ . 'mp2fa_rate_limit') . '"'
             . ' AND COLUMN_NAME = "last_failure_at"'
         );
-        if ('last_failure_at' === $column) {
+        if ('last_failure_at' !== $column && !Db::getInstance()->execute(
+            'ALTER TABLE ' . _DB_PREFIX_ . 'mp2fa_rate_limit ADD last_failure_at DATETIME NULL AFTER blocked_until'
+        )) {
+            return false;
+        }
+
+        $legacyColumn = Db::getInstance()->getValue(
+            'SELECT COLUMN_NAME FROM information_schema.COLUMNS'
+            . ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "' . pSQL(_DB_PREFIX_ . 'mp2fa_rate_limit') . '"'
+            . ' AND COLUMN_NAME = "date_upd"'
+        );
+        if ('date_upd' !== $legacyColumn) {
             return true;
         }
 
+        // Historical 0.2.7 requires date_upd without a default. Keep its history, then
+        // remove it so new counter inserts work. Also repairs a partially applied upgrade.
         return Db::getInstance()->execute(
-            'ALTER TABLE ' . _DB_PREFIX_ . 'mp2fa_rate_limit ADD last_failure_at DATETIME NULL AFTER blocked_until'
-        ) && Db::getInstance()->execute(
             'UPDATE ' . _DB_PREFIX_ . 'mp2fa_rate_limit SET last_failure_at = date_upd WHERE last_failure_at IS NULL'
+        ) && Db::getInstance()->execute(
+            'ALTER TABLE ' . _DB_PREFIX_ . 'mp2fa_rate_limit DROP COLUMN date_upd'
         );
     }
 

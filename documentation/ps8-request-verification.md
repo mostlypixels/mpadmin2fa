@@ -34,7 +34,7 @@ The PS8 workflow now creates a unique test email and random password for every l
 
 ## Running
 
-The lifecycle harness needs Apache, the matching Apache PHP module, OpenSSL, cURL and setsid. Build both back-office themes as well as Classic: the native admin header requires the generated `public/preload.tpl` files, even for HTTP-only tests. It starts its own non-privileged server on loopback ports 8443 and 8080, uses a newly generated test certificate with certificate verification enabled, and stops that server on exit. Runtime logs and disposable cookies remain in a private temporary directory for diagnosis.
+The current request runner also executes browser checks; install the browser dependencies described in the [browser checkpoint](ps8-browser-upgrade-verification.md#running) first. The lifecycle harness needs Apache, the matching Apache PHP module, OpenSSL, cURL and setsid. Build both back-office themes as well as Classic: the native admin header requires the generated `public/preload.tpl` files, even for HTTP-only tests. It starts its own non-privileged server on loopback ports 8443 and 8080, uses a newly generated test certificate with certificate verification enabled, and stops that server on exit. Runtime logs and disposable cookies remain in a private temporary directory for diagnosis.
 
 Use the lifecycle command only against an explicitly disposable installed shop. To rerun just the request slice, install the built package first and supply that shop's disposable administrator credentials:
 
@@ -48,6 +48,6 @@ MP2FA_TEST_PASSWORD=generated-disposable-password \
 
 The request fixture resolves the disposable administrator by `MP2FA_TEST_EMAIL`, reuses its password hash for additional employee fixtures, and submits `MP2FA_TEST_PASSWORD` for every native login. It replaces module-owned MFA state and changes SSL configuration. Never point it at a real shop or supply operator credentials.
 
-## Remaining coverage
+## Browser and historical upgrade follow-up
 
-This is HTTP request coverage, not JavaScript or visual browser coverage. Still pending: browser interaction coverage and upgrade coverage from a genuine historical 0.2.7 package rather than only simulated installed-version metadata. PS9 and PS1.7 remain separate work items. User edits in the main audit file are preserved and excluded from this checkpoint.
+The browser interaction and genuine historical-source package upgrade work is tracked in [ps8-browser-upgrade-verification.md](ps8-browser-upgrade-verification.md). The HTTP-only results above remain the earlier checkpoint. PS9 and PS1.7 are separate work items.

@@ -33,17 +33,14 @@ Tested with PrestaShop 8.2.8, PHP 8.1.33 and MySQL 5.7.44 in disposable containe
 
 Build the module, install a disposable PrestaShop shop, then copy only `build/mpadmin2fa/` into its module directory. Keep the source module's development dependencies available to the external test runner.
 
-```sh
-MP2FA_INTEGRATION=1 MP2FA_PS_ROOT=/absolute/path/to/disposable/shop \
-  bash tests/Integration/run_lifecycle.sh
-```
+Use the [current lifecycle instructions](ps8-browser-upgrade-verification.md#running), which include the historical package, browser dependencies, and generated disposable credentials.
 
 This command is destructive to the module's data in the selected shop. It creates an ordinary test profile and database triggers, installs/upgrades/uninstalls the module, and intentionally rejects inserts. Never target a real shop.
 
 ## Still pending
 
 - Baseline remote lifecycle matrix passed on both targets in [run 33618337257](https://github.com/mostlypixels/mpadmin2fa/actions/runs/33618337257). The later request checkpoint is tracked in [ps8-request-verification.md](ps8-request-verification.md).
-- Full installed-package request/browser parity and the remaining security request scenarios; see the request checkpoint for the completed login/MFA slice.
-- A genuine historical-package upgrade matrix beyond the simulated 0.2.7 schema/hook/access fixture.
+- Later HTTP and browser coverage is recorded in the [request checkpoint](ps8-request-verification.md) and [browser checkpoint](ps8-browser-upgrade-verification.md).
+- The subsequent [browser and historical upgrade checkpoint](ps8-browser-upgrade-verification.md) replaces the simulated fixture with a package built from pinned 0.2.7 source.
 
 The existing `documentation/audit-fix-plan.md` edits were preserved and are not included in this checkpoint.
