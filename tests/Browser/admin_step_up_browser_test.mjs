@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
-import {execFile} from 'node:child_process';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import {existsSync} from 'node:fs';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
+import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
-import {promisify} from 'node:util';
 
-const execFileAsync = promisify(execFile);
 const moduleRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const listener = await readFile(resolve(moduleRoot, 'views/js/admin-step-up.js'), 'utf8');
 const browserCandidates = [
@@ -88,26 +88,113 @@ await new Promise((resolveListen, rejectListen) => {
 const address = server.address();
 assert.ok(address && 'object' === typeof address);
 const profile = await mkdtemp(join(tmpdir(), 'mp2fa-browser-'));
+let browserStderr = '';
+const browserProcess = spawn(browser, [
+  '--headless',
+  '--disable-dev-shm-usage',
+  '--disable-gpu',
+  '--no-sandbox',
+  '--remote-allow-origins=*',
+  '--remote-debugging-port=0',
+  `--user-data-dir=${profile}`,
+  'about:blank',
+], {
+  stdio: ['ignore', 'ignore', 'pipe'],
+});
+browserProcess.stderr.setEncoding('utf8');
+browserProcess.stderr.on('data', (chunk) => {
+  browserStderr = (browserStderr + chunk).slice(-4000);
+});
 
+let socket;
 try {
-  const {stdout} = await execFileAsync(browser, [
-    '--headless',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--no-sandbox',
-    `--user-data-dir=${profile}`,
-    '--virtual-time-budget=5000',
-    '--dump-dom',
-    `http://127.0.0.1:${address.port}/`,
-  ], {
-    maxBuffer: 1024 * 1024,
-    timeout: 20000,
+  const portFile = join(profile, 'DevToolsActivePort');
+  const portDeadline = Date.now() + 20000;
+  let devToolsPort = 0;
+  while (Date.now() < portDeadline) {
+    try {
+      const [port] = (await readFile(portFile, 'utf8')).trim().split(/\r?\n/);
+      devToolsPort = Number.parseInt(port, 10);
+      if (devToolsPort > 0) {
+        break;
+      }
+    } catch {
+      if (null !== browserProcess.exitCode) {
+        throw new Error(`The browser exited before DevTools became ready.\n${browserStderr}`);
+      }
+    }
+    await delay(100);
+  }
+  assert.ok(devToolsPort > 0, `Chrome DevTools did not become ready.\n${browserStderr}`);
+
+  const targetResponse = await fetch(
+    `http://127.0.0.1:${devToolsPort}/json/new?${encodeURIComponent('about:blank')}`,
+    {method: 'PUT'},
+  );
+  assert.equal(targetResponse.status, 200, 'Chrome could not create a DevTools page target.');
+  const target = await targetResponse.json();
+  assert.ok(target.webSocketDebuggerUrl, 'Chrome did not expose the page DevTools socket.');
+
+  socket = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((resolveOpen, rejectOpen) => {
+    socket.addEventListener('open', resolveOpen, {once: true});
+    socket.addEventListener('error', rejectOpen, {once: true});
   });
 
-  assert.match(stdout, /MP2FA_BROWSER_REDIRECT_PASSED/);
+  let commandId = 0;
+  const pendingCommands = new Map();
+  socket.addEventListener('message', (event) => {
+    const message = JSON.parse(event.data);
+    const pending = pendingCommands.get(message.id);
+    if (!pending) {
+      return;
+    }
+    pendingCommands.delete(message.id);
+    if (message.error) {
+      pending.reject(new Error(message.error.message));
+    } else {
+      pending.resolve(message.result);
+    }
+  });
+  const command = (method, params = {}) => new Promise((resolveCommand, rejectCommand) => {
+    const id = ++commandId;
+    pendingCommands.set(id, {resolve: resolveCommand, reject: rejectCommand});
+    socket.send(JSON.stringify({id, method, params}));
+  });
+
+  await command('Page.enable');
+  await command('Runtime.enable');
+  await command('Page.navigate', {url: `http://127.0.0.1:${address.port}/`});
+
+  const redirectDeadline = Date.now() + 20000;
+  let title = '';
+  while (Date.now() < redirectDeadline) {
+    const evaluation = await command('Runtime.evaluate', {
+      expression: 'document.title',
+      returnByValue: true,
+    });
+    title = evaluation.result?.value ?? '';
+    if ('MP2FA_BROWSER_REDIRECT_PASSED' === title) {
+      break;
+    }
+    await delay(100);
+  }
+
+  assert.equal(title, 'MP2FA_BROWSER_REDIRECT_PASSED');
   assert.equal(ajaxRequests, 1, 'The browser should issue one sensitive AJAX request.');
   console.log('Browser step-up redirect passed.');
 } finally {
+  socket?.close();
+  if (null === browserProcess.exitCode) {
+    const exited = once(browserProcess, 'exit');
+    browserProcess.kill();
+    await Promise.race([exited, delay(2000)]);
+  }
+  if (null === browserProcess.exitCode) {
+    const exited = once(browserProcess, 'exit');
+    browserProcess.kill('SIGKILL');
+    await Promise.race([exited, delay(2000)]);
+  }
   await new Promise((resolveClose) => server.close(resolveClose));
   await rm(profile, {recursive: true, force: true});
 }

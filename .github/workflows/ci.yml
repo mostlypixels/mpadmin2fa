@@ -159,6 +159,9 @@ jobs:
       - name: Build storefront and back-office assets
         run: |
           bash prestashop/tools/assets/build.sh front-classic --force
+          if [[ -d prestashop/themes/hummingbird ]]; then
+            bash prestashop/tools/assets/build.sh front-hummingbird --force
+          fi
           bash prestashop/tools/assets/build.sh admin-default --force
           bash prestashop/tools/assets/build.sh admin-new-theme --force
 
