@@ -70,6 +70,8 @@ Local verification used a disposable copy of PS 8.2.8, PHP 8.1.33, MySQL 5.7.44,
 - All five injected installation failures (schema, configuration, hook, tab, and access) rolled back completely; each was followed by successful reinstall and uninstall.
 - Scoped release build, package checksums, dependency isolation, 243 PHP 7.2 syntax checks across package/tests, strict Composer validation, and workflow/shell/JavaScript syntax checks passed.
 
-The CI workflow includes the new coverage on both existing lifecycle targets: PS 8.0.0 / PHP 7.2 and PS 8.2.8 / PHP 8.1. Remote validation of this expanded coverage is pending. The prior green CI baseline remains run 33896034019 at bdd0ff9; it does not validate these changes. Local installed-shop/browser evidence covers PS 8.2.8; the new PS 8.0.0 path still needs its CI run.
+[GitHub Actions run 33981604269](https://github.com/mostlypixels/mpadmin2fa/actions/runs/33981604269) passed all six jobs on commit c1e3fec86e49a4ae368b6a0fdabf2d1ee717be11. This supersedes the earlier CI baseline at bdd0ff9.
+
+Both packaged lifecycle targets, PS 8.0.0 / PHP 7.2 and PS 8.2.8 / PHP 8.1, completed 64 HTTPS checks, 21 browser checks, 2 database tests / 30 assertions, the pinned historical 0.2.7 upgrade with data-preservation and repair checks, and all five rollback/reinstallation stages. The three unit-test jobs and isolated scoped-package job also passed. No CI-specific product or harness correction was needed after local validation.
 
 The surrounding PS8 checkout remains unchanged. Existing edits to documentation/audit-fix-plan.md remain preserved and uncommitted.
