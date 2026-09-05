@@ -91,7 +91,7 @@ const profile = await mkdtemp(join(tmpdir(), 'mp2fa-browser-'));
 
 try {
   const {stdout} = await execFileAsync(browser, [
-    '--headless=new',
+    '--headless',
     '--disable-dev-shm-usage',
     '--disable-gpu',
     '--no-sandbox',

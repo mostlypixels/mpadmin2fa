@@ -92,10 +92,10 @@ jobs:
       - name: Check out the module
         uses: actions/checkout@v5
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Verify the real browser redirect listener
         run: node tests/Browser/admin_step_up_browser_test.mjs
