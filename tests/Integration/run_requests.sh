@@ -67,10 +67,20 @@ EOF
 
 setsid /usr/sbin/apache2 -f "$runtime/apache.conf" -DFOREGROUND > "$runtime/apache-output.log" 2>&1 &
 apache_pid=$!
+server_ready=false
 for attempt in $(seq 1 30); do
   if curl --silent --cacert "$runtime/server.crt" https://localhost:8443/robots.txt > /dev/null; then
+    server_ready=true
     break
   fi
   kill -0 "$apache_pid" 2>/dev/null || { cat "$runtime/apache-output.log"; exit 1; }
   sleep 1
 done
+
+if [[ "$server_ready" != true ]]; then
+  echo 'The disposable HTTPS server did not become ready.'
+  cat "$runtime/apache-output.log"
+  exit 1
+fi
+
+php "$module_root/tests/Integration/request_checks.php"
