@@ -158,6 +158,24 @@ $loginEmployee = static function (string $email, bool $secure = true) use ($requ
 $login = static function (bool $secure = true) use ($loginEmployee, $testEmail): array {
     return $loginEmployee($testEmail, $secure);
 };
+$loginToken = static function (array $response): string {
+    $query = parse_url((string) ($response['headers']['location'] ?? ''), PHP_URL_QUERY);
+    if (!is_string($query)) {
+        return '';
+    }
+
+    parse_str($query, $parameters);
+    foreach (['_token', 'token'] as $parameter) {
+        if (is_string($parameters[$parameter] ?? null) && '' !== $parameters[$parameter]) {
+            return $parameters[$parameter];
+        }
+    }
+
+    return '';
+};
+$tokenized = static function (string $path, string $token, string $parameter = '_token'): string {
+    return $path . (str_contains($path, '?') ? '&' : '?') . $parameter . '=' . rawurlencode($token);
+};
 $clearBrowserSession = static function () use ($client): void {
     curl_setopt($client, CURLOPT_COOKIELIST, 'ALL');
 };
@@ -168,8 +186,10 @@ $approvalCount = static function (int $targetEmployeeId): int {
 };
 
 $response = $loginEmployee('mp2fa-bootstrap@example.test');
-$check(302 === $response['status'], 'the first SuperAdmin can sign in before any authenticator exists');
-$bootstrapEnrollUrl = '/admin-dev/index.php/modules/mpadmin2fa/enroll?token=' . Tools::getAdminToken($bootstrapEmployeeId);
+$bootstrapToken = $loginToken($response);
+$check(302 === $response['status'] && '' !== $bootstrapToken,
+    'the first SuperAdmin can sign in and receives an authenticated URL token');
+$bootstrapEnrollUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/enroll', $bootstrapToken);
 $response = $request($bootstrapEnrollUrl);
 $bootstrapFactor = $repository->factor($bootstrapEmployeeId);
 $check(200 === $response['status'],
@@ -194,8 +214,10 @@ $repository->activateEnrollment(
 );
 
 $response = $loginEmployee('mp2fa-approval@example.test');
-$check(302 === $response['status'], 'a second SuperAdmin can sign in to request enrollment approval');
-$approvalEnrollUrl = '/admin-dev/index.php/modules/mpadmin2fa/enroll?token=' . Tools::getAdminToken($approvalEmployeeId);
+$approvalToken = $loginToken($response);
+$check(302 === $response['status'] && '' !== $approvalToken,
+    'a second SuperAdmin can sign in and receives an authenticated URL token');
+$approvalEnrollUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/enroll', $approvalToken);
 $response = $request($approvalEnrollUrl);
 $check(200 === $response['status'],
     'the second SuperAdmin enrollment page renders (HTTP ' . $response['status'] . ')');
@@ -213,14 +235,19 @@ $check(1 === $approvalCount($approvalEmployeeId),
 $clearBrowserSession();
 
 $response = $login();
-$check(302 === $response['status'], 'real password login succeeds over HTTPS');
+$adminToken = $loginToken($response);
+$check(302 === $response['status'] && '' !== $adminToken,
+    'real password login succeeds over HTTPS and returns an authenticated URL token');
 if (!empty($failures)) {
     throw new RuntimeException('Password login failed; inspect the private request-test logs.');
 }
 
-$modern = '/admin-dev/index.php/modules/mpadmin2fa/settings?token=' . Tools::getAdminToken($employeeId);
-$legacy = '/admin-dev/index.php?controller=AdminDashboard&token='
-    . Tools::getAdminToken('AdminDashboard' . (int) Tab::getIdFromClassName('AdminDashboard') . $employeeId);
+$modern = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/settings', $adminToken);
+$legacy = $tokenized(
+    '/admin-dev/index.php?controller=AdminDashboard',
+    $adminToken,
+    'token'
+);
 foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
     $response = $request($url);
     $check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
@@ -230,7 +257,7 @@ foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
         $kind . ' AJAX request is blocked until MFA verification');
 }
 
-$challengeUrl = '/admin-dev/index.php/modules/mpadmin2fa/challenge?token=' . Tools::getAdminToken($employeeId);
+$challengeUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/challenge', $adminToken);
 $response = $request($challengeUrl);
 $check(200 === $response['status'], 'the actual challenge form renders');
 $document = new DOMDocument();
@@ -266,16 +293,15 @@ foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
     $check(200 === $response['status'], $kind . ' admin read succeeds after MFA');
 }
 
-$enrollUrl = '/admin-dev/index.php/modules/mpadmin2fa/enroll?token=' . Tools::getAdminToken($employeeId);
+$enrollUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/enroll', $adminToken);
 $response = $request($enrollUrl);
 $check(302 === $response['status']
     && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/authenticator')
     && 'active' === $repository->factor($employeeId)['status'],
     'an active factor cannot bypass replacement confirmation through direct enrollment');
 
-$securityPolicy = '/admin-dev/index.php/modules/mpadmin2fa/security?token=' . Tools::getAdminToken($employeeId);
-$legacySensitive = '/admin-dev/index.php?controller=AdminModules&token='
-    . Tools::getAdminToken('AdminModules' . (int) Tab::getIdFromClassName('AdminModules') . $employeeId)
+$securityPolicy = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/security', $adminToken);
+$legacySensitive = $tokenized('/admin-dev/index.php?controller=AdminModules', $adminToken, 'token')
     . '&action=install&module_name=mp2fa_missing_request_fixture';
 $response = $request($securityPolicy, []);
 $check(200 === $response['status']
@@ -286,8 +312,8 @@ $check($response['status'] < 500
     && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
     'fresh MFA admits a legacy sensitive action using a deliberately missing module');
 
-$approvalsUrl = '/admin-dev/index.php/modules/mpadmin2fa/enrollment/pending-approvals?token='
-    . Tools::getAdminToken($employeeId);
+$approvalsUrl = $tokenized(
+    '/admin-dev/index.php/modules/mpadmin2fa/enrollment/pending-approvals', $adminToken);
 $response = $request($approvalsUrl);
 $document = new DOMDocument();
 @$document->loadHTML($response['body']);
@@ -423,13 +449,21 @@ $check(200 === $response['status'] && false !== strpos($response['body'], 'alrea
     'reusing the same authenticator code is rejected');
 
 $response = $login();
-$check(302 === $response['status'], 'a fresh password login succeeds');
+$adminToken = $loginToken($response);
+$check(302 === $response['status'] && '' !== $adminToken,
+    'a fresh password login returns a new authenticated URL token');
+$modern = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/settings', $adminToken);
+$legacy = $tokenized(
+    '/admin-dev/index.php?controller=AdminDashboard',
+    $adminToken,
+    'token'
+);
 foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
     $response = $request($url);
     $check(302 === $response['status'] && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
         $kind . ' does not reuse MFA verification from the previous login');
 }
-$response = $request('/admin-dev/logout');
+$response = $request($tokenized('/admin-dev/logout', $adminToken));
 $check($response['status'] < 400
     && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
     'native logout remains available before MFA');
@@ -447,7 +481,17 @@ $check(302 === $response['status']
 
 curl_setopt($client, CURLOPT_COOKIELIST, 'ALL');
 $response = $login();
-$check(302 === $response['status'], 'a secure password login starts the recovery scenario');
+$adminToken = $loginToken($response);
+$check(302 === $response['status'] && '' !== $adminToken,
+    'a secure password login starts recovery with an authenticated URL token');
+$modern = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/settings', $adminToken);
+$legacy = $tokenized(
+    '/admin-dev/index.php?controller=AdminDashboard',
+    $adminToken,
+    'token'
+);
+$challengeUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/challenge', $adminToken);
+$enrollUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/enroll', $adminToken);
 $response = $request($challengeUrl);
 $document = new DOMDocument();
 @$document->loadHTML($response['body']);
@@ -489,7 +533,7 @@ $response = $request($challengeUrl);
 $check(302 === $response['status']
     && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
     'the recovery-restricted session cannot return to the ordinary challenge');
-$replaceUrl = '/admin-dev/index.php/modules/mpadmin2fa/factor/replace?token=' . Tools::getAdminToken($employeeId);
+$replaceUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/factor/replace', $adminToken);
 $response = $request($replaceUrl, []);
 $check(302 === $response['status']
     && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/enroll'),
@@ -532,7 +576,7 @@ foreach (['modern' => $modern, 'legacy' => $legacy] as $kind => $url) {
     $response = $request($url);
     $check(200 === $response['status'], $kind . ' admin access resumes only after replacement activation');
 }
-$recoveryCodesUrl = '/admin-dev/index.php/modules/mpadmin2fa/recovery-codes?token=' . Tools::getAdminToken($employeeId);
+$recoveryCodesUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/recovery-codes', $adminToken);
 $response = $request($recoveryCodesUrl);
 preg_match_all('/[A-F0-9]{5}(?:-[A-F0-9]{5}){3}/', $response['body'], $newRecoveryCodes);
 $document = new DOMDocument();
