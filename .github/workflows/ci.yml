@@ -84,6 +84,21 @@ jobs:
         working-directory: prestashop/modules/mpadmin2fa
         run: composer test
 
+  browser:
+    name: Admin AJAX step-up browser redirect
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the module
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify the real browser redirect listener
+        run: node tests/Browser/admin_step_up_browser_test.mjs
   lifecycle:
     name: Packaged lifecycle and baseline requests on PS 9.0.2
     runs-on: ubuntu-latest
