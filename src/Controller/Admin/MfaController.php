@@ -433,7 +433,8 @@ final class MfaController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    // Read access reaches the audited boundary below; approval still requires native update permission.
+    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
     #[DemoRestricted(redirectRoute: 'mpadmin2fa_enrollment_approvals')]
     public function approveEnrollment(
         Request $request,

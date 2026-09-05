@@ -38,16 +38,42 @@ $repository->resetEmployee($employeeId);
 Configuration::updateValue('PS_SSL_ENABLED', 1);
 Configuration::updateValue('PS_SSL_ENABLED_EVERYWHERE', 1);
 Configuration::updateValue('PS_COOKIE_CHECKIP', 0);
+$fixtureEmployee = static function (string $email, string $firstName) use ($employeeId, $repository): int {
+    $existingId = (int) Db::getInstance()->getValue(
+        'SELECT id_employee FROM ' . _DB_PREFIX_ . 'employee WHERE email = "' . pSQL($email) . '"'
+    );
+    if ($existingId > 0) {
+        $repository->resetEmployee($existingId);
+        if (!(new Employee($existingId))->delete()) {
+            throw new RuntimeException('Could not remove an earlier disposable approval employee.');
+        }
+    }
 
-$secret = (new Mpadmin2fa\Security\TotpService())->generateSecret();
-$encrypted = $keys->encrypt($secret);
-$repository->savePendingEnrollment($employeeId, $encrypted['ciphertext'], $encrypted['key_version']);
-$recoveryCode = 'A1B2C-D3E4F-56789-ABCDE';
-$repository->activateEnrollment(
-    $employeeId,
-    (int) floor(time() / 30) - 2,
-    [password_hash($recoveryCode, PASSWORD_DEFAULT)]
-);
+    $source = new Employee($employeeId);
+    $employee = new Employee();
+    $employee->firstname = $firstName;
+    $employee->lastname = 'Request Fixture';
+    $employee->email = $email;
+    $employee->passwd = $source->passwd;
+    $employee->last_passwd_gen = $source->last_passwd_gen;
+    $employee->bo_theme = $source->bo_theme ?: 'default';
+    $employee->default_tab = $source->default_tab ?: (int) Tab::getIdFromClassName('AdminDashboard');
+    $employee->active = true;
+    $employee->id_profile = defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1;
+    $employee->id_lang = (int) Configuration::get('PS_LANG_DEFAULT');
+    $employee->bo_menu = true;
+    if (!$employee->add()) {
+        throw new RuntimeException('Could not create the disposable approval employee.');
+    }
+    Db::getInstance()->execute(
+        'INSERT IGNORE INTO ' . _DB_PREFIX_ . 'employee_shop (id_employee, id_shop) VALUES ('
+        . (int) $employee->id . ', ' . (int) Configuration::get('PS_SHOP_DEFAULT') . ')'
+    );
+
+    return (int) $employee->id;
+};
+$bootstrapEmployeeId = $fixtureEmployee('mp2fa-bootstrap@example.test', 'Bootstrap');
+$approvalEmployeeId = $fixtureEmployee('mp2fa-approval@example.test', 'Approval');
 
 $client = curl_init();
 curl_setopt_array($client, [
@@ -123,12 +149,59 @@ $totp = static function (string $totpSecret): array {
         'counter' => $counter,
     ];
 };
-$login = static function (bool $secure = true) use ($request, $testEmail, $testPassword): array {
+$loginEmployee = static function (string $email, bool $secure = true) use ($request, $testPassword): array {
     return $request('/admin-dev/login', [
-        'email' => $testEmail,
+        'email' => $email,
         'passwd' => $testPassword,
     ], false, $secure);
 };
+$login = static function (bool $secure = true) use ($loginEmployee, $testEmail): array {
+    return $loginEmployee($testEmail, $secure);
+};
+$clearBrowserSession = static function () use ($client): void {
+    curl_setopt($client, CURLOPT_COOKIELIST, 'ALL');
+};
+$approvalCount = static function (int $targetEmployeeId): int {
+    return (int) Db::getInstance()->getValue(
+        'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_approval WHERE id_employee = ' . $targetEmployeeId
+    );
+};
+
+$response = $loginEmployee('mp2fa-bootstrap@example.test');
+$check(302 === $response['status'], 'the first SuperAdmin can sign in before any authenticator exists');
+$bootstrapEnrollUrl = '/admin-dev/index.php/modules/mpadmin2fa/enroll?token=' . Tools::getAdminToken($bootstrapEmployeeId);
+$response = $request($bootstrapEnrollUrl);
+$check(200 === $response['status']
+    && false !== strpos($response['body'], 'Set up two-factor authentication')
+    && 'pending' === $repository->factor($bootstrapEmployeeId)['status']
+    && null === $repository->enrollmentApprovalStatus($bootstrapEmployeeId),
+    'the first SuperAdmin can bootstrap enrollment without approval');
+$repository->resetEmployee($bootstrapEmployeeId);
+$clearBrowserSession();
+
+$secret = (new Mpadmin2fa\Security\TotpService())->generateSecret();
+$encrypted = $keys->encrypt($secret);
+$repository->savePendingEnrollment($employeeId, $encrypted['ciphertext'], $encrypted['key_version']);
+$recoveryCode = 'A1B2C-D3E4F-56789-ABCDE';
+$repository->activateEnrollment(
+    $employeeId,
+    (int) floor(time() / 30) - 2,
+    [password_hash($recoveryCode, PASSWORD_DEFAULT)]
+);
+
+$response = $loginEmployee('mp2fa-approval@example.test');
+$check(302 === $response['status'], 'a second SuperAdmin can sign in to request enrollment approval');
+$approvalEnrollUrl = '/admin-dev/index.php/modules/mpadmin2fa/enroll?token=' . Tools::getAdminToken($approvalEmployeeId);
+$response = $request($approvalEnrollUrl);
+$check(200 === $response['status']
+    && false !== strpos($response['body'], 'Waiting for approval')
+    && null === $repository->factor($approvalEmployeeId)
+    && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
+    'a second SuperAdmin is held at the approval boundary before a secret is created');
+$response = $request($approvalEnrollUrl);
+$check(200 === $response['status'] && 1 === $approvalCount($approvalEmployeeId),
+    'rechecking a pending enrollment does not create duplicate approval requests');
+$clearBrowserSession();
 
 $response = $login();
 $check(302 === $response['status'], 'real password login succeeds over HTTPS');
@@ -204,6 +277,23 @@ $check($response['status'] < 500
     && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
     'fresh MFA admits a legacy sensitive action using a deliberately missing module');
 
+$approvalsUrl = '/admin-dev/index.php/modules/mpadmin2fa/enrollment/pending-approvals?token='
+    . Tools::getAdminToken($employeeId);
+$response = $request($approvalsUrl);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$approvalActionUrl = $xpath->evaluate(
+    'string(//a[contains(@data-url, "/employees/' . $approvalEmployeeId . '/approve")]/@data-url)'
+);
+$check(200 === $response['status']
+    && '' !== $approvalActionUrl
+    && false !== strpos($response['body'], 'mp2fa-approval@example.test'),
+    'a verified SuperAdmin with native read and update access sees the pending approval action');
+if ('' === $approvalActionUrl) {
+    throw new RuntimeException('Approval action rendering failed; inspect the private request-test logs.');
+}
+
 Configuration::updateValue('MP2FA_STEP_UP_SECONDS', 60);
 echo 'Waiting for the configured step-up window to expire.' . PHP_EOL;
 sleep(61);
@@ -214,6 +304,12 @@ foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null
         && false !== strpos($response['headers']['location'] ?? '', 'step_up=1'),
         'expired MFA blocks the ' . $kind . ' sensitive action with a step-up challenge');
 }
+$response = $request($approvalActionUrl, []);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge')
+    && false !== strpos($response['headers']['location'] ?? '', 'step_up=1')
+    && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
+    'expired MFA cannot approve enrollment and requires a fresh step-up');
 $response = $request($securityPolicy, [], true);
 $check(403 === $response['status']
     && false !== strpos($response['headers']['x-mpadmin2fa-redirect'] ?? '', '/mpadmin2fa/challenge')
@@ -244,6 +340,70 @@ foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null
         && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
         'fresh step-up admits the ' . $kind . ' sensitive action without performing a real mutation');
 }
+
+$response = $request($approvalActionUrl, ['mp2fa_csrf_token' => 'invalid']);
+$check(302 === $response['status']
+    && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
+    'invalid CSRF cannot approve a pending enrollment');
+
+$access = new Access();
+$superAdminProfileId = defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1;
+$enrollmentTabId = (int) Tab::getIdFromClassName('AdminMpAdmin2faEnrollment');
+$deniedAuditBefore = (int) Db::getInstance()->getValue(
+    'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_audit'
+    . ' WHERE event = "enrollment.approval_denied"'
+    . ' AND metadata_json LIKE "%Native update permission is required%"'
+);
+if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'edit', false, false)) {
+    throw new RuntimeException('Could not remove the disposable native update permission.');
+}
+try {
+    $response = $request($approvalActionUrl, []);
+} finally {
+    if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'edit', true, false)) {
+        throw new RuntimeException('Could not restore the native update permission.');
+    }
+}
+$deniedAuditAfter = (int) Db::getInstance()->getValue(
+    'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_audit'
+    . ' WHERE event = "enrollment.approval_denied"'
+    . ' AND metadata_json LIKE "%Native update permission is required%"'
+);
+$check(302 === $response['status']
+    && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId)
+    && $deniedAuditAfter > $deniedAuditBefore,
+    'a SuperAdmin without native update permission cannot approve and the denial is audited');
+
+$approvalAuditBefore = (int) Db::getInstance()->getValue(
+    'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_audit WHERE event = "enrollment.approval_denied"'
+);
+if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'view', false, false)) {
+    throw new RuntimeException('Could not remove the disposable native read permission.');
+}
+try {
+    $response = $request($approvalActionUrl, []);
+} finally {
+    if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'view', true, false)) {
+        throw new RuntimeException('Could not restore the native read permission.');
+    }
+}
+$approvalAuditAfter = (int) Db::getInstance()->getValue(
+    'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_audit WHERE event = "enrollment.approval_denied"'
+);
+$check(302 === $response['status']
+    && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId)
+    && $approvalAuditAfter === $approvalAuditBefore,
+    'native read denial blocks approval before the module controller runs');
+
+$response = $request($approvalActionUrl, []);
+$approval = Db::getInstance()->getRow(
+    'SELECT status, approved_by FROM ' . _DB_PREFIX_ . 'mp2fa_approval'
+    . ' WHERE id_employee = ' . $approvalEmployeeId . ' ORDER BY id_approval DESC'
+);
+$check(302 === $response['status']
+    && 'approved' === ($approval['status'] ?? null)
+    && $employeeId === (int) ($approval['approved_by'] ?? 0),
+    'a freshly verified SuperAdmin with native read and update permission approves the request');
 
 $response = $request($challengeUrl, ['one_time_code' => [
     'code' => $authenticator['code'],
