@@ -100,8 +100,16 @@ jobs:
       - name: Verify the real browser redirect listener
         run: node tests/Browser/admin_step_up_browser_test.mjs
   lifecycle:
-    name: Packaged lifecycle and baseline requests on PS 9.0.2
+    name: Packaged lifecycle and requests on PS ${{ matrix.prestashop }} / PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - prestashop: 9.0.0
+            php: '8.1'
+          - prestashop: 9.1.5
+            php: '8.4'
     services:
       mysql:
         image: mysql:8.0
@@ -124,19 +132,19 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: PrestaShop/PrestaShop
-          ref: 9.0.2
+          ref: ${{ matrix.prestashop }}
           path: prestashop
 
-      - name: Set up PHP 8.1
+      - name: Set up PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: ${{ matrix.php }}
           extensions: gd, intl, mbstring, mysqli, pdo_mysql, zip
           tools: composer:v2
           coverage: none
 
       - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
 
@@ -195,13 +203,13 @@ jobs:
         run: |
           sudo add-apt-repository --yes ppa:ondrej/php
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php8.1
+          sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php${{ matrix.php }}
 
       - name: Verify real HTTPS login and MFA requests
         env:
           MP2FA_INTEGRATION: '1'
           MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop
-          MP2FA_APACHE_PHP_MODULE: /usr/lib/apache2/modules/libphp8.1.so
+          MP2FA_APACHE_PHP_MODULE: /usr/lib/apache2/modules/libphp${{ matrix.php }}.so
         run: bash tests/Integration/run_requests.sh
 
       - name: Verify tab-stage failure rollback
