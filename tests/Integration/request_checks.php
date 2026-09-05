@@ -171,11 +171,15 @@ $response = $loginEmployee('mp2fa-bootstrap@example.test');
 $check(302 === $response['status'], 'the first SuperAdmin can sign in before any authenticator exists');
 $bootstrapEnrollUrl = '/admin-dev/index.php/modules/mpadmin2fa/enroll?token=' . Tools::getAdminToken($bootstrapEmployeeId);
 $response = $request($bootstrapEnrollUrl);
-$check(200 === $response['status']
-    && false !== strpos($response['body'], 'Set up two-factor authentication')
-    && 'pending' === $repository->factor($bootstrapEmployeeId)['status']
-    && null === $repository->enrollmentApprovalStatus($bootstrapEmployeeId),
-    'the first SuperAdmin can bootstrap enrollment without approval');
+$bootstrapFactor = $repository->factor($bootstrapEmployeeId);
+$check(200 === $response['status'],
+    'the first SuperAdmin enrollment page renders (HTTP ' . $response['status'] . ')');
+$check(false !== strpos($response['body'], 'Set up two-factor authentication'),
+    'the first SuperAdmin receives the authenticator setup form');
+$check('pending' === ($bootstrapFactor['status'] ?? null),
+    'the first SuperAdmin enrollment creates a pending factor');
+$check(null === $repository->enrollmentApprovalStatus($bootstrapEmployeeId),
+    'the first SuperAdmin bootstrap does not create an approval request');
 $repository->resetEmployee($bootstrapEmployeeId);
 $clearBrowserSession();
 
@@ -193,14 +197,19 @@ $response = $loginEmployee('mp2fa-approval@example.test');
 $check(302 === $response['status'], 'a second SuperAdmin can sign in to request enrollment approval');
 $approvalEnrollUrl = '/admin-dev/index.php/modules/mpadmin2fa/enroll?token=' . Tools::getAdminToken($approvalEmployeeId);
 $response = $request($approvalEnrollUrl);
-$check(200 === $response['status']
-    && false !== strpos($response['body'], 'Waiting for approval')
-    && null === $repository->factor($approvalEmployeeId)
-    && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
-    'a second SuperAdmin is held at the approval boundary before a secret is created');
+$check(200 === $response['status'],
+    'the second SuperAdmin enrollment page renders (HTTP ' . $response['status'] . ')');
+$check(false !== strpos($response['body'], 'Waiting for approval'),
+    'the second SuperAdmin sees the pending-approval state');
+$check(null === $repository->factor($approvalEmployeeId),
+    'the second SuperAdmin receives no secret before approval');
+$check('pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
+    'the second SuperAdmin creates a pending approval request');
 $response = $request($approvalEnrollUrl);
-$check(200 === $response['status'] && 1 === $approvalCount($approvalEmployeeId),
-    'rechecking a pending enrollment does not create duplicate approval requests');
+$check(200 === $response['status'],
+    'the pending approval page can be rechecked (HTTP ' . $response['status'] . ')');
+$check(1 === $approvalCount($approvalEmployeeId),
+    'rechecking enrollment does not create duplicate approval requests');
 $clearBrowserSession();
 
 $response = $login();
