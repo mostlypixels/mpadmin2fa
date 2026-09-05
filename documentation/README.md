@@ -8,11 +8,11 @@ Use this folder to understand, test, and release the module.
 | --- | --- |
 | **Git branch** | `main` |
 | **Module releases** | 3.x |
-| **PrestaShop** | 9.0 through 9.2 |
+| **PrestaShop** | 9.0 through 9.1 |
 | **PHP in the shop** | 8.1 through 8.5 |
 | **PHP used to build a ZIP** | 8.1 through 8.4 |
 
-**Important:** PrestaShop 9.0 supports PHP through 8.4. PrestaShop 9.1 also supports PHP 8.5. Test the final 9.2 release before publishing that claim.
+**Important:** PrestaShop 9.2 is a provisional target, not a supported release. Add it only after a final 9.2 tag passes the complete installed-package matrix.
 
 ## Find the right page
 

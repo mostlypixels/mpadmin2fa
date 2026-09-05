@@ -4,14 +4,25 @@
 
 | Test | PrestaShop | PHP | Why it matters |
 | --- | --- | --- | --- |
-| **Lowest runtime** | 9.0 | 8.1 | Protects shops on the oldest supported PHP. |
-| **Highest 9.0 runtime** | 9.0 | 8.4 | Checks the top of the 9.0 range. |
-| **Highest current runtime** | 9.1 | 8.5 | Checks the newest supported PHP. |
-| **Future declared line** | 9.2 | Official range | Must pass before publishing a 9.2 claim. |
+| **Lowest runtime** | 9.0.0 | 8.1 | Protects shops on the oldest supported PHP. |
+| **Highest 9.0 runtime** | 9.0.3 | 8.4 | Checks the top of the 9.0 range. |
+| **Highest stable runtime** | 9.1.5 | 8.5 | Checks the newest supported PHP. |
+| **Future target** | Final 9.2 tag | Official range | Must pass before publishing a 9.2 claim. |
 
-**Important:** PrestaShop 9.0 supports PHP through 8.4. PrestaShop 9.1 also supports PHP 8.5. Test the final 9.2 release before publishing that claim.
+**Important:** As of 2026-09-05, upstream has published only the [9.2.0-beta.1 prerelease](https://github.com/PrestaShop/PrestaShop/releases/tag/9.2.0-beta.1). The module's supported maximum remains 9.1.99 until a final 9.2 tag passes this matrix.
 
 **Build ZIP files with PHP 8.1 through 8.4.** The build tool does not support PHP 8.5.
+
+## Automated installed-package rows
+
+| PrestaShop | PHP | Coverage |
+| --- | --- | --- |
+| 9.0.0 | 8.1 | Built package install, upgrade, atomic database checks, 64 HTTPS requests, injected rollback, and uninstall. |
+| 9.1.5 | 8.4 | Built package install, upgrade, atomic database checks, 64 HTTPS requests, injected rollback, and uninstall. |
+
+The ordinary compatibility jobs also cover 9.0.3/PHP 8.4 and 9.1.5/PHP 8.5. A real headless Chromium job verifies the AJAX step-up redirect listener independently.
+
+The final 9.2 row is intentionally absent. Do not substitute a beta or development branch for final-release evidence.
 
 ## Local Docker shop
 

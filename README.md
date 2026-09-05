@@ -6,7 +6,8 @@
 Admin 2FA gives time-based one-time password protection to PrestaShop back-office employees.
 It also requires a recent code before an employee changes modules, themes, or module security settings.
 
-This branch supports 9.0 through 9.2 and PHP 8.1 through 8.5.
+Validated stable support covers PrestaShop 9.0 through 9.1 and PHP 8.1 through 8.5.
+PrestaShop 9.2 remains a provisional target until its final release passes the complete matrix.
 
 Start with the [documentation index](documentation/README.md).
 Read [SECURITY.md](SECURITY.md) to report a security problem.
@@ -23,7 +24,7 @@ php bin/console prestashop:module install mpadmin2fa
 
 ## Requirements
 
-- PrestaShop 9.0 through 9.2
+- PrestaShop 9.0 through 9.1
 - PHP 8.1 through 8.5
 - HTTPS for authenticator enrollment
 

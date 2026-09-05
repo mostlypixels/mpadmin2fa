@@ -66,11 +66,42 @@ Current verdict: **the blocking code findings are remediated and the locally bui
 - A final clean install/uninstall left no module record, tables, tabs, authorization roles, or MP2FA_* configuration.
 - The surrounding prestashop/prestashop checkout was mounted read-only for ordinary tests or copied into disposable Docker volumes for destructive tests. Its existing files were not edited.
 
-### Remaining follow-up
+### Remaining follow-up recorded on 2026-09-01
 
 - Run the new GitHub Actions workflow from a clean pushed branch and retain the job result as release evidence.
 - Add request-level tests that execute equivalent modern and legacy admin requests, including JavaScript-disabled flows, instead of relying only on policy vectors, service compilation, and lifecycle checks.
 - Add a final PS 9.2 CI row when the exact supported final tag is selected; do not infer 9.2 coverage solely from the current version constraint.
+
+## Remediation validation — 2026-09-05
+
+Validated commit: `edcf4b7` (`main`) in GitHub Actions run [33954357388](https://github.com/mostlypixels/mpadmin2fa/actions/runs/33954357388).
+
+Current verdict: **the PS 9 security and lifecycle findings are remediated, and the exact scoped package passes the complete installed-shop matrix across every currently supported stable minor. PrestaShop 9.2 remains an external release gate because no final 9.2 tag exists.**
+
+| Area | Final status | Validation result |
+|---|---|---|
+| Shared policy and legacy enforcement | Complete | Modern Symfony and legacy dispatcher requests use one access policy. Both installed rows execute equivalent protected requests with JavaScript disabled. |
+| Atomic rate limiting | Complete | The MySQL-backed concurrency suite passes after upgrade on both stable endpoint shops. |
+| SuperAdmin approval | Complete | Live requests cover first-SuperAdmin bootstrap, second-SuperAdmin pending approval, CSRF, native permissions, audited denial, stale step-up, and final approval. |
+| Request and recovery lifecycle | Complete | Each installed shop passes 64 HTTPS checks covering login, TOTP, replay rejection, modern/legacy enforcement, step-up expiry, logout, recovery restriction, replacement, and one-time recovery-code display. |
+| Browser behavior | Complete | A real headless Chromium session verifies the AJAX step-up response header redirects through the production listener, including duplicate script loading without duplicate requests. |
+| Package lifecycle | Complete for stable 9.0–9.1 | The scoped package installs, compiles, upgrades from the 0.2.7 fixture, rolls back an injected tab failure, reinstalls, uninstalls, and leaves no residual module state on PS 9.0.0/PHP 8.1 and PS 9.1.5/PHP 8.4. |
+| Compatibility | Complete for stable 9.0–9.1 | Additional jobs pass on PS 9.0.3/PHP 8.4 and PS 9.1.5/PHP 8.5. The supported maximum is now 9.1.99 so an untested prerelease is not presented as supported. |
+| PrestaShop 9.2 | Blocked by upstream release state | As of 2026-09-05, the only official 9.2 tag is [9.2.0-beta.1](https://github.com/PrestaShop/PrestaShop/releases/tag/9.2.0-beta.1). Add a final-tag installed lifecycle row and raise the maximum only after that row passes. |
+
+### Final CI evidence
+
+- Run 33954357388 passed all four source compatibility jobs, the real-browser job, and both packaged lifecycle jobs.
+- The two installed rows executed 128 live HTTPS/MFA checks in total.
+- Both rows installed the locally built scoped package rather than a source-tree copy.
+- Both rows compiled the production container, enumerated module routes and commands, ran the upgrade and atomic database checks, proved injected failure rollback, and verified uninstall cleanup.
+- CI credentials are generated uniquely per run, masked immediately, and never stored in the repository.
+- The surrounding `prestashop/prestashop` checkout was not modified by this remediation.
+
+### Remaining external gate
+
+- When PrestaShop publishes a final 9.2 tag, select the exact supported tag and PHP runtime, add it to both the source and installed-package matrices, run the complete lifecycle, then restore the documented 9.2 support range.
+- Do not use `9.2.0-beta.1` or a development branch as final-release compatibility evidence.
 
 ## Objectives
 

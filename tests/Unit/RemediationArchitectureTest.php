@@ -37,4 +37,14 @@ final class RemediationArchitectureTest extends TestCase
         self::assertStringContainsString('function reconcileAdminTabs(): bool', $module);
         self::assertStringContainsString('$module->reconcileAdminTabs()', $upgrade);
     }
+
+    public function testCompatibilityStopsAtLatestValidatedStableMinor(): void
+    {
+        $module = (string) file_get_contents(dirname(__DIR__, 2) . '/mpadmin2fa.php');
+
+        self::assertStringContainsString(
+            "['min' => '9.0.0', 'max' => '9.1.99']",
+            $module
+        );
+    }
 }
