@@ -99,6 +99,17 @@ foreach (phpFiles($releaseRoot) as $file) {
     }
 }
 
+// Dependency archives can contain CI metadata that artifact uploaders omit.
+// Remove it before checksumming so every delivered file has a matching manifest.
+foreach (new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($releaseRoot, FilesystemIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::CHILD_FIRST
+) as $item) {
+    if ($item->isDir() && in_array($item->getFilename(), ['.git', '.github'], true)) {
+        removeTree($item->getPathname());
+    }
+}
+
 $checksums = [];
 foreach (allFiles($releaseRoot) as $file) {
     $relative = substr($file, strlen($releaseRoot) + 1);
