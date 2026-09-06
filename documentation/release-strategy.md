@@ -10,7 +10,7 @@
 | **First public version** | `2.0.0` |
 | **Build PHP** | 8.1 through 8.4 |
 
-The current `0.x` version is for development. Never reuse the same tag on another branch.
+The PS8 candidate is public tag v2.0.0-rc.1 with internal module version 2.0.0rc1. PrestaShop 8 stores module versions in a VARCHAR(8) field; the release builder validates this explicit RC mapping. Stable versions have no suffix. Tags remain unique to their release line.
 
 ## Choose the version number
 
@@ -35,18 +35,18 @@ The current `0.x` version is for development. Never reuse the same tag on anothe
 
 ## Build the ZIP
 
-The tag text must match the module version:
+The release builder validates the tag against the internal module version. For the current RC:
 
 ```bash
-php tools/release.php v2.0.0
+php tools/release.php v2.0.0-rc.1
 ```
 
-The command validates Composer data, runs tests, builds scoped dependencies, and writes two files to `dist/`:
+Run the command from a clean module checkout placed at modules/mpadmin2fa inside an isolated PrestaShop checkout with its Composer dependencies installed. The command installs module and separate build-tool dependencies, validates Composer data, runs tests, builds scoped dependencies, and writes two files to `dist/`:
 
 | File | Purpose |
 | --- | --- |
-| `mpadmin2fa-v2.0.0.zip` | Installable module package. |
-| `mpadmin2fa-v2.0.0.zip.sha256` | File-integrity checksum. |
+| `mpadmin2fa-v2.0.0-rc.1.zip` | Installable module package. |
+| `mpadmin2fa-v2.0.0-rc.1.zip.sha256` | File-integrity checksum. |
 
 The command **does not publish anything**.
 
@@ -56,20 +56,21 @@ Before publication, confirm that:
 
 - every path starts with `mpadmin2fa/`;
 - `mpadmin2fa.php`, `vendor-scoped/autoload.php`, `SBOM.json`, and `SHA256SUMS` exist;
-- `documentation/`, `docs/`, `tests/`, `tools/`, and normal `vendor/` do not exist;
+- documentation/, docs/, tests/, tools/, node_modules/, and the PrestaShop source checkout are absent;
+- vendor/ contains only the exact vendor/autoload.php bridge to vendor-scoped/autoload.php; all real dependencies are scoped;
 - this exact ZIP installs on a clean PrestaShop 8 shop.
 
 ## Publish safely
 
 > [!WARNING]
-> Pushing a `v*` tag starts the publication workflow.
+> Pushing a v2.* tag starts validation and then publication.
 
 1. Push `2.x-ps8` **without tags**.
 2. Review the remote commit.
 3. Create one annotated `v2.*` tag on that commit.
 4. Inspect the tag and its changes.
 5. Push **only that tag**.
-6. Check the publication workflow.
+6. Check the publication workflow. It calls the same six-job CI workflow, including both lifecycle targets installing the exact uploaded ZIP. Publication waits for every job to pass and downloads that validated artifact without rebuilding it.
 7. Download the published ZIP and compare its SHA-256 value.
 
 **Never use** `git push --tags` or `git push --follow-tags` for this release.
@@ -77,3 +78,11 @@ Before publication, confirm that:
 ## Backport a fix
 
 Move only the required fix commits to `2.x-ps8`. Adapt them for Symfony 4.4 and PHP 7.2.5 through 8.1, then run this branch's complete compatibility matrix.
+
+## Development upgrades and RC preparation
+
+The RC includes upgrade-2.0.0rc1.php. PS8 splits migration filenames on a hyphen, so a filename containing the public tag suffix would be ignored. This migration reuses the idempotent 0.2.8 repair and therefore covers development installations already reporting 0.2.8.
+
+CI builds both historical source packages from pinned commits and tests 0.2.7 -> RC and 0.2.7 -> 0.2.8 -> RC. Native installation and upgrade must retain the complete internal RC version in the database. Neither historical path simulates installed-version metadata.
+
+Branch CI produces the same candidate ZIP artifact as tag validation. An RC ZIP may be downloaded for review without creating a tag or publishing a release. A fresh review across the concurrently developed module branches is recorded separately in the handoff.

@@ -29,10 +29,12 @@ Confirm that it does **not** contain:
 
 - `documentation/` or `docs/`;
 - `tests/` or `tools/`;
-- an unscoped `vendor/` directory.
+- unscoped dependency files under vendor/. The sole allowed file there is the required autoload.php bridge to vendor-scoped/autoload.php.
 
 ## When to run the full matrix
 
 Run every endpoint after a **dependency change**, **framework adapter change**, or **supported-version change**.
 
 Do not raise the minimum PHP version only because a development computer uses a newer version. Create another compatibility branch when one safe code line cannot support both ends of the range.
+
+The release pipeline builds a ZIP once and both lifecycle endpoints install that artifact. Tag publication reuses the same validation workflow and publishes the validated ZIP without rebuilding it.

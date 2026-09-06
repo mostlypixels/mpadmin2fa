@@ -24,6 +24,7 @@ copyTree($moduleRoot, $stageRoot, [
     '.phpunit.cache',
     '.phpunit.result.cache',
     'build',
+    'config.xml',
     'dist',
     'docs',
     'documentation',

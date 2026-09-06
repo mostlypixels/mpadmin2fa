@@ -18,18 +18,29 @@ export MP2FA_UPGRADE_SNAPSHOT="$runtime/snapshot.json"
 cp -a "$installed" "$runtime/current"
 (cd "$runtime/current" && sha256sum --check --quiet SHA256SUMS)
 (cd "$MP2FA_HISTORICAL_OUTPUT" && sha256sum --check --quiet mpadmin2fa-0.2.7.zip.sha256)
-[[ "$(cat "$MP2FA_HISTORICAL_OUTPUT/SOURCE_COMMIT")" == 9334de7296f98d4248af4b7b541038ad34da22cc ]]
+[[ "$(cat "$MP2FA_HISTORICAL_OUTPUT/SOURCE_COMMIT-0.2.7")" == 9334de7296f98d4248af4b7b541038ad34da22cc ]]
 restore_package() {
   # Resolved above: only the separate disposable shop's module is replaced.
   rm -rf -- "$installed"
   cp -a "$runtime/current" "$installed"
 }
 trap restore_package EXIT
+(cd "$MP2FA_HISTORICAL_OUTPUT" && sha256sum --check --quiet mpadmin2fa-0.2.8.zip.sha256)
+[[ "$(cat "$MP2FA_HISTORICAL_OUTPUT/SOURCE_COMMIT-0.2.8")" == bdd0ff970b327f8fea2c07eef6e5573e8fc33bf9 ]]
+for origin in direct via-0.2.8; do
 state verify-cleanup
 rm -rf -- "$installed"
 unzip -q "$MP2FA_HISTORICAL_OUTPUT/mpadmin2fa-0.2.7.zip" -d "$shop/modules"
 module install
 php "$module_root/tests/Integration/historical_upgrade_state.php" snapshot
+if [[ "$origin" == via-0.2.8 ]]; then
+  rm -rf -- "$installed"
+  unzip -q "$MP2FA_HISTORICAL_OUTPUT/mpadmin2fa-0.2.8.zip" -d "$shop/modules"
+  php "$shop/bin/console" cache:clear --env=prod --no-warmup
+  php "$shop/bin/console" cache:clear --env=dev --no-warmup
+  module upgrade
+  php "$module_root/tests/Integration/historical_upgrade_state.php" verify-development
+fi
 restore_package
 php "$shop/bin/console" cache:clear --env=prod --no-warmup
 php "$shop/bin/console" cache:clear --env=dev --no-warmup
@@ -41,4 +52,5 @@ php "$module_root/tests/Integration/historical_upgrade_state.php" repeat
 state verify-install
 module uninstall
 state verify-cleanup
-echo 'Historical 0.2.7 package upgrade and cleanup passed.'
+echo "Historical package upgrade ($origin) and cleanup passed."
+done

@@ -65,7 +65,7 @@ final class RemediationArchitectureTest extends TestCase
     public function testReleasePackageRejectsPhpUnitCache(): void
     {
         $build = (string) file_get_contents(dirname(__DIR__, 2) . '/tools/build-scoped.php');
-        $release = (string) file_get_contents(dirname(__DIR__, 2) . '/tools/release.php');
+        $release = (string) file_get_contents(dirname(__DIR__, 2) . '/tools/ReleaseArchive.php');
 
         self::assertStringContainsString("'.phpunit.result.cache'", $build);
         self::assertStringContainsString("'.phpunit.result.cache'", $release);

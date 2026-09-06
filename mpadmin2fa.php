@@ -39,7 +39,7 @@ class Mpadmin2fa extends Module
     {
         $this->name = 'mpadmin2fa';
         $this->tab = 'administration';
-        $this->version = '0.2.8';
+        $this->version = '2.0.0rc1';
         $this->author = 'A vibe coder';
         $this->need_instance = 0;
         $this->bootstrap = true;

@@ -9,11 +9,17 @@ output="$(realpath -m "$MP2FA_HISTORICAL_OUTPUT")"
 case "$output/" in "$module_root/"*) echo 'Historical output must be outside the module source'; exit 1;; esac
 mkdir -p "$output"
 [[ ! -e "$output/mpadmin2fa" ]] || { echo 'Historical output already exists'; exit 1; }
-mkdir "$output/mpadmin2fa"
-git -C "$module_root" archive "$revision" | tar -x -C "$output/mpadmin2fa"
-# Use the historical production lock; do not run today's scoper on old code.
-composer install --working-dir="$output/mpadmin2fa" --no-dev --prefer-dist --no-interaction --no-progress
-printf '%s\n' "$revision" > "$output/SOURCE_COMMIT"
-(cd "$output" && zip -qr mpadmin2fa-0.2.7.zip mpadmin2fa)
-(cd "$output" && sha256sum mpadmin2fa-0.2.7.zip > mpadmin2fa-0.2.7.zip.sha256)
-echo "Historical 0.2.7 package built from $revision"
+build_origin() {
+  local version="$1" revision="$2"
+  local stage="$output/source-$version"
+  mkdir -p "$stage/mpadmin2fa"
+  git -C "$module_root" archive "$revision" | tar -x -C "$stage/mpadmin2fa"
+  composer install --working-dir="$stage/mpadmin2fa" --no-dev --prefer-dist --no-interaction --no-progress
+  printf '%s\n' "$revision" > "$output/SOURCE_COMMIT-$version"
+  (cd "$stage" && zip -qr "$output/mpadmin2fa-$version.zip" mpadmin2fa)
+  (cd "$output" && sha256sum "mpadmin2fa-$version.zip" > "mpadmin2fa-$version.zip.sha256")
+  echo "Historical $version package built from $revision"
+}
+[[ ! -e "$output/source-0.2.7" && ! -e "$output/source-0.2.8" ]] || { echo 'Historical output already exists'; exit 1; }
+build_origin 0.2.7 "$revision"
+build_origin 0.2.8 bdd0ff970b327f8fea2c07eef6e5573e8fc33bf9

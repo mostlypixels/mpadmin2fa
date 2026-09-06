@@ -46,7 +46,7 @@ The build contains an SBOM and SHA-256 checksums.
 
 Read the [release guide](documentation/release-strategy.md) before you change a version or push a tag.
 A branch push does not create a release.
-A valid `v*` tag starts the publication workflow.
+A valid PS8 v2.* tag starts the validation and publication workflow. The current candidate tag is v2.0.0-rc.1 (internal module version 2.0.0rc1); no tag is needed to build its ZIP.
 
 Make and verify a package without publication:
 

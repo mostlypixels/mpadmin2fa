@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 const MODULE_NAME = 'mpadmin2fa';
 
+require_once __DIR__ . '/ReleaseArchive.php';
+require_once __DIR__ . '/ReleaseVersion.php';
+
 $root = dirname(__DIR__);
-$tag = $argv[1] ?? getenv('GITHUB_REF_NAME') ?: '';
-if (!preg_match('/^v(?<version>[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$/', $tag, $matches)) {
-    throw new RuntimeException('Release tag must use v1.2.3 or v1.2.3-rc.1.');
-}
-$version = $matches['version'];
+$tag = ($argv[1] ?? '') ?: Mpadmin2faBuild\ReleaseVersion::tagForModuleVersion(moduleVersion($root . '/mpadmin2fa.php'));
+$version = Mpadmin2faBuild\ReleaseVersion::moduleVersionForTag($tag);
 if ($version !== moduleVersion($root . '/mpadmin2fa.php')) {
     throw new RuntimeException(sprintf('Tag %s does not match the module version.', $tag));
 }
@@ -17,7 +17,11 @@ if ($version !== moduleVersion($root . '/mpadmin2fa.php')) {
 $composer = getenv('COMPOSER_BINARY') ?: 'composer';
 run([$composer, 'validate', '--strict'], $root);
 run([$composer, 'install', '--prefer-dist', '--no-interaction', '--no-progress'], $root);
+if (!is_file(dirname($root, 2) . '/vendor/autoload.php')) {
+    throw new RuntimeException('Run the release builder inside an isolated PrestaShop modules/mpadmin2fa checkout with its dependencies installed.');
+}
 run([$composer, 'test'], $root);
+run([$composer, 'build:tools'], $root);
 run([PHP_BINARY, $root . '/tools/build-scoped.php'], $root);
 
 $releaseRoot = $root . '/build/' . MODULE_NAME;
@@ -170,33 +174,5 @@ function setMetadata(ZipArchive $zip, string $entry, int $timestamp, int $mode):
 
 function verifyArchive(string $archivePath): void
 {
-    $zip = new ZipArchive();
-    if (true !== $zip->open($archivePath)) {
-        throw new RuntimeException('Unable to reopen the release archive.');
-    }
-    $entries = [];
-    for ($index = 0; $index < $zip->numFiles; ++$index) {
-        $entry = $zip->getNameIndex($index);
-        if (false === $entry || 0 !== strpos($entry, MODULE_NAME . '/')) {
-            throw new RuntimeException('Every archive entry must be inside mpadmin2fa/.');
-        }
-        $relative = substr($entry, strlen(MODULE_NAME) + 1);
-        foreach (['.git', '.github/', '.phpunit.result.cache', 'build/', 'dist/', 'docs/', 'documentation/', 'tests/', 'tools/', 'vendor/'] as $forbidden) {
-            if (0 === strpos($relative, $forbidden)) {
-                throw new RuntimeException(sprintf('Development-only path found: %s', $entry));
-            }
-        }
-        $entries[$entry] = true;
-    }
-    foreach ([
-        MODULE_NAME . '/mpadmin2fa.php',
-        MODULE_NAME . '/vendor-scoped/autoload.php',
-        MODULE_NAME . '/SBOM.json',
-        MODULE_NAME . '/SHA256SUMS',
-    ] as $required) {
-        if (!isset($entries[$required])) {
-            throw new RuntimeException(sprintf('Required release file missing: %s', $required));
-        }
-    }
-    $zip->close();
+    Mpadmin2faBuild\ReleaseArchive::verify($archivePath);
 }
