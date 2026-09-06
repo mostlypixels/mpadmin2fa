@@ -155,6 +155,12 @@ jobs:
           name: mpadmin2fa-ps17-package
           path: prestashop/modules/mpadmin2fa
 
+      - name: Generate disposable test credentials
+        run: |
+          test_password="$(openssl rand -hex 24)"
+          echo "::add-mask::$test_password"
+          printf 'MP2FA_TEST_PASSWORD=%s\n' "$test_password" >> "$GITHUB_ENV"
+
       - name: Install PrestaShop
         run: |
           php prestashop/install-dev/index_cli.php \
@@ -167,7 +173,7 @@ jobs:
             --language=en \
             --country=fr \
             --email=demo@prestashop.com \
-            --password=Pr3st4Sh0P \
+            --password="$MP2FA_TEST_PASSWORD" \
             --ssl=0
 
       - name: Install and compile the packaged module

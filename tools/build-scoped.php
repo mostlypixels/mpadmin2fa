@@ -18,10 +18,16 @@ if (dirname($buildRoot) !== $moduleRoot || 'build' !== basename($buildRoot)) {
 removeTree($buildRoot);
 mkdir($stageRoot, 0775, true);
 copyTree($moduleRoot, $stageRoot, [
+    '.ai',
+    '.agents',
+    '.claude',
+    '.codex',
+    'AGENTS.md',
     '.git',
     '.github',
     '.gitignore',
     '.phpunit.cache',
+    '.phpunit.result.cache',
     'build',
     'dist',
     'docs',
@@ -29,6 +35,7 @@ copyTree($moduleRoot, $stageRoot, [
     'NUL',
     'php-scoper.inc.php',
     'phpunit.xml.dist',
+    'prestashop',
     'tests',
     'tools',
     'vendor',
