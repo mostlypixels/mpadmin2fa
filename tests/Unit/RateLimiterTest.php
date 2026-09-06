@@ -20,6 +20,20 @@ final class RateLimiterTest extends TestCase
         self::assertSame([2, 2], array_values($counter->counts));
     }
 
+    public function testUtcBlocksRemainEffectiveInTheShopTimezone(): void
+    {
+        $previousTimezone = date_default_timezone_get();
+        try {
+            date_default_timezone_set('Europe/Brussels');
+            $repository = $this->createMock(FailureCounterInterface::class);
+            $repository->method('rateLimit')->willReturn(['blocked_until' => gmdate('Y-m-d H:i:s', time() + 60)]);
+            $this->expectException(\RuntimeException::class);
+            (new RateLimiter($repository))->assertAllowed('challenge', 42, '127.0.0.1');
+        } finally {
+            date_default_timezone_set($previousTimezone);
+        }
+    }
+
     public function testSuccessClearsEverySubject(): void
     {
         $counter = new InMemoryFailureCounter();

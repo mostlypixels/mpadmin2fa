@@ -53,9 +53,11 @@ final class AdminTabLifecycle
     public function remove(string $moduleName, array $declaredTabs): bool
     {
         $tabIds = [];
+        $cleaned = true;
         try {
             $definitions = (new AdminTabHierarchy())->buildUpgradeDefinitions($declaredTabs);
             foreach (array_reverse($definitions) as $definition) {
+                $cleaned = $this->removeAccessForClass($definition['class_name']) && $cleaned;
                 $tabId = (int) Tab::getIdFromClassName($definition['class_name']);
                 if ($tabId > 0) {
                     $tabIds[] = $tabId;
@@ -72,11 +74,10 @@ final class AdminTabLifecycle
             return false;
         }
 
-        $cleaned = true;
         foreach (array_values(array_unique($tabIds)) as $tabId) {
             $tab = new Tab($tabId);
             if ((int) $tab->id > 0) {
-                $cleaned = $this->removeAccessForTab($tab) && $cleaned;
+                $cleaned = $this->removeAccessForClass((string) $tab->class_name) && $cleaned;
                 $cleaned = $tab->delete() && $cleaned;
             }
         }
@@ -84,9 +85,9 @@ final class AdminTabLifecycle
         return $cleaned;
     }
 
-    private function removeAccessForTab(Tab $tab): bool
+    private function removeAccessForClass(string $className): bool
     {
-        $slugPrefix = 'ROLE_MOD_TAB_' . strtoupper((string) $tab->class_name) . '_';
+        $slugPrefix = 'ROLE_MOD_TAB_' . strtoupper($className) . '_';
         $roles = Db::getInstance()->executeS(
             'SELECT id_authorization_role FROM ' . _DB_PREFIX_ . 'authorization_role'
             . ' WHERE slug IN ('
@@ -101,6 +102,10 @@ final class AdminTabLifecycle
         foreach (is_array($roles) ? $roles : [] as $role) {
             $cleaned = Db::getInstance()->delete(
                 'access',
+                'id_authorization_role = ' . (int) $role['id_authorization_role']
+            ) && $cleaned;
+            $cleaned = Db::getInstance()->delete(
+                'authorization_role',
                 'id_authorization_role = ' . (int) $role['id_authorization_role']
             ) && $cleaned;
         }

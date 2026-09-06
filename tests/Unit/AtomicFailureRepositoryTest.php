@@ -28,6 +28,6 @@ final class AtomicFailureRepositoryTest extends TestCase
         self::assertIsString($schema);
         self::assertIsString($module);
         self::assertStringContainsString('last_failure_at DATETIME NULL', $schema);
-        self::assertStringContainsString('ensureRateLimitLastFailureAt', $module);
+        self::assertStringContainsString('(new SchemaInstaller())->reconcile()', $module);
     }
 }

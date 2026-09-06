@@ -123,6 +123,12 @@ final class MfaController extends FrameworkBundleAdminController
         $authorizedReplacement = $recoveryReplacement
             || $sessionState->isEnrollmentReplacementAuthorized($employee->getId());
 
+        if ($mfa->active($employee->getId()) && !$recoveryReplacement) {
+            $this->addFlash('info', 'Your authenticator is already active.');
+
+            return $this->redirectToRoute('mpadmin2fa_authenticator');
+        }
+
         if (!$authorizedReplacement
             && $policy->requiresEnrollmentApproval($employee)
             && $repository->hasActiveSuperAdminFactor(defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1)
@@ -133,12 +139,6 @@ final class MfaController extends FrameworkBundleAdminController
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/approval_pending.html.twig', [
                 'layoutTitle' => 'Waiting for approval',
             ]);
-        }
-
-        if ($mfa->active($employee->getId()) && !$recoveryReplacement) {
-            $this->addFlash('info', 'Your authenticator is already active.');
-
-            return $this->redirectToRoute('mpadmin2fa_authenticator');
         }
 
         try {
@@ -264,7 +264,7 @@ final class MfaController extends FrameworkBundleAdminController
             $mfa->reset($employee->getId(), $employee->getId(), $request->getClientIp(), 'self-disable');
             $sessionState->clear();
 
-            return $this->redirectToRoute('admin_logout');
+            return new RedirectResponse($this->get('prestashop.adapter.legacy.context')->getAdminLink('AdminLogin', true, ['logout' => 1]));
         } catch (MfaSecurityException|RuntimeException $exception) {
             $this->addFlash('error', $exception->getMessage());
 
@@ -304,7 +304,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function settings(
         Request $request,
@@ -320,13 +320,13 @@ final class MfaController extends FrameworkBundleAdminController
             'can_open_enrollment' => $this->isGranted('read', 'AdminMpAdmin2faEnrollment'),
             'can_open_security' => $this->isGranted('read', 'AdminMpAdmin2faSecurity'),
             'https_active' => $request->isSecure(),
-            'https_configured' => 1 === (int) $this->getConfiguration()->get('PS_SSL_ENABLED'),
+            'https_configured' => 1 === (int) $this->get('prestashop.adapter.legacy.configuration')->get('PS_SSL_ENABLED'),
             'security_alerts' => $alertCatalog->all(),
         ]);
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function authenticator(
         FactorConfirmationService $confirmation,
@@ -344,7 +344,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function enrollmentEmployees(
         EmployeeFactorFilters $filters,
@@ -357,7 +357,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function enrollmentApprovals(
         PendingApprovalFilters $filters,
@@ -370,7 +370,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function securityPolicy(
         FormHandlerInterface $securityPolicyFormHandler
@@ -385,7 +385,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))")
      * @DemoRestricted(redirectRoute="mpadmin2fa_security_policy")
      */
     public function updateSecurityPolicy(
@@ -427,7 +427,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      */
     public function securityActivity(
         AuditEventFilters $filters,
@@ -440,7 +440,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))")
      * @DemoRestricted(redirectRoute="mpadmin2fa_enrollment_approvals")
      */
     public function approveEnrollment(
@@ -481,7 +481,7 @@ final class MfaController extends FrameworkBundleAdminController
     }
 
     /**
-     * @AdminSecurity("is_granted('delete', request.get('_legacy_controller'))", redirectRoute="admin_homepage")
+     * @AdminSecurity("is_granted('delete', request.get('_legacy_controller'))")
      * @DemoRestricted(redirectRoute="mpadmin2fa_enrollment_employees")
      */
     public function adminReset(
@@ -537,7 +537,7 @@ final class MfaController extends FrameworkBundleAdminController
             }
         }
 
-        throw new RuntimeException('No supported PrestaShop dashboard route is available.');
+        return $this->get('prestashop.adapter.legacy.context')->getAdminLink('AdminDashboard');
     }
 
     private function employee(): Employee

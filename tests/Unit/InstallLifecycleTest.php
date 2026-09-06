@@ -35,7 +35,7 @@ final class InstallLifecycleTest extends TestCase
     {
         self::assertStringContainsString("'actionDispatcherBefore'", $this->module);
         self::assertStringContainsString('hookActionDispatcherBefore', $this->module);
-        self::assertStringContainsString("registerHook('actionDispatcherBefore')", $this->module);
+        self::assertStringContainsString('registerRequiredHooks()', $this->module);
     }
 
     public function testFailureRollbackAndUninstallOwnEveryResource(): void

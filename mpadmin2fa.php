@@ -126,6 +126,11 @@ class Mpadmin2fa extends Module
             );
         }
 
+        // A duplicate install must never roll back an existing installation.
+        if (Module::isInstalled($this->name)) {
+            return false;
+        }
+
         $parentAttempted = false;
         try {
             $parentAttempted = true;
@@ -202,8 +207,9 @@ class Mpadmin2fa extends Module
 
     public function upgradeSecurityRemediation(): bool
     {
-        return $this->registerHook('actionDispatcherBefore')
-            && (new SchemaInstaller())->ensureRateLimitLastFailureAt()
+        return $this->registerRequiredHooks()
+            && (new SchemaInstaller())->reconcile()
+            && $this->installConfiguration(true)
             && $this->reconcileAdminTabs();
     }
 
@@ -212,6 +218,16 @@ class Mpadmin2fa extends Module
         Tools::redirectAdmin($this->get('router')->generate('mpadmin2fa_settings'));
 
         return '';
+    }
+
+    /** @param array<string, mixed> $params */
+    public function hookActionAdminLoginControllerLoginAfter(array $params): void
+    {
+        $response = $this->get(LegacyAdminMfaAdapter::class)->onLogin();
+        if (null !== $response) {
+            $response->send();
+            exit;
+        }
     }
 
     /**
@@ -468,15 +484,23 @@ class Mpadmin2fa extends Module
         return $cleaned;
     }
 
-    private function installConfiguration(): bool
+    private function installConfiguration(bool $missingOnly = false): bool
     {
-        return Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_MODE, 'superadmins')
-            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_PROFILES, '')
-            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_STEP_UP_SECONDS, 300)
-            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_PASSWORD_MAX_AGE, 900)
-            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_AUDIT_DAYS, 90)
-            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_APPROVAL_PROFILES, '')
-            && Configuration::updateValue(Mpadmin2fa\Security\Policy::CONFIG_SECURITY_RECIPIENTS, '');
+        foreach ([
+            Mpadmin2fa\Security\Policy::CONFIG_MODE => 'superadmins',
+            Mpadmin2fa\Security\Policy::CONFIG_PROFILES => '',
+            Mpadmin2fa\Security\Policy::CONFIG_STEP_UP_SECONDS => 300,
+            Mpadmin2fa\Security\Policy::CONFIG_PASSWORD_MAX_AGE => 900,
+            Mpadmin2fa\Security\Policy::CONFIG_AUDIT_DAYS => 90,
+            Mpadmin2fa\Security\Policy::CONFIG_APPROVAL_PROFILES => '',
+            Mpadmin2fa\Security\Policy::CONFIG_SECURITY_RECIPIENTS => '',
+        ] as $key => $value) {
+            if ((!$missingOnly || !Configuration::hasKey($key)) && !Configuration::updateValue($key, $value)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function reconcileAdminTabs(): bool
@@ -488,6 +512,7 @@ class Mpadmin2fa extends Module
     {
         foreach ([
             'actionAdminControllerSetMedia',
+            'actionAdminLoginControllerLoginAfter',
             'actionDispatcherBefore',
             'actionObjectProfileDeleteAfter',
             'dashboardZoneOne',

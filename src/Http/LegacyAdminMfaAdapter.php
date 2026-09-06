@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Mpadmin2fa\Http;
 
 use Context;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Mpadmin2fa\Repository\SecurityRepository;
 use Mpadmin2fa\Security\AdminMfaAccessPolicy;
 use Mpadmin2fa\Security\MfaManager;
@@ -48,6 +53,15 @@ final class LegacyAdminMfaAdapter
     /** @var LegacyAdminRequestNormalizer */
     private $normalizer;
 
+    /** @var SessionInterface */
+    private $session;
+    /** @var TokenStorageInterface */
+    private $tokenStorage;
+    /** @var UserProviderInterface */
+    private $userProvider;
+    /** @var LoginHttpsGuard */
+    private $loginHttpsGuard;
+
     public function __construct(
         AdminMfaAccessPolicy $accessPolicy,
         MfaManager $mfa,
@@ -58,7 +72,11 @@ final class LegacyAdminMfaAdapter
         RouterInterface $router,
         SessionState $sessionState,
         StepUpResponseFactory $stepUpResponses,
-        LegacyAdminRequestNormalizer $normalizer
+        LegacyAdminRequestNormalizer $normalizer,
+        SessionInterface $session,
+        TokenStorageInterface $tokenStorage,
+        UserProviderInterface $userProvider,
+        LoginHttpsGuard $loginHttpsGuard
     ) {
         $this->accessPolicy = $accessPolicy;
         $this->mfa = $mfa;
@@ -70,6 +88,10 @@ final class LegacyAdminMfaAdapter
         $this->sessionState = $sessionState;
         $this->stepUpResponses = $stepUpResponses;
         $this->normalizer = $normalizer;
+        $this->session = $session;
+        $this->tokenStorage = $tokenStorage;
+        $this->userProvider = $userProvider;
+        $this->loginHttpsGuard = $loginHttpsGuard;
     }
 
     public function enforce(): ?Response
@@ -77,14 +99,23 @@ final class LegacyAdminMfaAdapter
         $context = Context::getContext();
         $employee = $context->employee;
         $employeeId = isset($employee->id) ? (int) $employee->id : 0;
-        if ($employeeId <= 0) {
+        if ($employeeId <= 0 || !$employee->isLoggedBack()) {
             return null;
         }
 
-        $request = $this->requestStack->getCurrentRequest() ?? Request::createFromGlobals();
-        $controller = $this->normalizer->controller($request->query->get('controller', ''));
+        $request = $this->request();
+        // PS 1.7 also dispatches this hook for routed Symfony controllers.
+        // Those requests have already passed AdminMfaSubscriber.
+        if ('' !== (string) $request->attributes->get('_route')) {
+            return null;
+        }
+        if (null === $this->tokenStorage->getToken()) {
+            $user = $this->userProvider->loadUserByUsername($employee->email);
+            $this->tokenStorage->setToken(new UsernamePasswordToken($user, null, 'admin', $user->getRoles()));
+        }
+        $controller = $this->normalizer->controller($request->request->get('controller', $request->query->get('controller', '')));
         $action = $this->normalizer->action(array_merge($request->query->all(), $request->request->all()));
-        if ('AdminLogin' === $controller && 'logout' === $action) {
+        if ('AdminLogin' === $controller && $request->query->has('logout')) {
             $this->sessionState->clear();
 
             return null;
@@ -137,4 +168,39 @@ final class LegacyAdminMfaAdapter
 
         return $this->stepUpResponses->create($request, $redirectUrl);
     }
+    public function onLogin(): ?Response
+    {
+        $request = $this->request();
+        $employee = Context::getContext()->employee;
+        $employeeId = (int) $employee->id;
+        $this->sessionState->resetForLogin($employeeId);
+        if ($this->loginHttpsGuard->shouldReject(
+            $request,
+            $this->mfa->active($employeeId),
+            $this->policy->requiresLoginMfaForProfile((int) $employee->id_profile)
+        )) {
+            $response = $this->loginHttpsGuard->reject($request);
+
+            return $request->isXmlHttpRequest()
+                ? new JsonResponse(['hasErrors' => true, 'errors' => [LoginHttpsGuard::ERROR_MESSAGE]], 403)
+                : $response;
+        }
+
+        return null;
+    }
+
+    private function request(): Request
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            $request = Request::createFromGlobals();
+            $this->requestStack->push($request);
+        }
+        if (!$request->hasSession()) {
+            $request->setSession($this->session);
+        }
+
+        return $request;
+    }
+
 }

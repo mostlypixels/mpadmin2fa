@@ -19,7 +19,14 @@ final class LegacyAdminRequestNormalizer
             return '';
         }
 
-        return 'Controller' === substr($controller, -10) ? substr($controller, 0, -10) : $controller;
+        $controller = 0 === strcasecmp('Controller', substr($controller, -10)) ? substr($controller, 0, -10) : $controller;
+        foreach (['AdminLogin', 'AdminModules', 'AdminThemes', 'AdminImport'] as $canonical) {
+            if (0 === strcasecmp($controller, $canonical)) {
+                return $canonical;
+            }
+        }
+
+        return $controller;
     }
 
     /**
@@ -27,11 +34,12 @@ final class LegacyAdminRequestNormalizer
      */
     public function action(array $parameters): string
     {
+        $actions = [];
         foreach (self::ACTION_KEYS as $key) {
             if (isset($parameters[$key]) && is_scalar($parameters[$key])) {
                 $action = $this->normalize((string) $parameters[$key]);
                 if ('' !== $action) {
-                    return $action;
+                    $actions[] = $action;
                 }
             }
         }
@@ -42,11 +50,11 @@ final class LegacyAdminRequestNormalizer
                 $normalized = substr($normalized, 6);
             }
             if (preg_match('/(?:bulk|configure|delete|disable|enable|import|install|reset|uninstall|update|upgrade)/', $normalized)) {
-                return $normalized;
+                $actions[] = $normalized;
             }
         }
 
-        return '';
+        return implode(' ', array_unique($actions));
     }
 
     private function normalize(string $value): string

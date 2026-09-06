@@ -14,6 +14,7 @@ final class LegacyAdminRequestNormalizerTest extends TestCase
         $normalizer = new LegacyAdminRequestNormalizer();
 
         self::assertSame('AdminModules', $normalizer->controller('AdminModulesController'));
+        self::assertSame('AdminModules', $normalizer->controller('adminmodules'));
         self::assertSame('AdminModules', $normalizer->controller('Admin<Modules'));
     }
 
@@ -29,6 +30,7 @@ final class LegacyAdminRequestNormalizerTest extends TestCase
 
     public static function actionParameters(): iterable
     {
+        yield 'benign action cannot hide an install flag' => [['action' => 'view', 'install' => 'fixture'], 'view install'];
         yield 'explicit action' => [['action' => 'install'], 'install'];
         yield 'bulk submit' => [['submitBulkdisablemodule' => '1'], 'bulkdisablemodule'];
         yield 'upgrade flag' => [['upgrade' => 'example'], 'upgrade'];

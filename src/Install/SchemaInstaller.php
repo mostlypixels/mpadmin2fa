@@ -43,6 +43,23 @@ final class SchemaInstaller
         ]);
     }
 
+    public function reconcile(): bool
+    {
+        foreach ($this->statements() as $statement) {
+            if (!Db::getInstance()->execute($statement)) {
+                return false;
+            }
+        }
+        // Never replace a lost encryption key while repairing other schema.
+        if (!(int) Db::getInstance()->getValue(
+            'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_keyring WHERE active = 1'
+        )) {
+            return false;
+        }
+
+        return $this->ensureRateLimitLastFailureAt();
+    }
+
     public function ensureRateLimitLastFailureAt(): bool
     {
         $tableName = _DB_PREFIX_ . 'mp2fa_rate_limit';
@@ -51,12 +68,14 @@ final class SchemaInstaller
             . ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "' . pSQL($tableName) . '"'
             . ' AND COLUMN_NAME = "last_failure_at"'
         );
-        if ('last_failure_at' === $column) {
-            return true;
+        if ('last_failure_at' !== $column && !Db::getInstance()->execute(
+            'ALTER TABLE ' . $tableName . ' ADD last_failure_at DATETIME NULL AFTER blocked_until'
+        )) {
+            return false;
         }
 
         return Db::getInstance()->execute(
-            'ALTER TABLE ' . $tableName . ' ADD last_failure_at DATETIME NULL AFTER blocked_until'
+            'UPDATE ' . $tableName . ' SET last_failure_at = date_upd WHERE last_failure_at IS NULL AND failures > 0'
         );
     }
 
