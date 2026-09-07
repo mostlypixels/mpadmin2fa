@@ -16,6 +16,7 @@ spl_autoload_register(static function ($class) use ($moduleLoader): void {
 
 use Doctrine\DBAL\Connection;
 use Mpadmin2fa\Repository\SecurityRepository;
+use Mpadmin2fa\Security\RateLimiter;
 use PHPUnit\Framework\TestCase;
 
 final class SecurityRepositoryRateLimitTest extends TestCase
@@ -54,5 +55,38 @@ final class SecurityRepositoryRateLimitTest extends TestCase
             5,
             3600
         ));
+    }
+
+    public function testUtcLockoutIsIndependentOfShopTimezoneAndSubject(): void
+    {
+        $previousTimezone = date_default_timezone_get();
+        try {
+            foreach (['UTC', 'Europe/Brussels', 'America/New_York', 'Asia/Kathmandu'] as $timezone) {
+                date_default_timezone_set($timezone);
+                foreach (['employee:42', 'ip:127.0.0.1'] as $subject) {
+                    foreach ([-60, 60] as $offset) {
+                        $connection = $this->createMock(Connection::class);
+                        $connection->method('quoteIdentifier')->willReturnArgument(0);
+                        $connection->method('fetchAssociative')->willReturnCallback(
+                            static function (string $sql, array $parameters) use ($subject, $offset): array {
+                                return ['blocked_until' => $parameters[1] === hash('sha256', $subject)
+                                    ? gmdate('Y-m-d H:i:s', time() + $offset) : null];
+                            }
+                        );
+                        $blocked = false;
+                        try {
+                            (new RateLimiter(new SecurityRepository($connection, 'ps_')))
+                                ->assertAllowed('challenge', 42, '127.0.0.1');
+                        } catch (\RuntimeException $exception) {
+                            self::assertSame('Too many attempts. Try again later.', $exception->getMessage());
+                            $blocked = true;
+                        }
+                        self::assertSame($offset > 0, $blocked, $timezone . ' / ' . $subject);
+                    }
+                }
+            }
+        } finally {
+            date_default_timezone_set($previousTimezone);
+        }
     }
 }

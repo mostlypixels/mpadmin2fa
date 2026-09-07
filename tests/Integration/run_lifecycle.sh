@@ -23,6 +23,8 @@ done
 bash "$module_root/tests/Integration/run_requests.sh"
 php "$module_root/vendor/bin/phpunit" --do-not-cache-result -c "$module_root/phpunit.xml.dist" \
   "$module_root/tests/Integration/AtomicRateLimitIntegrationTest.php"
+php "$module_root/vendor/bin/phpunit" --do-not-cache-result -c "$module_root/phpunit.xml.dist" \
+  "$module_root/tests/Integration/UtcRateLimitIntegrationTest.php"
 module uninstall
 state verify-cleanup
 bash "$module_root/tests/Integration/run_historical_upgrade.sh"
