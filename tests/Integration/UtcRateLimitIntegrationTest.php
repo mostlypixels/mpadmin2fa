@@ -16,9 +16,9 @@ final class UtcRateLimitIntegrationTest extends TestCase
         if ('1' !== getenv('MP2FA_UTC_INTEGRATION') && '1' !== getenv('MP2FA_INTEGRATION')) {
             self::markTestSkipped('Set MP2FA_UTC_INTEGRATION=1 with a disposable MySQL database.');
         }
-        require_once dirname(__DIR__, 4) . '/vendor/autoload.php';
+        $root = getenv('MP2FA_PS_ROOT') ?: dirname(__DIR__, 4);
+        require_once $root . '/vendor/autoload.php';
         if ('1' === getenv('MP2FA_INTEGRATION')) {
-            $root = getenv('MP2FA_PS_ROOT') ?: dirname(__DIR__, 4);
             require_once $root . '/config/config.inc.php';
         }
         $connection = DriverManager::getConnection([
