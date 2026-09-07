@@ -6,9 +6,7 @@ This module is a public-beta candidate, not a stable security release. Do not de
 
 ## Reporting
 
-Report suspected vulnerabilities privately to the maintainer rather than opening a public issue. Include the affected version, PrestaShop/PHP versions, reproduction steps and impact. Never include live credentials, TOTP secrets, recovery codes, cookie keys or customer data.
-
-A private reporting address or repository security-advisory URL must be added before public beta.
+Use GitHub's [private vulnerability reporting form](https://github.com/mostlypixels/mpadmin2fa/security/advisories/new) rather than opening a public issue. Include the affected version, PrestaShop/PHP versions, reproduction steps and impact. Never include live credentials, TOTP secrets, recovery codes, cookie keys or customer data.
 
 ## Threat model
 
