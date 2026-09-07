@@ -114,7 +114,8 @@ final class LegacyAdminMfaAdapter
             $this->tokenStorage->setToken(new UsernamePasswordToken($user, null, 'admin', $user->getRoles()));
         }
         $controller = $this->normalizer->controller($request->request->get('controller', $request->query->get('controller', '')));
-        $action = $this->normalizer->action(array_merge($request->query->all(), $request->request->all()));
+        $action = $this->normalizer->action($request->query->all()) . ' '
+            . $this->normalizer->action($request->request->all());
         if ('AdminLogin' === $controller && $request->query->has('logout')) {
             $this->sessionState->clear();
 

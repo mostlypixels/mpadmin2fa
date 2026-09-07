@@ -42,20 +42,6 @@ final class AdminMfaAccessPolicy
         'mpadmin2fa_security_policy_update',
     ];
 
-    private const SENSITIVE_ACTION_PARTS = [
-        'bulk',
-        'configure',
-        'delete',
-        'disable',
-        'enable',
-        'import',
-        'install',
-        'reset',
-        'uninstall',
-        'update',
-        'upgrade',
-    ];
-
     public function decide(
         string $entryPoint,
         string $resource,
@@ -145,12 +131,6 @@ final class AdminMfaAccessPolicy
             return false;
         }
 
-        foreach (self::SENSITIVE_ACTION_PARTS as $part) {
-            if (false !== strpos($action, $part)) {
-                return true;
-            }
-        }
-
-        return false;
+        return SensitiveActions::contains($action);
     }
 }
