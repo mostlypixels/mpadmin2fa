@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Grid\Definition\Factory;
 
+use Mpadmin2fa\Grid\Action\Row\SecureSubmitRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\RowActionCollection;
-use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\SubmitRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Column\ColumnCollection;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ActionColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DateTimeColumn;
@@ -69,7 +69,7 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
                 ->setName($this->trans('Actions', [], 'Admin.Global'))
                 ->setOptions([
                     'actions' => (new RowActionCollection())
-                        ->add((new SubmitRowAction('reset_factor'))
+                        ->add((new SecureSubmitRowAction('reset_factor'))
                             ->setName($this->trans('Reset two-factor authentication', [], 'Modules.Mpadmin2fa.Admin'))
                             ->setIcon('delete')
                             ->setOptions([
@@ -86,7 +86,7 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
                                     [],
                                     'Modules.Mpadmin2fa.Admin'
                                 ),
-                                'extra_route_params' => ['token' => 'reset_token'],
+                                'csrf_token_field' => 'reset_token',
                                 'route' => 'mpadmin2fa_admin_reset',
                                 'route_param_field' => 'id_employee',
                                 'route_param_name' => 'employeeId',

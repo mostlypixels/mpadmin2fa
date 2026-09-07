@@ -114,6 +114,8 @@ try {
   await goto(admin, routes.settings);
   check(await admin.evaluate(() => window.mpadmin2faStepUpListenerInstalled === true),
     'native admin pages load the packaged step-up listener');
+  check(await admin.evaluate(() => window.mpadmin2faSecureSubmitListenerInstalled === true),
+    'native admin pages load the secure grid submit listener');
 
   phase = 'XHR listener and expired verification';
   const originalSend = await admin.evaluateHandle(() => XMLHttpRequest.prototype.send);

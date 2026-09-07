@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Grid\Definition\Factory;
 
+use Mpadmin2fa\Grid\Action\Row\SecureSubmitRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\RowActionCollection;
-use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\SubmitRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Column\ColumnCollection;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ActionColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DateTimeColumn;
@@ -62,7 +62,7 @@ final class PendingApprovalGridDefinitionFactory extends AbstractGridDefinitionF
                 ->setName($this->trans('Actions', [], 'Admin.Global'))
                 ->setOptions([
                     'actions' => (new RowActionCollection())
-                        ->add((new SubmitRowAction('approve'))
+                        ->add((new SecureSubmitRowAction('approve'))
                             ->setName($this->trans('Approve', [], 'Admin.Actions'))
                             ->setIcon('check')
                             ->setOptions([
@@ -73,7 +73,7 @@ final class PendingApprovalGridDefinitionFactory extends AbstractGridDefinitionF
                                             'AdminMpAdmin2faEnrollment'
                                         );
                                 },
-                                'extra_route_params' => ['token' => 'approval_token'],
+                                'csrf_token_field' => 'approval_token',
                                 'route' => 'mpadmin2fa_approve',
                                 'route_param_field' => 'id_employee',
                                 'route_param_name' => 'employeeId',
