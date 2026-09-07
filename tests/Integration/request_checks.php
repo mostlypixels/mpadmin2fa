@@ -64,6 +64,7 @@ $fixtureEmployee = static function (string $email, string $firstname, int $profi
 };
 $bootstrapEmployeeId = $fixtureEmployee('mp2fa-bootstrap@example.test', 'Bootstrap');
 $approvalEmployeeId = $fixtureEmployee('mp2fa-approval@example.test', 'Approval');
+$resetEmployeeId = $fixtureEmployee('mp2fa-reset@example.test', 'Reset');
 $delegatedEmployeeId = $fixtureEmployee('mp2fa-delegated@example.test', 'Delegated', 2);
 $delegatedTargetEmployeeId = $fixtureEmployee('mp2fa-delegated-target@example.test', 'Delegated Target');
 $recoveryCode = 'A1B2C-D3E4F-56789-ABCDE';
@@ -180,6 +181,10 @@ $repository->activateEnrollment(
     (int) floor(time() / 30) - 2,
     [password_hash($recoveryCode, PASSWORD_DEFAULT)]
 );
+$resetSecret = (new Mpadmin2fa\Security\TotpService())->generateSecret();
+$resetEncrypted = $keys->encrypt($resetSecret);
+$repository->savePendingEnrollment($resetEmployeeId, $resetEncrypted['ciphertext'], $resetEncrypted['key_version']);
+$repository->activateEnrollment($resetEmployeeId, (int) floor(time() / 30) - 2, []);
 $delegatedSecret = (new Mpadmin2fa\Security\TotpService())->generateSecret();
 $delegatedEncrypted = $keys->encrypt($delegatedSecret);
 $repository->savePendingEnrollment(
@@ -282,13 +287,18 @@ $document = new DOMDocument();
 @$document->loadHTML($response['body']);
 $xpath = new DOMXPath($document);
 $approvalActionUrl = $xpath->evaluate(
-    'string(//a[contains(@data-url, "/employees/' . $approvalEmployeeId . '/approve")]/@data-url)'
+    'string(//button[contains(@data-url, "/employees/' . $approvalEmployeeId . '/approve")]/@data-url)'
+);
+$approvalActionToken = $xpath->evaluate(
+    'string(//button[contains(@data-url, "/employees/' . $approvalEmployeeId . '/approve")]/@data-csrf-token)'
 );
 $check(200 === $response['status']
     && '' !== $approvalActionUrl
+    && '' !== $approvalActionToken
+    && null === parse_url($approvalActionUrl, PHP_URL_QUERY)
     && false !== strpos($response['body'], 'mp2fa-approval@example.test'),
-    'a verified SuperAdmin with native read and update access sees the pending approval action');
-if ('' === $approvalActionUrl) {
+    'the pending approval action keeps its CSRF token out of the URL');
+if ('' === $approvalActionUrl || '' === $approvalActionToken) {
     throw new RuntimeException('Approval action rendering failed; inspect the private request-test logs.');
 }
 
@@ -340,7 +350,7 @@ foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null
         && false !== strpos($response['headers']['location'] ?? '', 'step_up=1'),
         'expired MFA blocks the ' . $kind . ' sensitive action with a step-up challenge');
 }
-$response = $request($approvalActionUrl, []);
+$response = $request($approvalActionUrl, ['mp2fa_csrf_token' => $approvalActionToken]);
 $check(302 === $response['status']
     && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge')
     && false !== strpos($response['headers']['location'] ?? '', 'step_up=1')
@@ -372,6 +382,10 @@ foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null
         && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
         'fresh step-up admits the ' . $kind . ' sensitive action without performing a real mutation');
 }
+$response = $request($approvalActionUrl . '?token=' . rawurlencode($approvalActionToken), []);
+$check(302 === $response['status']
+    && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
+    'a correct CSRF token in the query string cannot approve enrollment');
 $response = $request($approvalActionUrl, ['mp2fa_csrf_token' => 'invalid']);
 $check(302 === $response['status']
     && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
@@ -389,7 +403,7 @@ if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'e
     throw new RuntimeException('Could not remove the disposable native update permission.');
 }
 try {
-    $response = $request($approvalActionUrl, []);
+    $response = $request($approvalActionUrl, ['mp2fa_csrf_token' => $approvalActionToken]);
 } finally {
     if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'edit', true, false)) {
         throw new RuntimeException('Could not restore the native update permission.');
@@ -412,7 +426,7 @@ if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'v
     throw new RuntimeException('Could not remove the disposable native read permission.');
 }
 try {
-    $response = $request($approvalActionUrl, []);
+    $response = $request($approvalActionUrl, ['mp2fa_csrf_token' => $approvalActionToken]);
 } finally {
     if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'view', true, false)) {
         throw new RuntimeException('Could not restore the native read permission.');
@@ -426,7 +440,7 @@ $check(302 === $response['status']
     && $approvalAuditAfter === $approvalAuditBefore,
     'native read denial blocks approval before the module controller runs');
 
-$response = $request($approvalActionUrl, []);
+$response = $request($approvalActionUrl, ['mp2fa_csrf_token' => $approvalActionToken]);
 $approval = Db::getInstance()->getRow(
     'SELECT status, approved_by FROM ' . _DB_PREFIX_ . 'mp2fa_approval'
     . ' WHERE id_employee = ' . $approvalEmployeeId . ' ORDER BY id_approval DESC'
@@ -435,6 +449,27 @@ $check(302 === $response['status']
     && 'approved' === ($approval['status'] ?? null)
     && $employeeId === (int) ($approval['approved_by'] ?? 0),
     'a freshly verified SuperAdmin with native read and update permission approves the request');
+
+$employeesUrl = '/admin-dev/index.php/modules/mpadmin2fa/enrollment/employees?token=' . Tools::getAdminToken($employeeId);
+$response = $request($employeesUrl);
+$document = new DOMDocument();
+@$document->loadHTML($response['body']);
+$xpath = new DOMXPath($document);
+$resetActionUrl = $xpath->evaluate(
+    'string(//button[contains(@data-url, "/employees/' . $resetEmployeeId . '/reset")]/@data-url)'
+);
+$resetActionToken = $xpath->evaluate(
+    'string(//button[contains(@data-url, "/employees/' . $resetEmployeeId . '/reset")]/@data-csrf-token)'
+);
+$check(200 === $response['status'] && '' !== $resetActionUrl && '' !== $resetActionToken
+    && null === parse_url($resetActionUrl, PHP_URL_QUERY),
+    'the factor reset action keeps its CSRF token out of the URL');
+$response = $request($resetActionUrl . '?token=' . rawurlencode($resetActionToken), []);
+$check(302 === $response['status'] && null !== $repository->factor($resetEmployeeId),
+    'a correct reset token in the query string cannot reset a factor');
+$response = $request($resetActionUrl, ['mp2fa_csrf_token' => $resetActionToken]);
+$check(302 === $response['status'] && null === $repository->factor($resetEmployeeId),
+    'the factor reset row action succeeds with its token in the POST body');
 
 $response = $request($challengeUrl, ['one_time_code' => ['code' => $code, '_token' => $csrf, 'submit' => '']]);
 $check(200 === $response['status'] && false !== strpos($response['body'], 'already been used'),
@@ -615,11 +650,15 @@ try {
     @$document->loadHTML($response['body']);
     $xpath = new DOMXPath($document);
     $delegatedApprovalActionUrl = $xpath->evaluate(
-        'string(//a[contains(@data-url, "/employees/' . $delegatedTargetEmployeeId . '/approve")]/@data-url)'
+        'string(//button[contains(@data-url, "/employees/' . $delegatedTargetEmployeeId . '/approve")]/@data-url)'
     );
-    $check(200 === $response['status'] && '' !== $delegatedApprovalActionUrl,
+    $delegatedApprovalActionToken = $xpath->evaluate(
+        'string(//button[contains(@data-url, "/employees/' . $delegatedTargetEmployeeId . '/approve")]/@data-csrf-token)'
+    );
+    $check(200 === $response['status'] && '' !== $delegatedApprovalActionUrl && '' !== $delegatedApprovalActionToken
+        && null === parse_url($delegatedApprovalActionUrl, PHP_URL_QUERY),
         'native read and update permission exposes the approval action to a delegated profile');
-    if ('' === $delegatedApprovalActionUrl) {
+    if ('' === $delegatedApprovalActionUrl || '' === $delegatedApprovalActionToken) {
         throw new RuntimeException('Delegated approval action rendering failed; inspect the private request-test logs.');
     }
 
@@ -628,7 +667,9 @@ try {
         . ' WHERE event = "enrollment.approval_denied"'
         . ' AND metadata_json LIKE "%superadmin_required%"'
     );
-    $response = $request($delegatedApprovalActionUrl, []);
+    $response = $request($delegatedApprovalActionUrl, [
+        'mp2fa_csrf_token' => $delegatedApprovalActionToken,
+    ]);
     $delegatedDenialsAfter = (int) Db::getInstance()->getValue(
         'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_audit'
         . ' WHERE event = "enrollment.approval_denied"'
