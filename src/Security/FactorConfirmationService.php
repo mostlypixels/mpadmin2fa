@@ -39,9 +39,13 @@ final class FactorConfirmationService
      */
     public function verify(Employee $employee, array $data, ?string $ip): bool
     {
+        $this->mfa->assertFactorConfirmationAllowed($employee->getId(), $ip);
+
         if ($this->passwordRequired($employee)
             && !$this->passwordEncoder->isPasswordValid($employee, (string) ($data['password'] ?? ''))
         ) {
+            $this->mfa->recordFactorPasswordFailure($employee->getId(), $ip);
+
             return false;
         }
 
