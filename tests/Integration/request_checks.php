@@ -292,10 +292,13 @@ $approvalActionUrl = $xpath->evaluate(
 $approvalActionToken = $xpath->evaluate(
     'string(//button[contains(@data-url, "/employees/' . $approvalEmployeeId . '/approve")]/@data-csrf-token)'
 );
+$approvalActionQuery = [];
+parse_str((string) parse_url($approvalActionUrl, PHP_URL_QUERY), $approvalActionQuery);
 $check(200 === $response['status']
     && '' !== $approvalActionUrl
     && '' !== $approvalActionToken
-    && null === parse_url($approvalActionUrl, PHP_URL_QUERY)
+    && !isset($approvalActionQuery['mp2fa_csrf_token'])
+    && !in_array($approvalActionToken, $approvalActionQuery, true)
     && false !== strpos($response['body'], 'mp2fa-approval@example.test'),
     'the pending approval action keeps its CSRF token out of the URL');
 if ('' === $approvalActionUrl || '' === $approvalActionToken) {
@@ -382,7 +385,8 @@ foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null
         && false === strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge'),
         'fresh step-up admits the ' . $kind . ' sensitive action without performing a real mutation');
 }
-$response = $request($approvalActionUrl . '?token=' . rawurlencode($approvalActionToken), []);
+$response = $request($approvalActionUrl . (false === strpos($approvalActionUrl, '?') ? '?' : '&')
+    . 'mp2fa_csrf_token=' . rawurlencode($approvalActionToken), []);
 $check(302 === $response['status']
     && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
     'a correct CSRF token in the query string cannot approve enrollment');
@@ -461,10 +465,14 @@ $resetActionUrl = $xpath->evaluate(
 $resetActionToken = $xpath->evaluate(
     'string(//button[contains(@data-url, "/employees/' . $resetEmployeeId . '/reset")]/@data-csrf-token)'
 );
+$resetActionQuery = [];
+parse_str((string) parse_url($resetActionUrl, PHP_URL_QUERY), $resetActionQuery);
 $check(200 === $response['status'] && '' !== $resetActionUrl && '' !== $resetActionToken
-    && null === parse_url($resetActionUrl, PHP_URL_QUERY),
+    && !isset($resetActionQuery['mp2fa_csrf_token'])
+    && !in_array($resetActionToken, $resetActionQuery, true),
     'the factor reset action keeps its CSRF token out of the URL');
-$response = $request($resetActionUrl . '?token=' . rawurlencode($resetActionToken), []);
+$response = $request($resetActionUrl . (false === strpos($resetActionUrl, '?') ? '?' : '&')
+    . 'mp2fa_csrf_token=' . rawurlencode($resetActionToken), []);
 $check(302 === $response['status'] && null !== $repository->factor($resetEmployeeId),
     'a correct reset token in the query string cannot reset a factor');
 $response = $request($resetActionUrl, ['mp2fa_csrf_token' => $resetActionToken]);
@@ -655,8 +663,11 @@ try {
     $delegatedApprovalActionToken = $xpath->evaluate(
         'string(//button[contains(@data-url, "/employees/' . $delegatedTargetEmployeeId . '/approve")]/@data-csrf-token)'
     );
+    $delegatedApprovalActionQuery = [];
+    parse_str((string) parse_url($delegatedApprovalActionUrl, PHP_URL_QUERY), $delegatedApprovalActionQuery);
     $check(200 === $response['status'] && '' !== $delegatedApprovalActionUrl && '' !== $delegatedApprovalActionToken
-        && null === parse_url($delegatedApprovalActionUrl, PHP_URL_QUERY),
+        && !isset($delegatedApprovalActionQuery['mp2fa_csrf_token'])
+        && !in_array($delegatedApprovalActionToken, $delegatedApprovalActionQuery, true),
         'native read and update permission exposes the approval action to a delegated profile');
     if ('' === $delegatedApprovalActionUrl || '' === $delegatedApprovalActionToken) {
         throw new RuntimeException('Delegated approval action rendering failed; inspect the private request-test logs.');
