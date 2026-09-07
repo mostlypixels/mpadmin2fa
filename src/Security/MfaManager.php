@@ -66,6 +66,18 @@ final class MfaManager
         return $codes;
     }
 
+    public function assertFactorConfirmationAllowed(int $employeeId, ?string $ip): void
+    {
+        $this->rateLimiter->assertAllowed('factor_change', $employeeId, $ip);
+    }
+
+    public function recordFactorPasswordFailure(int $employeeId, ?string $ip): void
+    {
+        $failures = $this->rateLimiter->failure('factor_change', $employeeId, $ip);
+        $this->repository->audit($employeeId, 'factor_change.password_failed', $ip);
+        $this->notifyRepeatedFailures($employeeId, 'factor_change', $failures);
+    }
+
     public function verifyTotp(int $employeeId, string $code, ?string $ip, string $scope = 'challenge'): bool
     {
         $this->rateLimiter->assertAllowed($scope, $employeeId, $ip);
