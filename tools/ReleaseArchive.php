@@ -9,6 +9,31 @@ use ZipArchive;
 
 final class ReleaseArchive
 {
+    private const ROOT_FORBIDDEN = [
+        '.ai',
+        '.agents',
+        '.claude',
+        '.codex',
+        '.git',
+        '.github',
+        '.gitignore',
+        '.phpunit.cache',
+        '.phpunit.result.cache',
+        'AGENTS.md',
+        'build',
+        'config.xml',
+        'dist',
+        'docs',
+        'documentation',
+        'node_modules',
+        'NUL',
+        'php-scoper.inc.php',
+        'phpunit.xml.dist',
+        'prestashop',
+        'tests',
+        'tools',
+    ];
+
     public static function verify(string $path): void
     {
         $zip = new ZipArchive();
@@ -26,12 +51,7 @@ final class ReleaseArchive
                     throw new RuntimeException('Invalid or duplicate archive path.');
                 }
                 $relative = substr($entry, strlen('mpadmin2fa/'));
-                foreach (['.git', '.github/', '.phpunit.cache/', '.phpunit.result.cache', 'build/', 'dist/',
-                    'docs/', 'documentation/', 'node_modules/', 'prestashop/', 'tests/', 'tools/'] as $forbidden) {
-                    if (0 === strpos($relative, $forbidden)) {
-                        throw new RuntimeException('Development-only path found: ' . $entry);
-                    }
-                }
+                self::rejectDevelopmentPath($entry, $relative);
                 if (0 === strpos($relative, 'vendor/') && !in_array($relative, ['vendor/', 'vendor/autoload.php'], true)) {
                     throw new RuntimeException('Unscoped dependency found: ' . $entry);
                 }
@@ -49,6 +69,22 @@ final class ReleaseArchive
             }
         } finally {
             $zip->close();
+        }
+    }
+
+    private static function rejectDevelopmentPath(string $entry, string $relative): void
+    {
+        foreach (self::ROOT_FORBIDDEN as $forbidden) {
+            if ($relative === $forbidden || 0 === strpos($relative, $forbidden . '/')) {
+                throw new RuntimeException('Development-only path found: ' . $entry);
+            }
+        }
+
+        if (preg_match('~(?:^|/)(?:\.git|\.github|tests?|docs?|documentation|examples?|node_modules)(?:/|$)~i', $relative)
+            || preg_match('~(?:^|/)(?:\.editorconfig|\.gitattributes|\.gitignore|composer\.lock|phpunit(?:\.xml(?:\.dist)?)?|phpstan\.neon(?:\.dist)?|psalm\.xml)$~i', $relative)
+            || preg_match('~^vendor-scoped/[^/]+/[^/]+/composer\.json$~', $relative)
+        ) {
+            throw new RuntimeException('Nested development metadata found: ' . $entry);
         }
     }
 }

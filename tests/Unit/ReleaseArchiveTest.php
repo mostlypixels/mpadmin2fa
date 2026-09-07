@@ -49,10 +49,23 @@ final class ReleaseArchiveTest extends TestCase
     {
         return array_map(static function (string $entry): array {
             return [$entry];
-        }, ['mpadmin2fa/vendor/composer/autoload_real.php', 'mpadmin2fa/tests/example.php',
-            'mpadmin2fa/tools/release.php', 'mpadmin2fa/prestashop/index.php',
-            'mpadmin2fa/node_modules/package.json', 'mpadmin2fa/.phpunit.result.cache',
-            'mpadmin2fa/../outside.php', 'outside.php']);
+        }, [
+            'mpadmin2fa/vendor/composer/autoload_real.php',
+            'mpadmin2fa/config.xml',
+            'mpadmin2fa/tests/example.php',
+            'mpadmin2fa/tools/release.php',
+            'mpadmin2fa/prestashop/index.php',
+            'mpadmin2fa/node_modules/package.json',
+            'mpadmin2fa/.phpunit.result.cache',
+            'mpadmin2fa/AGENTS.md',
+            'mpadmin2fa/vendor-scoped/example/package/.github/workflows/tests.yml',
+            'mpadmin2fa/vendor-scoped/example/package/tests/example.php',
+            'mpadmin2fa/vendor-scoped/example/package/docs/readme.md',
+            'mpadmin2fa/vendor-scoped/example/package/composer.json',
+            'mpadmin2fa/vendor-scoped/example/package/phpunit.xml.dist',
+            'mpadmin2fa/../outside.php',
+            'outside.php',
+        ]);
     }
 
     public function testRejectsAModifiedBridge(): void
