@@ -29,6 +29,7 @@ copyTree($moduleRoot, $stageRoot, [
     '.phpunit.cache',
     '.phpunit.result.cache',
     'build',
+    'config.xml',
     'dist',
     'docs',
     'documentation',
@@ -99,16 +100,7 @@ foreach (phpFiles($releaseRoot) as $file) {
     }
 }
 
-// Dependency archives can contain CI metadata that artifact uploaders omit.
-// Remove it before checksumming so every delivered file has a matching manifest.
-foreach (new RecursiveIteratorIterator(
-    new RecursiveDirectoryIterator($releaseRoot, FilesystemIterator::SKIP_DOTS),
-    RecursiveIteratorIterator::CHILD_FIRST
-) as $item) {
-    if ($item->isDir() && in_array($item->getFilename(), ['.git', '.github'], true)) {
-        removeTree($item->getPathname());
-    }
-}
+removeDevelopmentArtifacts($releaseRoot);
 
 $checksums = [];
 foreach (allFiles($releaseRoot) as $file) {
@@ -122,6 +114,24 @@ sort($checksums);
 file_put_contents($releaseRoot . '/SHA256SUMS', implode(PHP_EOL, $checksums) . PHP_EOL);
 
 fwrite(STDOUT, 'Scoped release created at ' . $releaseRoot . PHP_EOL);
+
+function removeDevelopmentArtifacts(string $releaseRoot): void
+{
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($releaseRoot, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($iterator as $item) {
+        $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($releaseRoot) + 1));
+        if (!preg_match('~(?:^|/)(?:\.git|\.github|tests?|docs?|documentation|examples?|node_modules)(?:/|$)~i', $relative)
+            && !preg_match('~(?:^|/)(?:\.editorconfig|\.gitattributes|\.gitignore|composer\.lock|phpunit(?:\.xml(?:\.dist)?)?|phpstan\.neon(?:\.dist)?|psalm\.xml)$~i', $relative)
+            && !preg_match('~^vendor-scoped/[^/]+/[^/]+/composer\.json$~', $relative)
+        ) {
+            continue;
+        }
+        $item->isDir() && !$item->isLink() ? removeTree($item->getPathname()) : unlink($item->getPathname());
+    }
+}
 
 function writeScopedAutoload(string $vendorDirectory): void
 {
@@ -164,7 +174,7 @@ function writeComposerBridge(string $releaseRoot): string
     $autoloadPath = $vendorDirectory . '/autoload.php';
     file_put_contents(
         $autoloadPath,
-        "<?php\n\nreturn require dirname(__DIR__) . '/vendor-scoped/autoload.php';\n"
+        "<?php\n\ndeclare(strict_types=1);\n\nreturn require dirname(__DIR__) . '/vendor-scoped/autoload.php';\n"
     );
 
     return $autoloadPath;
