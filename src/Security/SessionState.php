@@ -46,6 +46,12 @@ final class SessionState
         return ($state['employee_id'] ?? null) === $employeeId && is_int($state['verified_at'] ?? null);
     }
 
+    public function challengeScope(int $employeeId): string
+    {
+        return $this->isVerified($employeeId) && !$this->isRecoveryRestricted($employeeId)
+            ? 'step_up' : 'challenge';
+    }
+
     public function hasFreshVerification(int $employeeId, int $maximumAge): bool
     {
         $state = $this->read();

@@ -17,6 +17,7 @@ use Mpadmin2fa\Grid\Filters\PendingApprovalFilters;
 use Mpadmin2fa\Repository\SecurityRepository;
 use Mpadmin2fa\Security\EnrollmentApprovalAuthorization;
 use Mpadmin2fa\Security\FactorConfirmationService;
+use Mpadmin2fa\Security\FactorResetAuthorization;
 use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
 use Mpadmin2fa\Security\SecurityAlertCatalog;
@@ -80,7 +81,7 @@ final class MfaController extends PrestaShopAdminController
                     $employee->getId(),
                     (string) $totpForm->getData()['code'],
                     $request->getClientIp(),
-                    $request->query->getBoolean('step_up') ? 'step_up' : 'challenge'
+                    $sessionState->challengeScope($employee->getId())
                 )) {
                     $sessionState->markVerified($employee->getId());
 
@@ -473,7 +474,7 @@ final class MfaController extends PrestaShopAdminController
         return $this->redirectToRoute('mpadmin2fa_enrollment_approvals');
     }
 
-    #[AdminSecurity("is_granted('delete', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
+    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))", redirectRoute: 'admin_homepage')]
     #[DemoRestricted(redirectRoute: 'mpadmin2fa_enrollment_employees')]
     public function adminReset(
         Request $request,
@@ -482,12 +483,26 @@ final class MfaController extends PrestaShopAdminController
         MfaManager $mfa,
         SessionState $sessionState,
         Policy $policy,
+        SecurityRepository $repository,
+        FactorResetAuthorization $resetAuthorization,
     ): Response {
         $actor = $this->employee($security);
         $this->assertFreshVerification($actor, $sessionState, $policy);
         $this->requirePostAndCsrf($request, 'mp2fa_admin_reset_' . $employeeId);
-        if ($actor->getId() === $employeeId) {
-            throw $this->createAccessDeniedException('Employees cannot reset their own two-factor authentication from the employee list.');
+        $denialReason = $resetAuthorization->denialReason(
+            $actor->getId(),
+            $actor->getProfileId(),
+            $employeeId,
+            $security->isGranted('delete', 'AdminMpAdmin2faEnrollment'),
+            defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1
+        );
+        if (null !== $denialReason) {
+            $repository->audit($actor->getId(), 'factor.reset_denied', $request->getClientIp(), [
+                'reason' => $denialReason,
+                'target_employee_id' => $employeeId,
+            ]);
+
+            throw $this->createAccessDeniedException($denialReason);
         }
 
         $mfa->reset($employeeId, $actor->getId(), $request->getClientIp(), 'superadmin-reset');
