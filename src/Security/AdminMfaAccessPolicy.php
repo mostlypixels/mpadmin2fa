@@ -33,19 +33,6 @@ final class AdminMfaAccessPolicy
         'mpadmin2fa_security_policy_update',
     ];
 
-    private const SENSITIVE_ACTION_WORDS = [
-        'bulk',
-        'delete',
-        'disable',
-        'enable',
-        'import',
-        'install',
-        'reset',
-        'uninstall',
-        'update',
-        'upgrade',
-    ];
-
     public function decide(
         int $employeeId,
         bool $requiresLoginMfa,
@@ -119,13 +106,7 @@ final class AdminMfaAccessPolicy
             return false;
         }
 
-        foreach (self::SENSITIVE_ACTION_WORDS as $word) {
-            if (str_contains($normalizedAction, $word)) {
-                return true;
-            }
-        }
-
-        return false;
+        return SensitiveActions::contains($normalizedAction);
     }
 
     private function normalize(string $value): string

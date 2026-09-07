@@ -14,6 +14,7 @@ use Mpadmin2fa\Security\Policy;
 use Mpadmin2fa\Security\ReturnTargetPolicy;
 use Mpadmin2fa\Security\SecurityAlertService;
 use Mpadmin2fa\Security\SessionState;
+use Mpadmin2fa\Security\SensitiveActions;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -107,20 +108,8 @@ final class LegacyAdminMfaAdapter
 
     private function action(Request $request): string
     {
-        foreach (['action', 'submitAction'] as $parameter) {
-            $value = $this->parameter($request, $parameter);
-            if ('' !== $value) {
-                return $value;
-            }
-        }
-
-        foreach (array_keys(array_merge($request->query->all(), $request->request->all())) as $parameter) {
-            if (preg_match('/^(?:submit|bulk|delete|disable|enable|import|install|reset|uninstall|update|upgrade)/i', $parameter)) {
-                return $parameter;
-            }
-        }
-
-        return '';
+        return SensitiveActions::fromParameters($request->query->all()) . ' '
+            . SensitiveActions::fromParameters($request->request->all());
     }
 
     private function parameter(Request $request, string $name): string
