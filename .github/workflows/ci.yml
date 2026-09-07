@@ -201,6 +201,7 @@ jobs:
           php prestashop/bin/console prestashop:module upgrade mpadmin2fa --no-interaction
           MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-install
           MP2FA_INTEGRATION=1 MP2FA_PS_ROOT="$PWD/prestashop" php vendor/bin/phpunit -c phpunit.xml.dist --filter AtomicRateLimitIntegrationTest tests/Integration/AtomicRateLimitIntegrationTest.php
+          MP2FA_INTEGRATION=1 MP2FA_PS_ROOT="$PWD/prestashop" php vendor/bin/phpunit -c phpunit.xml.dist tests/Integration/UtcRateLimitIntegrationTest.php
 
       - name: Install isolated HTTPS request-test runtime
         run: |

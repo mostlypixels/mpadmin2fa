@@ -94,7 +94,7 @@ final class MfaManager
             && $challengeFailures['failures'] >= self::SECURITY_ALERT_FAILURE_THRESHOLD
             && null !== $challengeFailures['first_failure_at']
         ) {
-            $firstFailureAt = strtotime($challengeFailures['first_failure_at']);
+            $firstFailureAt = strtotime($challengeFailures['first_failure_at'] . ' UTC');
             $this->alerts->notifySecurityRecipients($employeeId, 'authentication.succeeded_after_failures', [
                 'elapsed_seconds' => false === $firstFailureAt ? 0 : max(0, time() - $firstFailureAt),
                 'failures' => $challengeFailures['failures'],

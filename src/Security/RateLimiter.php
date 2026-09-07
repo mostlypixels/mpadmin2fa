@@ -20,7 +20,7 @@ final class RateLimiter
     {
         foreach ($this->subjects($employeeId, $ip) as $subject) {
             $row = $this->repository->rateLimit($scope, $subject);
-            if ($row && $row['blocked_until'] && strtotime((string) $row['blocked_until']) > time()) {
+            if ($row && $row['blocked_until'] && strtotime((string) $row['blocked_until'] . ' UTC') > time()) {
                 throw new RuntimeException('Too many attempts. Try again later.');
             }
         }
