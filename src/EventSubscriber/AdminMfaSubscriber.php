@@ -13,6 +13,7 @@ use Mpadmin2fa\Security\Policy;
 use Mpadmin2fa\Security\ReturnTargetPolicy;
 use Mpadmin2fa\Security\SecurityAlertService;
 use Mpadmin2fa\Security\SessionState;
+use Mpadmin2fa\Security\SensitiveActions;
 use PrestaShopBundle\Security\Admin\Employee;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -140,7 +141,9 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
                 $request->isMethodSafe(),
                 $route,
                 (string) $request->attributes->get('_legacy_controller'),
-                (string) $request->get('action', $request->get('submitAction', ''))
+                SensitiveActions::fromParameters($request->attributes->all()) . ' '
+                    . SensitiveActions::fromParameters($request->query->all()) . ' '
+                    . SensitiveActions::fromParameters($request->request->all())
             );
 
             if (AdminMfaAccessPolicy::ALLOW === $decision) {

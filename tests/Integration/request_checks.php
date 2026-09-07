@@ -296,6 +296,13 @@ foreach (['modern' => [$securityPolicy, []], 'legacy' => [$legacySensitive, null
         && false !== strpos($response['headers']['location'] ?? '', 'step_up=1'),
         'expired MFA blocks the ' . $kind . ' sensitive action with a step-up challenge');
 }
+$legacyMixedAction = $tokenized('/admin-dev/index.php?controller=AdminModules', $adminToken, 'token')
+    . '&action=view&disable_device=1';
+$response = $request($legacyMixedAction);
+$check(302 === $response['status']
+    && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge')
+    && false !== strpos($response['headers']['location'] ?? '', 'step_up=1'),
+    'a benign action value cannot hide a sensitive legacy flag');
 $response = $request($approvalActionUrl, []);
 $check(302 === $response['status']
     && false !== strpos($response['headers']['location'] ?? '', '/mpadmin2fa/challenge')
