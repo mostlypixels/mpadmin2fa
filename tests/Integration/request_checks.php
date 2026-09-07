@@ -157,6 +157,10 @@ $approvalCount = static function (int $targetEmployeeId): int {
         'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_approval WHERE id_employee = ' . $targetEmployeeId
     );
 };
+$tokenized = static function (string $path, string $token, string $parameter = '_token'): string {
+    return $path . (false === strpos($path, '?') ? '?' : '&')
+        . rawurlencode($parameter) . '=' . rawurlencode($token);
+};
 
 $login = $loginEmployee('mp2fa-bootstrap@example.test');
 $data = json_decode($login['body'], true);
@@ -417,6 +421,9 @@ $check(302 === $response['status']
     && $employeeId === (int) ($approval['approved_by'] ?? 0),
     'a freshly verified SuperAdmin with native read and update permission approves the request');
 
+if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'delete', true, false)) {
+    throw new RuntimeException('Could not grant the disposable native delete permission.');
+}
 $employeesUrl = '/admin-dev/index.php/modules/mpadmin2fa/enrollment/employees?token=' . Tools::getAdminToken($employeeId);
 $response = $request($employeesUrl);
 $document = new DOMDocument();
@@ -438,6 +445,18 @@ $response = $request($resetActionUrl . (false === strpos($resetActionUrl, '?') ?
     . 'mp2fa_csrf_token=' . rawurlencode($resetActionToken), []);
 $check(302 === $response['status'] && null !== $repository->factor($resetEmployeeId),
     'a correct reset token in the query string cannot reset a factor');
+if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'delete', false, false)) {
+    throw new RuntimeException('Could not remove the disposable native delete permission.');
+}
+try {
+    $response = $request($resetActionUrl, ['mp2fa_csrf_token' => $resetActionToken]);
+} finally {
+    if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'delete', true, false)) {
+        throw new RuntimeException('Could not restore the native delete permission.');
+    }
+}
+$check(302 === $response['status'] && null !== $repository->factor($resetEmployeeId),
+    'a SuperAdmin without native delete permission cannot reset a factor');
 $response = $request($resetActionUrl, ['mp2fa_csrf_token' => $resetActionToken]);
 $check(302 === $response['status'] && null === $repository->factor($resetEmployeeId),
     'the factor reset row action succeeds with its token in the POST body');
