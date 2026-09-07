@@ -42,6 +42,60 @@ switch ($action) {
             . ' "ROLE_MOD_TAB_ADMINMPADMIN2FA_READ", "ROLE_MOD_TAB_ADMINMPADMIN2FAAUTHENTICATOR_READ")', 3 * $profiles);
         break;
 
+    case 'verify-repeated-install':
+        $module = Module::getInstanceByName($moduleName);
+        $employeeId = (int) $database->getValue('SELECT id_employee FROM ' . _DB_PREFIX_ . 'employee ORDER BY id_employee LIMIT 1');
+        if ($employeeId <= 0) {
+            throw new RuntimeException('Repeated-install coverage requires an employee fixture.');
+        }
+        $now = pSQL(gmdate('Y-m-d H:i:s'));
+        $database->execute('INSERT INTO ' . _DB_PREFIX_ . 'mp2fa_employee'
+            . ' (id_employee, status, secret_ciphertext, key_version, last_counter, confirmed_at, date_add, date_upd)'
+            . ' VALUES (' . $employeeId . ', "active", "preservation-fixture", 1, 42, "' . $now . '", "' . $now . '", "' . $now . '")');
+        $database->execute('INSERT INTO ' . _DB_PREFIX_ . 'mp2fa_recovery_code'
+            . ' (id_employee, code_hash, used_at, date_add) VALUES (' . $employeeId . ', "preservation-hash", NULL, "' . $now . '")');
+        $database->execute('INSERT INTO ' . _DB_PREFIX_ . 'mp2fa_approval'
+            . ' (id_employee, requested_by, approved_by, status, date_add, date_upd)'
+            . ' VALUES (' . $employeeId . ', ' . $employeeId . ', NULL, "pending", "' . $now . '", "' . $now . '")');
+        $database->execute('INSERT INTO ' . _DB_PREFIX_ . 'mp2fa_rate_limit'
+            . ' (scope, subject_hash, failures, blocked_until, last_failure_at)'
+            . ' VALUES ("preservation", "' . str_repeat('a', 64) . '", 4, NULL, "' . $now . '")');
+        $database->execute('INSERT INTO ' . _DB_PREFIX_ . 'mp2fa_audit'
+            . ' (id_employee, event, ip, metadata_json, date_add)'
+            . ' VALUES (' . $employeeId . ', "preservation.fixture", "127.0.0.1", "{}", "' . $now . '")');
+        $tables = ['mp2fa_keyring', 'mp2fa_employee', 'mp2fa_recovery_code', 'mp2fa_approval', 'mp2fa_rate_limit', 'mp2fa_audit'];
+        $snapshot = static function () use ($database, $tables): array {
+            $state = [];
+            foreach ($tables as $table) {
+                $state[$table] = $database->executeS('SELECT * FROM ' . _DB_PREFIX_ . $table . ' ORDER BY 1');
+            }
+            $state['module'] = $database->executeS('SELECT * FROM ' . _DB_PREFIX_ . 'module'
+                . ' WHERE name = "mpadmin2fa" ORDER BY id_module');
+            $state['module_shop'] = $database->executeS('SELECT ms.* FROM ' . _DB_PREFIX_ . 'module_shop ms'
+                . ' INNER JOIN ' . _DB_PREFIX_ . 'module m ON m.id_module = ms.id_module'
+                . ' WHERE m.name = "mpadmin2fa" ORDER BY ms.id_module, ms.id_shop');
+            $state['configuration'] = $database->executeS('SELECT name, value FROM ' . _DB_PREFIX_ . 'configuration'
+                . ' WHERE name LIKE "MP2FA_%" ORDER BY name, id_shop_group, id_shop');
+
+            return $state;
+        };
+        $before = $snapshot();
+        if ($module->install()) {
+            throw new RuntimeException('Repeated installation unexpectedly succeeded.');
+        }
+        if ($before !== $snapshot()) {
+            throw new RuntimeException('Repeated installation changed existing MFA state.');
+        }
+        if (!Module::isInstalled($moduleName) || !Module::isEnabled($moduleName)) {
+            throw new RuntimeException('Repeated installation disabled or unregistered the existing module.');
+        }
+        $assertCount('preserved module', 'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'module WHERE name = ' . $moduleSql, 1);
+        $database->delete('mp2fa_employee', 'id_employee = ' . $employeeId);
+        $database->delete('mp2fa_approval', 'id_employee = ' . $employeeId);
+        $database->delete('mp2fa_rate_limit', 'scope = "preservation"');
+        $database->delete('mp2fa_audit', 'event = "preservation.fixture"');
+        break;
+
     case 'prepare-upgrade':
         $database->execute('ALTER TABLE ' . _DB_PREFIX_ . 'mp2fa_rate_limit ADD date_upd DATETIME NULL AFTER blocked_until');
         $database->execute('UPDATE ' . _DB_PREFIX_ . 'mp2fa_rate_limit SET date_upd = last_failure_at');

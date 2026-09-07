@@ -191,6 +191,7 @@ jobs:
         run: |
           php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction
           MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-install
+          MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-repeated-install
           php prestashop/bin/console cache:clear --env=prod --no-debug
           php prestashop/bin/console debug:router --env=prod --no-debug | grep mpadmin2fa
           php prestashop/bin/console list --raw --env=prod --no-debug | grep mpadmin2fa

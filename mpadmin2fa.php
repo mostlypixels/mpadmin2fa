@@ -123,6 +123,13 @@ class Mpadmin2fa extends Module
             return false;
         }
 
+        // A repeated install must never roll back an existing installation.
+        if (Module::isInstalled($this->name)) {
+            $this->_errors[] = 'Admin 2FA is already installed.';
+
+            return false;
+        }
+
         $parentAttempted = false;
         try {
             $parentAttempted = true;

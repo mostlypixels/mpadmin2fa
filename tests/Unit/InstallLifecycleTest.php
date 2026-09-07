@@ -22,6 +22,8 @@ final class InstallLifecycleTest extends TestCase
         $install = $this->methodBody('install');
 
         self::assertStringContainsString('$this->tabs = [];', $this->module);
+        self::assertStringContainsString('Module::isInstalled($this->name)', $install);
+        self::assertLessThan(strpos($install, 'parent::install()'), strpos($install, 'Module::isInstalled($this->name)'));
         self::assertLessThan(strpos($install, 'new SchemaInstaller()'), strpos($install, 'parent::install()'));
         self::assertLessThan(strpos($install, 'installConfiguration()'), strpos($install, 'new SchemaInstaller()'));
         self::assertLessThan(strpos($install, 'registerRequiredHooks()'), strpos($install, 'installConfiguration()'));
