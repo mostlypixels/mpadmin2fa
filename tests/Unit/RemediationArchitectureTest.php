@@ -33,9 +33,11 @@ final class RemediationArchitectureTest extends TestCase
     {
         $module = (string) file_get_contents(dirname(__DIR__, 2) . '/mpadmin2fa.php');
         $upgrade = (string) file_get_contents(dirname(__DIR__, 2) . '/upgrade/upgrade-0.2.8.php');
+        $rcUpgrade = (string) file_get_contents(dirname(__DIR__, 2) . '/upgrade/upgrade-3.0.0rc1.php');
 
         self::assertStringContainsString('function reconcileAdminTabs(): bool', $module);
         self::assertStringContainsString('$module->reconcileAdminTabs()', $upgrade);
+        self::assertStringContainsString('upgrade_module_0_2_8($module)', $rcUpgrade);
     }
 
     public function testCompatibilityStopsAtLatestValidatedStableMinor(): void

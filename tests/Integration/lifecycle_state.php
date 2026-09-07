@@ -21,7 +21,7 @@ $moduleSql = '"' . pSQL($moduleName) . '"';
 switch ($action) {
     case 'verify-install':
         $version = (string) $database->getValue('SELECT version FROM ' . _DB_PREFIX_ . 'module WHERE name = ' . $moduleSql);
-        if ('0.2.8' !== $version) {
+        if (Module::getInstanceByName($moduleName)->version !== $version) {
             throw new RuntimeException('Installed module version mismatch: ' . $version);
         }
         $assertCount('tables', 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()'
