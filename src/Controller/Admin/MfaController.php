@@ -571,7 +571,7 @@ final class MfaController extends PrestaShopAdminController
         if (!$request->isMethod('POST')
             || !$this->isCsrfTokenValid(
                 $tokenId,
-                (string) ($request->request->get('mp2fa_csrf_token') ?: $request->query->get('token'))
+                (string) $request->request->get('mp2fa_csrf_token')
             )
         ) {
             throw $this->createAccessDeniedException('Invalid request.');

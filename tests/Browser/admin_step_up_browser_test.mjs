@@ -10,7 +10,10 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 
 const moduleRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const listener = await readFile(resolve(moduleRoot, 'views/js/admin-step-up.js'), 'utf8');
+const listener = await readFile(
+  process.env.MP2FA_LISTENER_PATH || resolve(moduleRoot, 'views/js/admin-step-up.js'),
+  'utf8',
+);
 const browserCandidates = [
   process.env.CHROME_BIN,
   '/usr/bin/google-chrome',
@@ -25,8 +28,55 @@ const browser = browserCandidates.find((candidate) => existsSync(candidate));
 assert.ok(browser, 'A Chromium-based browser is required for the step-up browser test.');
 
 let ajaxRequests = 0;
+let secureSubmitRequests = 0;
+let secureSubmitMethod = '';
+let secureSubmitQuery = '';
+let secureSubmitBody = '';
 const server = createServer((request, response) => {
   const url = new URL(request.url, 'http://127.0.0.1');
+
+  if ('/secure-submit' === url.pathname) {
+    response.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
+    response.end(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Secure grid submit test</title>
+    <script src="/admin-step-up.js"></script>
+    <script src="/admin-step-up.js"></script>
+    <script>window.confirm = function () { return true; };</script>
+  </head>
+  <body>
+    <button type="button"
+            class="js-mp2fa-secure-submit-row-action"
+            data-confirm-message="Continue?"
+            data-csrf-token="grid-token+/="
+            data-method="POST"
+            data-url="/secure-grid-action/42">
+      Submit securely
+    </button>
+    <script>setTimeout(function () { document.querySelector('button').click(); }, 100);</script>
+  </body>
+</html>`);
+
+    return;
+  }
+
+  if ('/secure-grid-action/42' === url.pathname) {
+    ++secureSubmitRequests;
+    secureSubmitMethod = request.method;
+    secureSubmitQuery = url.search;
+    request.setEncoding('utf8');
+    request.on('data', (chunk) => {
+      secureSubmitBody += chunk;
+    });
+    request.on('end', () => {
+      response.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
+      response.end('<!doctype html><title>MP2FA_SECURE_SUBMIT_PASSED</title>');
+    });
+
+    return;
+  }
 
   if ('/' === url.pathname) {
     response.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
@@ -164,25 +214,43 @@ try {
 
   await command('Page.enable');
   await command('Runtime.enable');
-  await command('Page.navigate', {url: `http://127.0.0.1:${address.port}/`});
 
-  const redirectDeadline = Date.now() + 20000;
-  let title = '';
-  while (Date.now() < redirectDeadline) {
-    const evaluation = await command('Runtime.evaluate', {
-      expression: 'document.title',
-      returnByValue: true,
-    });
-    title = evaluation.result?.value ?? '';
-    if ('MP2FA_BROWSER_REDIRECT_PASSED' === title) {
-      break;
+  const waitForTitle = async (expected) => {
+    const deadline = Date.now() + 20000;
+    let title = '';
+    while (Date.now() < deadline) {
+      try {
+        const evaluation = await command('Runtime.evaluate', {
+          expression: 'document.title',
+          returnByValue: true,
+        });
+        title = evaluation.result?.value ?? '';
+      } catch (error) {
+        if (!/navigated|context/i.test(error.message)) {
+          throw error;
+        }
+      }
+      if (expected === title) {
+        break;
+      }
+      await delay(100);
     }
-    await delay(100);
-  }
 
-  assert.equal(title, 'MP2FA_BROWSER_REDIRECT_PASSED');
+    assert.equal(title, expected);
+  };
+
+  await command('Page.navigate', {url: `http://127.0.0.1:${address.port}/secure-submit`});
+  await waitForTitle('MP2FA_SECURE_SUBMIT_PASSED');
+
+  assert.equal(secureSubmitRequests, 1, 'The secure row action should submit once.');
+  assert.equal(secureSubmitMethod, 'POST');
+  assert.equal(secureSubmitQuery, '', 'The CSRF token must not appear in the request URL.');
+  assert.equal(new URLSearchParams(secureSubmitBody).get('mp2fa_csrf_token'), 'grid-token+/=');
+
+  await command('Page.navigate', {url: `http://127.0.0.1:${address.port}/`});
+  await waitForTitle('MP2FA_BROWSER_REDIRECT_PASSED');
   assert.equal(ajaxRequests, 1, 'The browser should issue one sensitive AJAX request.');
-  console.log('Browser step-up redirect passed.');
+  console.log('Secure grid POST and browser step-up redirect passed.');
 } finally {
   socket?.close();
   if (null === browserProcess.exitCode) {
