@@ -102,6 +102,9 @@ services:
   Mpadmin2fa\Security\EnrollmentApprovalAuthorizer:
     class: Mpadmin2fa\Security\EnrollmentApprovalAuthorizer
 
+  Mpadmin2fa\Security\FactorResetAuthorization:
+    class: Mpadmin2fa\Security\FactorResetAuthorization
+
   Mpadmin2fa\Security\KeyManager:
     class: Mpadmin2fa\Security\KeyManager
 
