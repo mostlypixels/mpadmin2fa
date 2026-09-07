@@ -18,11 +18,18 @@ if (dirname($buildRoot) !== $moduleRoot || 'build' !== basename($buildRoot)) {
 removeTree($buildRoot);
 mkdir($stageRoot, 0775, true);
 copyTree($moduleRoot, $stageRoot, [
+    '.ai',
+    '.agents',
+    '.claude',
+    '.codex',
+    'AGENTS.md',
     '.git',
     '.github',
     '.gitignore',
     '.phpunit.cache',
+    '.phpunit.result.cache',
     'build',
+    'config.xml',
     'dist',
     'docs',
     'documentation',
@@ -40,7 +47,7 @@ run('composer install --no-dev --prefer-dist --no-interaction --no-progress', $s
 
 putenv('MP2FA_SCOPE_ROOT=' . $stageRoot);
 run(
-    escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($moduleRoot . '/vendor/bin/php-scoper')
+    escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($moduleRoot . '/tools/vendor/bin/php-scoper')
     . ' add-prefix --config=' . escapeshellarg($moduleRoot . '/php-scoper.inc.php')
     . ' --output-dir=' . escapeshellarg($releaseRoot)
     . ' --force --stop-on-failure --no-interaction',
@@ -100,6 +107,8 @@ foreach (phpFiles($releaseRoot) as $file) {
     }
 }
 
+removeDevelopmentArtifacts($releaseRoot);
+
 $checksums = [];
 foreach (allFiles($releaseRoot) as $file) {
     $relative = substr($file, strlen($releaseRoot) + 1);
@@ -112,6 +121,24 @@ sort($checksums);
 file_put_contents($releaseRoot . '/SHA256SUMS', implode(PHP_EOL, $checksums) . PHP_EOL);
 
 fwrite(STDOUT, 'Scoped release created at ' . $releaseRoot . PHP_EOL);
+
+function removeDevelopmentArtifacts(string $releaseRoot): void
+{
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($releaseRoot, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($iterator as $item) {
+        $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($releaseRoot) + 1));
+        if (!preg_match('~(?:^|/)(?:\.git|\.github|tests?|docs?|documentation|examples?|node_modules)(?:/|$)~i', $relative)
+            && !preg_match('~(?:^|/)(?:\.editorconfig|\.gitattributes|\.gitignore|composer\.lock|phpunit(?:\.xml(?:\.dist)?)?|phpstan\.neon(?:\.dist)?|psalm\.xml)$~i', $relative)
+            && !preg_match('~^vendor-scoped/[^/]+/[^/]+/composer\.json$~', $relative)
+        ) {
+            continue;
+        }
+        $item->isDir() && !$item->isLink() ? removeTree($item->getPathname()) : unlink($item->getPathname());
+    }
+}
 
 function assertModuleNamespacesPreserved(string $releaseRoot): void
 {

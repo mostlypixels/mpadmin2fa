@@ -15,7 +15,6 @@
     "pragmarx/google2fa": "^9.0"
   },
   "require-dev": {
-    "humbug/php-scoper": "^0.17.7",
     "phpunit/phpunit": "^10.5"
   },
   "autoload": {
@@ -30,6 +29,7 @@
     "prepend-autoloader": false
   },
   "scripts": {
+    "build:tools": "composer --working-dir=tools install --no-interaction --prefer-dist",
     "build:scoped": "@php tools/build-scoped.php",
     "test": "@php vendor/bin/phpunit"
   }
