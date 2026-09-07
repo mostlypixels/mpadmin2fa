@@ -91,12 +91,12 @@ if ('repair' === $action) {
         'partial-upgrade timestamp backfill is pending');
 }
 if (in_array($action, ['repeat', 'repair'], true)) {
-    require_once $root . '/modules/mpadmin2fa/upgrade/upgrade-0.2.8.php';
-    $assert(upgrade_module_0_2_8($module), 'the real upgrade entry point can run twice');
+    require_once $root . '/modules/mpadmin2fa/upgrade/upgrade-1.0.0rc1.php';
+    $assert(upgrade_module_1_0_0rc1($module), 'the RC upgrade entry point can run twice');
 }
-$assert('0.2.8' === $module->version && ('verify-failed' === $action ? '0.2.7' : '0.2.8') === $version,
+$assert('1.0.0rc1' === $module->version && ('verify-failed' === $action ? '0.2.7' : '1.0.0rc1') === $version,
     'verify-failed' === $action ? 'failed upgrade preserves the previous installed version'
-        : 'native upgrade advanced the installed version to 0.2.8');
+        : 'native upgrade advanced the installed version to the RC');
 $snapshot = json_decode(file_get_contents($snapshotPath), true);
 foreach ($snapshot['tables'] as $table => $expected) {
     if ('mp2fa_rate_limit' === $table) {

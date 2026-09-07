@@ -10,7 +10,7 @@
 | **First public version** | `1.0.0` |
 | **Build PHP** | 8.1 through 8.4 |
 
-The current `0.x` version is for development. Never reuse the same tag on another branch.
+The current candidate is public tag `v1.0.0-rc.1` with internal module version `1.0.0rc1`. The eight-character internal form fits native storage and gives PrestaShop a discoverable `upgrade-1.0.0rc1.php` migration. Never reuse the same tag on another branch.
 
 ## Choose the version number
 
@@ -38,15 +38,15 @@ The current `0.x` version is for development. Never reuse the same tag on anothe
 The tag text must match the module version:
 
 ```bash
-php tools/release.php v1.0.0
+php tools/release.php v1.0.0-rc.1
 ```
 
 The command validates Composer data, runs tests, builds scoped dependencies, and writes two files to `dist/`:
 
 | File | Purpose |
 | --- | --- |
-| `mpadmin2fa-v1.0.0.zip` | Installable module package. |
-| `mpadmin2fa-v1.0.0.zip.sha256` | File-integrity checksum. |
+| `mpadmin2fa-v1.0.0-rc.1.zip` | Installable module package. |
+| `mpadmin2fa-v1.0.0-rc.1.zip.sha256` | File-integrity checksum. |
 
 The command **does not publish anything**.
 
@@ -62,7 +62,7 @@ Before publication, confirm that:
 ## Publish safely
 
 > [!WARNING]
-> Pushing a `v*` tag starts the publication workflow.
+> Pushing a `v1.*` tag starts the publication workflow.
 
 1. Push `1.x-ps17` **without tags**.
 2. Review the remote commit.

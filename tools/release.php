@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 const MODULE_NAME = 'mpadmin2fa';
 
+require_once __DIR__ . '/ReleaseVersion.php';
+
 $root = dirname(__DIR__);
-$tag = $argv[1] ?? getenv('GITHUB_REF_NAME') ?: '';
-if (!preg_match('/^v(?<version>[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$/', $tag, $matches)) {
-    throw new RuntimeException('Release tag must use v1.2.3 or v1.2.3-rc.1.');
-}
-$version = $matches['version'];
+$tag = ($argv[1] ?? '') ?: Mpadmin2faBuild\ReleaseVersion::tagForModuleVersion(
+    moduleVersion($root . '/mpadmin2fa.php')
+);
+$version = Mpadmin2faBuild\ReleaseVersion::moduleVersionForTag($tag);
 if ($version !== moduleVersion($root . '/mpadmin2fa.php')) {
     throw new RuntimeException(sprintf('Tag %s does not match the module version.', $tag));
 }

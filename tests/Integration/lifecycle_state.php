@@ -57,7 +57,8 @@ switch ($action) {
         break;
 
     case 'verify-install':
-        $assertCount('version', 'SELECT COUNT(*) FROM ' . $prefix . 'module WHERE name = ' . $moduleSql . ' AND version = "0.2.8"', 1);
+        $assertCount('version', 'SELECT COUNT(*) FROM ' . $prefix . 'module WHERE name = ' . $moduleSql
+            . ' AND version = "' . pSQL(Module::getInstanceByName('mpadmin2fa')->version) . '"', 1);
         $assertCount('tables', 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()'
             . ' AND LEFT(table_name, ' . strlen($prefix . 'mp2fa_') . ') = "' . pSQL($prefix . 'mp2fa_') . '"', 6);
         $assertCount('tabs', 'SELECT COUNT(*) FROM ' . $prefix . 'tab WHERE module = ' . $moduleSql, 7);
