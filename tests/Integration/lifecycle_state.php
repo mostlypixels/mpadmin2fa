@@ -44,7 +44,7 @@ switch ($action) {
 
     case 'verify-repeated-install':
         $module = Module::getInstanceByName($moduleName);
-        $employeeId = (int) $database->getValue('SELECT id_employee FROM ' . _DB_PREFIX_ . 'employee ORDER BY id_employee LIMIT 1');
+        $employeeId = (int) $database->getValue('SELECT id_employee FROM ' . _DB_PREFIX_ . 'employee ORDER BY id_employee');
         if ($employeeId <= 0) {
             throw new RuntimeException('Repeated-install coverage requires an employee fixture.');
         }
