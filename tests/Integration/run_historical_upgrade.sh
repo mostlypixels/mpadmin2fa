@@ -18,37 +18,51 @@ export MP2FA_UPGRADE_SNAPSHOT="$runtime/snapshot.json"
 cp -a "$installed" "$runtime/current"
 (cd "$runtime/current" && sha256sum --check --quiet SHA256SUMS)
 (cd "$MP2FA_HISTORICAL_OUTPUT" && sha256sum --check --quiet mpadmin2fa-0.2.7.zip.sha256)
-[[ "$(cat "$MP2FA_HISTORICAL_OUTPUT/SOURCE_COMMIT")" == 96a0a0d15a1247d90825b800b9d8a41936d21383 ]]
+[[ "$(cat "$MP2FA_HISTORICAL_OUTPUT/SOURCE_COMMIT-0.2.7")" == 9334de7296f98d4248af4b7b541038ad34da22cc ]]
 restore_package() {
   # Resolved above: only the separate disposable shop's module is replaced.
   rm -rf -- "$installed"
   cp -a "$runtime/current" "$installed"
 }
 trap restore_package EXIT
-state verify-cleanup
-rm -rf -- "$installed"
-unzip -q "$MP2FA_HISTORICAL_OUTPUT/mpadmin2fa-0.2.7.zip" -d "$shop/modules"
-module install
-php "$module_root/tests/Integration/historical_upgrade_state.php" snapshot
-restore_package
-php "$shop/bin/console" cache:clear --env=prod --no-warmup
-php "$shop/bin/console" cache:clear --env=dev --no-warmup
-php "$module_root/tests/Integration/historical_upgrade_state.php" inject-failure
-output="$(module upgrade 2>&1)" || true
-if ! grep -q 'injected mp2fa upgrade failure after schema' <<< "$output"; then
-  printf '%s\n' "$output"
-  echo 'The upgrade failure fixture did not reach schema migration.'
-  exit 1
-fi
-restore_package
-php "$module_root/tests/Integration/historical_upgrade_state.php" verify-failed
-module upgrade
-state verify-install
-php "$module_root/tests/Integration/historical_upgrade_state.php" verify
-php "$module_root/tests/Integration/historical_upgrade_state.php" repair
-php "$module_root/tests/Integration/historical_upgrade_state.php" repeat
-php "$module_root/tests/Integration/installation_shape.php" verify
-state verify-install
-module uninstall
-state verify-cleanup
-echo 'Historical 0.2.7 package upgrade and cleanup passed.'
+(cd "$MP2FA_HISTORICAL_OUTPUT" && sha256sum --check --quiet mpadmin2fa-0.2.8.zip.sha256)
+[[ "$(cat "$MP2FA_HISTORICAL_OUTPUT/SOURCE_COMMIT-0.2.8")" == bdd0ff970b327f8fea2c07eef6e5573e8fc33bf9 ]]
+for origin in direct via-0.2.8; do
+  state verify-cleanup
+  rm -rf -- "$installed"
+  unzip -q "$MP2FA_HISTORICAL_OUTPUT/mpadmin2fa-0.2.7.zip" -d "$shop/modules"
+  module install
+  php "$module_root/tests/Integration/historical_upgrade_state.php" snapshot
+  if [[ "$origin" == via-0.2.8 ]]; then
+    rm -rf -- "$installed"
+    unzip -q "$MP2FA_HISTORICAL_OUTPUT/mpadmin2fa-0.2.8.zip" -d "$shop/modules"
+    php "$shop/bin/console" cache:clear --env=prod --no-warmup
+    php "$shop/bin/console" cache:clear --env=dev --no-warmup
+    module upgrade
+    php "$module_root/tests/Integration/historical_upgrade_state.php" verify-development
+  fi
+  restore_package
+  php "$shop/bin/console" cache:clear --env=prod --no-warmup
+  php "$shop/bin/console" cache:clear --env=dev --no-warmup
+  if [[ "$origin" == direct ]]; then
+    php "$module_root/tests/Integration/historical_upgrade_state.php" inject-failure
+    output="$(module upgrade 2>&1)" || true
+    if ! grep -q 'injected mp2fa upgrade failure after schema' <<< "$output"; then
+      printf '%s\n' "$output"
+      echo 'The upgrade failure fixture did not reach schema migration.'
+      exit 1
+    fi
+    restore_package
+    php "$module_root/tests/Integration/historical_upgrade_state.php" verify-failed
+  fi
+  module upgrade
+  state verify-install
+  php "$module_root/tests/Integration/historical_upgrade_state.php" verify
+  php "$module_root/tests/Integration/historical_upgrade_state.php" repair
+  php "$module_root/tests/Integration/historical_upgrade_state.php" repeat
+  php "$module_root/tests/Integration/installation_shape.php" verify
+  state verify-install
+  module uninstall
+  state verify-cleanup
+  echo "Historical package upgrade ($origin) and cleanup passed."
+done

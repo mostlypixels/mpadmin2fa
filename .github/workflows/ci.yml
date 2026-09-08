@@ -1,6 +1,12 @@
 name: Continuous integration
 
 on:
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        required: false
+        default: ''
   push:
     branches:
       - 1.x-ps17
@@ -79,7 +85,7 @@ jobs:
         run: composer test
 
   package:
-    name: Verify scoped release package
+    name: Build and verify release ZIP
     runs-on: ubuntu-latest
     steps:
       - name: Check out the module
@@ -96,21 +102,21 @@ jobs:
       - name: Validate Composer metadata
         run: composer validate --strict
 
-      - name: Install module dependencies
-        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+      - name: Record the reproducible source timestamp
+        run: printf 'SOURCE_DATE_EPOCH=%s\n' "$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
 
-      - name: Install release tools
-        run: composer build:tools
+      - name: Build and verify the exact release ZIP
+        env:
+          MP2FA_RELEASE_TAG: ${{ inputs.release_tag || '' }}
+        run: php tools/release.php "$MP2FA_RELEASE_TAG"
 
-      - name: Verify the scoped release build
-        run: composer build:scoped
-
-      - name: Upload the installable module
-        uses: actions/upload-artifact@v4
+      - name: Preserve the candidate ZIP and checksum
+        uses: actions/upload-artifact@v5
         with:
-          name: mpadmin2fa-ps17-package
-          path: build/mpadmin2fa/
+          name: mpadmin2fa-ps17-release
+          path: dist/
           if-no-files-found: error
+          retention-days: 7
 
   lifecycle:
     name: Packaged lifecycle and requests / PS ${{ matrix.prestashop }} / PHP ${{ matrix.php }}
@@ -155,7 +161,7 @@ jobs:
           tools: composer:2.2
           coverage: none
 
-      - name: Build the genuine PS 1.7 version 0.2.7 snapshot
+      - name: Build the genuine 0.2.7 and 0.2.8 snapshots
         env:
           MP2FA_HISTORICAL_OUTPUT: ${{ runner.temp }}/mp2fa-historical
         run: bash tests/Integration/build_historical_package.sh
@@ -173,14 +179,17 @@ jobs:
           composer install --working-dir=prestashop --no-dev --prefer-dist --no-interaction --no-progress --no-scripts
           composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Download the scoped release artifact
-        uses: actions/download-artifact@v4
+      - name: Download the exact candidate ZIP
+        uses: actions/download-artifact@v5
         with:
-          name: mpadmin2fa-ps17-package
-          path: prestashop/modules/mpadmin2fa
+          name: mpadmin2fa-ps17-release
+          path: dist
 
-      - name: Verify package checksums and target PHP syntax
+      - name: Verify and install only the candidate ZIP
         run: |
+          (cd dist && sha256sum --check --strict *.zip.sha256)
+          rm -rf prestashop/modules/mpadmin2fa
+          unzip -q dist/*.zip -d prestashop/modules
           (cd prestashop/modules/mpadmin2fa && sha256sum --check --quiet SHA256SUMS)
           find prestashop/modules/mpadmin2fa -name '*.php' -print0 | xargs -0 -n1 php -l
 

@@ -85,6 +85,14 @@ if ('inject-failure' === $action) {
         . "\n" . $marker, $source));
     exit(0);
 }
+if ('verify-development' === $action) {
+    $assert('0.2.8' === $module->version && '0.2.8' === $version,
+        'the genuine development package was installed through native upgrade');
+    $assert(2 === (int) $db->getValue('SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE()'
+        . ' AND table_name = "' . pSQL(_DB_PREFIX_ . 'mp2fa_rate_limit') . '" AND column_name IN ("date_upd", "last_failure_at")'),
+        'the development upgrade retains both timestamp columns before RC repair');
+    exit(0);
+}
 $assert(in_array($action, ['verify', 'repeat', 'repair', 'verify-failed'], true), 'valid verification phase');
 if ('repair' === $action) {
     $assert($db->execute('UPDATE ' . _DB_PREFIX_ . 'mp2fa_rate_limit SET last_failure_at = NULL'),

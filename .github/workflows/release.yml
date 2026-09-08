@@ -6,42 +6,35 @@ on:
       - 'v1.*'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Test, package, and publish
+  validate:
+    uses: ./.github/workflows/ci.yml
+    with:
+      release_tag: ${{ github.ref_name }}
+
+  publish:
+    name: Publish the validated ZIP
+    needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Check out tagged commit
-        uses: actions/checkout@v4
+      - name: Download the validated candidate
+        uses: actions/download-artifact@v5
         with:
-          fetch-depth: 0
+          name: mpadmin2fa-ps17-release
+          path: dist
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          extensions: zip
-          tools: composer:v2
-          coverage: none
-
-      - name: Install release tools
-        run: composer build:tools
-
-      - name: Build and verify release archive
-        run: php tools/release.php "${GITHUB_REF_NAME}"
-
-      - name: Preserve build output
-        uses: actions/upload-artifact@v5
-        with:
-          name: ${{ github.event.repository.name }}-${{ github.ref_name }}
-          path: dist/
-          if-no-files-found: error
+      - name: Verify the artifact checksum
+        run: |
+          test -f "dist/mpadmin2fa-${GITHUB_REF_NAME}.zip"
+          (cd dist && sha256sum --check --strict *.zip.sha256)
 
       - name: Publish GitHub Release
         env:
@@ -49,7 +42,9 @@ jobs:
         run: |
           args=(
             release create "${GITHUB_REF_NAME}"
-            dist/*
+            "dist/mpadmin2fa-${GITHUB_REF_NAME}.zip"
+            "dist/mpadmin2fa-${GITHUB_REF_NAME}.zip.sha256"
+            --repo "$GITHUB_REPOSITORY"
             --verify-tag
             --title "${GITHUB_REF_NAME}"
             --generate-notes
