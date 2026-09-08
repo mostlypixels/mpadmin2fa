@@ -1,6 +1,12 @@
 name: Continuous integration
 
 on:
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        required: false
+        default: ''
   push:
     branches:
       - main
@@ -99,7 +105,52 @@ jobs:
 
       - name: Verify the real browser redirect listener
         run: node tests/Browser/admin_step_up_browser_test.mjs
+
+  package:
+    name: Build and verify release ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the module
+        uses: actions/checkout@v5
+
+      - name: Check out the release test platform
+        uses: actions/checkout@v5
+        with:
+          repository: PrestaShop/PrestaShop
+          ref: 9.0.0
+          path: prestashop
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Prepare the isolated release checkout
+        run: |
+          composer install --working-dir=prestashop --no-dev --prefer-dist --no-interaction --no-progress --no-scripts
+          mkdir -p prestashop/modules/mpadmin2fa
+          rsync -a --exclude='.git/' --exclude='build/' --exclude='dist/' --exclude='prestashop/' --exclude='vendor/' ./ prestashop/modules/mpadmin2fa/
+          printf 'SOURCE_DATE_EPOCH=%s\n' "$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+
+      - name: Build and verify the exact release ZIP
+        working-directory: prestashop/modules/mpadmin2fa
+        env:
+          MP2FA_RELEASE_TAG: ${{ inputs.release_tag || '' }}
+        run: php tools/release.php "$MP2FA_RELEASE_TAG"
+
+      - name: Preserve the candidate ZIP and checksum
+        uses: actions/upload-artifact@v5
+        with:
+          name: mpadmin2fa-ps9-release
+          path: prestashop/modules/mpadmin2fa/dist/
+          if-no-files-found: error
+          retention-days: 7
+
   lifecycle:
+    needs: package
     name: Packaged lifecycle and requests on PS ${{ matrix.prestashop }} / PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
     strategy:
@@ -127,6 +178,8 @@ jobs:
     steps:
       - name: Check out the module
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Check out PrestaShop
         uses: actions/checkout@v5
@@ -134,6 +187,19 @@ jobs:
           repository: PrestaShop/PrestaShop
           ref: ${{ matrix.prestashop }}
           path: prestashop
+
+      - name: Set up historical package tools
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Build the genuine 0.2.7 and 0.2.8 snapshots
+        env:
+          MP2FA_HISTORICAL_OUTPUT: ${{ runner.temp }}/mp2fa-historical
+        run: bash tests/Integration/build_historical_package.sh
 
       - name: Set up PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
@@ -148,14 +214,24 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies and build locally
+      - name: Install test and platform dependencies
         run: |
           composer install --prefer-dist --no-interaction --no-progress
           composer install --working-dir=prestashop --no-dev --prefer-dist --no-interaction --no-progress --no-scripts
-          composer build:tools
-          composer build:scoped
-          mkdir -p prestashop/modules/mpadmin2fa
-          rsync -a --delete build/mpadmin2fa/ prestashop/modules/mpadmin2fa/
+
+      - name: Download the exact candidate ZIP
+        uses: actions/download-artifact@v5
+        with:
+          name: mpadmin2fa-ps9-release
+          path: dist
+
+      - name: Verify and install only the candidate ZIP
+        run: |
+          (cd dist && sha256sum --check --strict *.zip.sha256)
+          rm -rf prestashop/modules/mpadmin2fa
+          unzip -q dist/*.zip -d prestashop/modules
+          (cd prestashop/modules/mpadmin2fa && sha256sum --check --quiet SHA256SUMS)
+          find prestashop/modules/mpadmin2fa -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Build storefront and back-office assets
         run: |
@@ -245,3 +321,10 @@ jobs:
           php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction
           php prestashop/bin/console prestashop:module uninstall mpadmin2fa --no-interaction
           MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-cleanup
+
+      - name: Verify genuine direct and chained historical upgrades
+        env:
+          MP2FA_INTEGRATION: '1'
+          MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop
+          MP2FA_HISTORICAL_OUTPUT: ${{ runner.temp }}/mp2fa-historical
+        run: bash tests/Integration/run_historical_upgrade.sh
