@@ -373,5 +373,5 @@ try {
     await Promise.race([exited, delay(2000)]);
   }
   await new Promise((resolveClose) => server.close(resolveClose));
-  await rm(profile, {recursive: true, force: true});
+  await rm(profile, {recursive: true, force: true, maxRetries: 5, retryDelay: 200});
 }
