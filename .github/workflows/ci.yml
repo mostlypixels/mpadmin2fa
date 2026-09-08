@@ -304,23 +304,33 @@ jobs:
           MP2FA_APACHE_PHP_MODULE: /usr/lib/apache2/modules/libphp${{ matrix.php }}.so
         run: bash tests/Integration/run_requests.sh
 
-      - name: Verify tab-stage failure rollback
+      - name: Verify every install rollback stage and immediate reinstall
+        env:
+          MP2FA_INTEGRATION: '1'
+          MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop
         run: |
-          php prestashop/bin/console prestashop:module uninstall mpadmin2fa --no-interaction
-          MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php create-tab-trigger
-          install_output="$(php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction 2>&1)"
-          printf '%s\n' "$install_output"
-          if ! grep -q "Cannot install module" <<< "$install_output"; then
-            echo "The injected installation failure unexpectedly succeeded."
-            exit 1
-          fi
-          MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-rollback
-
-      - name: Verify final install and uninstall cleanup
-        run: |
-          php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction
           php prestashop/bin/console prestashop:module uninstall mpadmin2fa --no-interaction
           MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-cleanup
+          export MP2FA_LIFECYCLE_RUNTIME
+          MP2FA_LIFECYCLE_RUNTIME="$(mktemp -d /tmp/mp2fa-lifecycle.XXXXXX)"
+          chmod 700 "$MP2FA_LIFECYCLE_RUNTIME"
+          trap 'php tests/Integration/failure_injection.php restore' EXIT
+          for stage in before-parent after-schema after-configuration after-hooks after-tabs; do
+            php tests/Integration/failure_injection.php prepare "$stage"
+            output="$(php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction 2>&1)" || true
+            if ! grep -q "injected mp2fa $stage failure" <<< "$output"; then
+              printf '%s\n' "$output"
+              echo "The $stage fixture did not reach the expected installation stage."
+              exit 1
+            fi
+            php tests/Integration/failure_injection.php verify
+            MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-cleanup
+            php prestashop/bin/console prestashop:module install mpadmin2fa --no-interaction
+            MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-install
+            php prestashop/bin/console prestashop:module uninstall mpadmin2fa --no-interaction
+            MP2FA_PS_ROOT="$PWD/prestashop" php tests/Integration/lifecycle_state.php verify-cleanup
+            echo "PASS: $stage rollback and immediate reinstall"
+          done
 
       - name: Verify genuine direct and chained historical upgrades
         env:
