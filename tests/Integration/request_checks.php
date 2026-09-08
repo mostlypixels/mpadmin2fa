@@ -185,6 +185,12 @@ $approvalCount = static function (int $targetEmployeeId): int {
         'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_approval WHERE id_employee = ' . $targetEmployeeId
     );
 };
+$access = new Access();
+$superAdminProfileId = defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1;
+$enrollmentTabId = (int) Tab::getIdFromClassName('AdminMpAdmin2faEnrollment');
+if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'delete', true, false)) {
+    throw new RuntimeException('Could not grant the disposable native delete permission before login.');
+}
 
 $response = $loginEmployee('mp2fa-bootstrap@example.test');
 $bootstrapToken = $loginToken($response);
@@ -406,9 +412,6 @@ $check(302 === $response['status']
     && 'pending' === $repository->enrollmentApprovalStatus($approvalEmployeeId),
     'invalid CSRF cannot approve a pending enrollment');
 
-$access = new Access();
-$superAdminProfileId = defined('_PS_ADMIN_PROFILE_') ? (int) _PS_ADMIN_PROFILE_ : 1;
-$enrollmentTabId = (int) Tab::getIdFromClassName('AdminMpAdmin2faEnrollment');
 $deniedAuditBefore = (int) Db::getInstance()->getValue(
     'SELECT COUNT(*) FROM ' . _DB_PREFIX_ . 'mp2fa_audit'
     . ' WHERE event = "enrollment.approval_denied"'
@@ -465,9 +468,6 @@ $check(302 === $response['status']
     && $employeeId === (int) ($approval['approved_by'] ?? 0),
     'a freshly verified SuperAdmin with native read and update permission approves the request');
 
-if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'delete', true, false)) {
-    throw new RuntimeException('Could not grant the disposable native delete permission.');
-}
 $employeesUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/enrollment/employees', $adminToken);
 $response = $request($employeesUrl);
 $document = new DOMDocument();
@@ -489,6 +489,11 @@ $response = $request($resetActionUrl . (false === strpos($resetActionUrl, '?') ?
     . 'mp2fa_csrf_token=' . rawurlencode($resetActionToken), []);
 $check(302 === $response['status'] && null !== $repository->factor($resetEmployeeId),
     'a correct reset token in the query string cannot reset a factor');
+$response = $request($resetActionUrl, ['mp2fa_csrf_token' => $resetActionToken]);
+$check(302 === $response['status'] && null === $repository->factor($resetEmployeeId),
+    'the factor reset row action succeeds with its token in the POST body');
+$repository->savePendingEnrollment($resetEmployeeId, $resetEncrypted['ciphertext'], $resetEncrypted['key_version']);
+$repository->activateEnrollment($resetEmployeeId, (int) floor(time() / 30) - 2, []);
 if ('ok' !== $access->updateLgcAccess($superAdminProfileId, $enrollmentTabId, 'delete', false, false)) {
     throw new RuntimeException('Could not remove the disposable native delete permission.');
 }
@@ -501,9 +506,6 @@ try {
 }
 $check(302 === $response['status'] && null !== $repository->factor($resetEmployeeId),
     'a SuperAdmin without native delete permission cannot reset a factor');
-$response = $request($resetActionUrl, ['mp2fa_csrf_token' => $resetActionToken]);
-$check(302 === $response['status'] && null === $repository->factor($resetEmployeeId),
-    'the factor reset row action succeeds with its token in the POST body');
 
 $response = $request($challengeUrl, ['one_time_code' => [
     'code' => $authenticator['code'],
