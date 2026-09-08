@@ -184,6 +184,16 @@ jobs:
           (cd prestashop/modules/mpadmin2fa && sha256sum --check --quiet SHA256SUMS)
           find prestashop/modules/mpadmin2fa -name '*.php' -print0 | xargs -0 -n1 php -l
 
+      - name: Set up browser-listener test runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Verify the installed browser listener
+        env:
+          MP2FA_LISTENER_PATH: ${{ github.workspace }}/prestashop/modules/mpadmin2fa/views/js/admin-step-up.js
+        run: node tests/Browser/admin_step_up_browser_test.mjs
+
       - name: Generate masked disposable test credentials
         run: |
           test_password="$(openssl rand -hex 24)"
