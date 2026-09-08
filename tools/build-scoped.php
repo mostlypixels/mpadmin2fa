@@ -25,6 +25,7 @@ copyTree($moduleRoot, $stageRoot, [
     'AGENTS.md',
     '.git',
     '.github',
+    '.gitattributes',
     '.gitignore',
     '.phpunit.cache',
     '.phpunit.result.cache',
