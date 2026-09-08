@@ -38,6 +38,10 @@ composer test
 composer build:scoped
 ```
 
+In a standalone clone, `composer test` runs the tests that do not need
+PrestaShop classes. Place the module at `modules/mpadmin2fa` inside a PrestaShop
+checkout to run the complete suite.
+
 Run the release build with PHP 8.1 through PHP 8.4.
 The scoped module is in `build/mpadmin2fa`.
 The build contains an SBOM and SHA-256 checksums.

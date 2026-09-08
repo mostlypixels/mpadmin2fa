@@ -31,6 +31,6 @@
   "scripts": {
     "build:tools": "composer --working-dir=tools install --no-interaction --prefer-dist",
     "build:scoped": "@php tools/build-scoped.php",
-    "test": "@php vendor/bin/phpunit"
+    "test": "@php tests/run.php"
   }
 }
