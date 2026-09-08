@@ -17,8 +17,6 @@ Set these variables before running bash tests/Integration/run_lifecycle.sh:
 - MP2FA_PS_ROOT is the absolute path of the disposable installed shop.
 - MP2FA_TEST_EMAIL and MP2FA_TEST_PASSWORD identify the disposable administrator.
   CI generates and masks a fresh random password on every run.
-- MP2FA_HISTORICAL_OUTPUT is the output directory of
-  bash tests/Integration/build_historical_package.sh.
 - MP2FA_APACHE_PHP_MODULE optionally selects the matching Apache PHP module.
 
 The HTTPS harness starts its own Apache instance on loopback ports 8443 and 8080.
@@ -50,17 +48,12 @@ failure is followed by an immediate successful reinstall and uninstall.
 Private runtime directories and a shutdown trap keep fixture state out of the
 source tree; only sanitized test output is retained by CI.
 
-For this PS 1.7 beta-RC, the historical upgrade fixture is version 0.2.7 at
-96a0a0d15a1247d90825b800b9d8a41936d21383. There were no published release assets
-to download. The builder archives that exact historical tree and installs its
-own production lockfile. It does not relabel the current package or merely
-change the installed database version. Upgrade checks preserve enrolled secrets,
-recovery codes, keys, approval/audit history, rate-limit history, and policy
-values. An injected failure after schema migration must leave version 0.2.7
-recorded and preserve the historical data; restoring the package and retrying
-must succeed. The checks repeat the real upgrade entry point, compare schema,
-indexes, tabs, hooks, configuration keys, roles, and access against a clean
-installation, and verify cleanup.
+The pinned 0.2.7 and 0.2.8 source packages both declare compatibility only with
+PrestaShop 8.0.0 through 8.2.99. They therefore cannot be installed natively on
+PrestaShop 1.7 without changing the original sources. CI verifies those exact
+commits and treats historical upgrade coverage as belonging to the PS8 release
+line. The 1.x line starts with this RC, so it has no genuine earlier PS1.7
+package to upgrade from.
 
 Run PHP/application commands as the application user when using Docker.
 Logs may point to private temporary response files for local diagnosis; do not

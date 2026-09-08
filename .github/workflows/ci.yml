@@ -146,25 +146,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify the historical packages belong to the PS8 release line
+        run: bash tests/Integration/verify_historical_release_scope.sh
+
       - name: Check out PrestaShop
         uses: actions/checkout@v4
         with:
           repository: PrestaShop/PrestaShop
           ref: ${{ matrix.prestashop }}
           path: prestashop
-
-      - name: Set up historical package tools
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          extensions: zip
-          tools: composer:2.2
-          coverage: none
-
-      - name: Build the genuine 0.2.7 and 0.2.8 snapshots
-        env:
-          MP2FA_HISTORICAL_OUTPUT: ${{ runner.temp }}/mp2fa-historical
-        run: bash tests/Integration/build_historical_package.sh
 
       - name: Set up the target PHP
         uses: shivammathur/setup-php@v2
@@ -235,7 +225,6 @@ jobs:
         env:
           MP2FA_INTEGRATION: '1'
           MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop
-          MP2FA_HISTORICAL_OUTPUT: ${{ runner.temp }}/mp2fa-historical
           MP2FA_APACHE_PHP_MODULE: /usr/lib/apache2/modules/libphp${{ matrix.php }}.so
         run: |
           set -o pipefail

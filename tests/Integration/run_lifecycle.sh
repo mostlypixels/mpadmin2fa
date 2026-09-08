@@ -59,10 +59,4 @@ for stage in before-parent after-schema after-configuration after-hooks after-ta
   state verify-cleanup
   echo "PASS: $stage rollback and immediate reinstall"
 done
-if [[ -n "${MP2FA_HISTORICAL_OUTPUT:-}" ]]; then
-  bash "$module_root/tests/Integration/run_historical_upgrade.sh"
-else
-  echo 'Historical upgrade evidence requires MP2FA_HISTORICAL_OUTPUT.'
-  exit 1
-fi
 (cd "$installed" && sha256sum --check --quiet SHA256SUMS)
