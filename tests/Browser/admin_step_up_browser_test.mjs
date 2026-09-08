@@ -27,7 +27,10 @@ const browser = browserCandidates.find((candidate) => existsSync(candidate));
 
 assert.ok(browser, 'A Chromium-based browser is required for the step-up browser test.');
 
-let ajaxRequests = 0;
+let xhrRedirectRequests = 0;
+let fetchRedirectRequests = 0;
+let sameFormXhrRequests = 0;
+let sameFormFetchRequests = 0;
 let secureSubmitRequests = 0;
 let secureSubmitMethod = '';
 let secureSubmitQuery = '';
@@ -78,7 +81,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if ('/' === url.pathname) {
+  if ('/xhr-start' === url.pathname) {
     response.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
     response.end(`<!doctype html>
 <html lang="en">
@@ -90,7 +93,7 @@ const server = createServer((request, response) => {
     <script>
       window.addEventListener('load', function () {
         var request = new XMLHttpRequest();
-        request.open('POST', '/ajax-sensitive-action');
+        request.open('POST', '/xhr-sensitive-action');
         request.send('action=upgrade');
       });
     </script>
@@ -108,11 +111,106 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if ('/ajax-sensitive-action' === url.pathname) {
-    ++ajaxRequests;
+  if ('/xhr-sensitive-action' === url.pathname) {
+    ++xhrRedirectRequests;
     response.writeHead(403, {
       'Content-Type': 'application/json; charset=UTF-8',
-      'X-Mpadmin2fa-Redirect': '/challenge-reached?step_up=1',
+      'X-Mpadmin2fa-Redirect': '/challenge-reached?step_up=1&source=xhr',
+    });
+    response.end('{"status":false}');
+
+    return;
+  }
+
+  if ('/fetch-start' === url.pathname) {
+    response.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
+    response.end(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Fetch step-up redirect test</title>
+    <script src="/admin-step-up.js"></script>
+    <script src="/admin-step-up.js"></script>
+    <script>
+      window.addEventListener('load', function () {
+        fetch('/fetch-sensitive-action', {method: 'POST'});
+      });
+    </script>
+  </head>
+  <body>Waiting for the fetch step-up response.</body>
+</html>`);
+
+    return;
+  }
+
+  if ('/fetch-sensitive-action' === url.pathname) {
+    ++fetchRedirectRequests;
+    response.writeHead(403, {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Mpadmin2fa-Redirect': '/challenge-reached?step_up=1&source=fetch',
+    });
+    response.end('{"status":false}');
+
+    return;
+  }
+
+  if ('/same-form' === url.pathname) {
+    response.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
+    response.end(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Same-form guard test</title>
+    <script src="/admin-step-up.js"></script>
+    <script src="/admin-step-up.js"></script>
+    <script>
+      window.addEventListener('load', function () {
+        var field = document.querySelector('input');
+        field.value = 'input-survived';
+        var xhrResult = new Promise(function (resolve, reject) {
+          var request = new XMLHttpRequest();
+          request.open('GET', '/same-form-xhr');
+          request.onloadend = function () { resolve(request.status); };
+          request.onerror = reject;
+          request.send();
+        });
+        var fetchResult = fetch('/same-form-fetch').then(function (fetchResponse) {
+          return fetchResponse.text().then(function (body) {
+            return fetchResponse.status + ':' + body;
+          });
+        });
+        var rejectionResult = fetch('http://127.0.0.1:1/unreachable').then(function () {
+          return false;
+        }, function () {
+          return true;
+        });
+
+        Promise.all([xhrResult, fetchResult, rejectionResult]).then(function (results) {
+          if (403 === results[0] && '403:{"status":false}' === results[1]
+              && true === results[2] && 'input-survived' === field.value) {
+            document.title = 'MP2FA_SAME_FORM_PASSED';
+          } else {
+            document.title = 'MP2FA_SAME_FORM_FAILED';
+          }
+        });
+      });
+    </script>
+  </head>
+  <body><input aria-label="MFA input" value="initial"></body>
+</html>`);
+
+    return;
+  }
+
+  if ('/same-form-xhr' === url.pathname || '/same-form-fetch' === url.pathname) {
+    if ('/same-form-xhr' === url.pathname) {
+      ++sameFormXhrRequests;
+    } else {
+      ++sameFormFetchRequests;
+    }
+    response.writeHead(403, {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Mpadmin2fa-Redirect': '/same-form?controller=AdminSecurity&token=renewed',
     });
     response.end('{"status":false}');
 
@@ -121,7 +219,7 @@ const server = createServer((request, response) => {
 
   if ('/challenge-reached' === url.pathname && '1' === url.searchParams.get('step_up')) {
     response.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
-    response.end('<!doctype html><title>MP2FA_BROWSER_REDIRECT_PASSED</title>');
+    response.end('<!doctype html><title>MP2FA_BROWSER_REDIRECT_PASSED_' + url.searchParams.get('source').toUpperCase() + '</title>');
 
     return;
   }
@@ -247,10 +345,21 @@ try {
   assert.equal(secureSubmitQuery, '', 'The CSRF token must not appear in the request URL.');
   assert.equal(new URLSearchParams(secureSubmitBody).get('mp2fa_csrf_token'), 'grid-token+/=');
 
-  await command('Page.navigate', {url: `http://127.0.0.1:${address.port}/`});
-  await waitForTitle('MP2FA_BROWSER_REDIRECT_PASSED');
-  assert.equal(ajaxRequests, 1, 'The browser should issue one sensitive AJAX request.');
-  console.log('Secure grid POST and browser step-up redirect passed.');
+  await command('Page.navigate', {
+    url: `http://127.0.0.1:${address.port}/same-form?controller=AdminSecurity&token=current`,
+  });
+  await waitForTitle('MP2FA_SAME_FORM_PASSED');
+  assert.equal(sameFormXhrRequests, 1, 'The same-form XHR should run once.');
+  assert.equal(sameFormFetchRequests, 1, 'The same-form fetch should run once.');
+
+  await command('Page.navigate', {url: `http://127.0.0.1:${address.port}/xhr-start`});
+  await waitForTitle('MP2FA_BROWSER_REDIRECT_PASSED_XHR');
+  assert.equal(xhrRedirectRequests, 1, 'The browser should issue one sensitive XHR.');
+
+  await command('Page.navigate', {url: `http://127.0.0.1:${address.port}/fetch-start`});
+  await waitForTitle('MP2FA_BROWSER_REDIRECT_PASSED_FETCH');
+  assert.equal(fetchRedirectRequests, 1, 'The browser should issue one sensitive fetch.');
+  console.log('Secure grid POST, same-form preservation, XHR redirect, and fetch redirect passed.');
 } finally {
   socket?.close();
   if (null === browserProcess.exitCode) {
