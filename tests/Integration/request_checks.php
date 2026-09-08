@@ -468,7 +468,7 @@ $check(302 === $response['status']
     && $employeeId === (int) ($approval['approved_by'] ?? 0),
     'a freshly verified SuperAdmin with native read and update permission approves the request');
 
-$employeesUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/enrollment/employees', $adminToken);
+$employeesUrl = $tokenized('/admin-dev/index.php/modules/mpadmin2fa/enrollment', $adminToken);
 $response = $request($employeesUrl);
 $document = new DOMDocument();
 @$document->loadHTML($response['body']);
@@ -481,23 +481,13 @@ $resetActionToken = $xpath->evaluate(
 );
 $resetActionQuery = [];
 parse_str((string) parse_url($resetActionUrl, PHP_URL_QUERY), $resetActionQuery);
-$resetFactor = $repository->factor($resetEmployeeId);
-$resetEmployeeVisible = false !== strpos($response['body'], 'mp2fa-reset@example.test');
-$nativeDeleteGranted = Access::isGranted(
-    'ROLE_MOD_TAB_ADMINMPADMIN2FAENROLLMENT_DELETE',
-    $superAdminProfileId
-);
-$resetButtonCount = (int) $xpath->evaluate('count(//button[contains(@data-url, "/reset")])');
-echo 'Reset action state: factor=' . (null === $resetFactor ? 'missing' : (string) $resetFactor['status'])
-    . ', target_row=' . ($resetEmployeeVisible ? 'present' : 'missing')
-    . ', native_delete=' . ($nativeDeleteGranted ? 'granted' : 'denied')
-    . ', reset_buttons=' . $resetButtonCount . PHP_EOL;
 $check(200 === $response['status'] && '' !== $resetActionUrl && '' !== $resetActionToken
     && !isset($resetActionQuery['mp2fa_csrf_token'])
-    && !in_array($resetActionToken, $resetActionQuery, true),
+    && !in_array($resetActionToken, $resetActionQuery, true)
+    && false !== strpos($response['body'], 'mp2fa-reset@example.test'),
     'the factor reset action keeps its CSRF token out of the URL');
 if ('' === $resetActionUrl || '' === $resetActionToken) {
-    throw new RuntimeException('Reset action rendering failed; inspect the safe state summary above.');
+    throw new RuntimeException('Reset action rendering failed on the registered employee grid route.');
 }
 $response = $request($resetActionUrl . (false === strpos($resetActionUrl, '?') ? '?' : '&')
     . 'mp2fa_csrf_token=' . rawurlencode($resetActionToken), []);
