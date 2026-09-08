@@ -77,18 +77,25 @@ try {
   check(await qr.evaluate((img) => img.complete && img.naturalWidth > 0), 'enrollment QR image renders in the browser');
   const secret = (await page.locator('.card-body p code').innerText()).trim();
   check(/^[A-Z2-7]{32}$/.test(secret), 'manual setup key is available');
-  const formMarker = await page.evaluate((url) => new Promise((resolve, reject) => {
+  const formMarker = await page.evaluate(async (url) => {
     window.mp2faBrowserFormMarker = true;
-    const request = new XMLHttpRequest();
-    request.open('GET', url);
-    request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    request.onloadend = () => resolve(request.status);
-    request.onerror = reject;
-    request.send();
-  }), routes.settings);
+    const xhrStatus = await new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('GET', url);
+      request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      request.onloadend = () => resolve(request.status);
+      request.onerror = reject;
+      request.send();
+    });
+    const fetchResponse = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+    const fetchBody = await fetchResponse.json();
+
+    return {xhrStatus, fetchStatus: fetchResponse.status, fetchBodyStatus: fetchBody.status};
+  }, routes.settings);
   await delay(500);
-  check(formMarker === 403 && await page.evaluate(() => window.mp2faBrowserFormMarker === true),
-    'gated background XHR does not reload the enrollment form already open');
+  check(formMarker.xhrStatus === 403 && formMarker.fetchStatus === 403 && formMarker.fetchBodyStatus === false
+      && await page.evaluate(() => window.mp2faBrowserFormMarker === true),
+    'gated background XHR and fetch keep their responses and do not reload the enrollment form');
   await verify(page, secret);
   check(await page.getByRole('heading', {name: 'Save your recovery codes', exact: true, level: 3}).isVisible(),
     'authenticator confirmation displays recovery codes');
@@ -119,20 +126,35 @@ try {
 
   phase = 'XHR listener and expired verification';
   const originalSend = await admin.evaluateHandle(() => XMLHttpRequest.prototype.send);
+  const originalFetch = await admin.evaluateHandle(() => window.fetch);
   await admin.addScriptTag({url: '/modules/mpadmin2fa/views/js/admin-step-up.js'});
   check(await admin.evaluate((send) => send === XMLHttpRequest.prototype.send, originalSend),
     'loading the listener twice preserves one XHR wrapper');
+  check(await admin.evaluate((fetchFunction) => fetchFunction === window.fetch, originalFetch),
+    'loading the listener twice preserves one fetch wrapper');
   await originalSend.dispose();
+  await originalFetch.dispose();
   const currentUrl = admin.url();
-  const normalStatus = await admin.evaluate((url) => new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open('GET', url);
-    request.onload = () => resolve(request.status);
-    request.onerror = reject;
-    request.send();
-  }), routes.settings);
-  check(normalStatus === 200 && admin.url() === currentUrl, 'ordinary XHR responses do not redirect the page');
+  const normalStatus = await admin.evaluate(async (url) => {
+    const xhrStatus = await new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('GET', url);
+      request.onload = () => resolve(request.status);
+      request.onerror = reject;
+      request.send();
+    });
+    const fetchResponse = await fetch(url);
+    const fetchBody = await fetchResponse.text();
+
+    return {xhrStatus, fetchStatus: fetchResponse.status, fetchBodyLength: fetchBody.length};
+  }, routes.settings);
+  check(normalStatus.xhrStatus === 200 && normalStatus.fetchStatus === 200 && normalStatus.fetchBodyLength > 0
+      && admin.url() === currentUrl, 'ordinary XHR and fetch responses remain available without redirecting the page');
   const savedSession = await loginContext.storageState();
+  const expiredFetchContext = await newContext({storageState: savedSession});
+  const fetchAdmin = await expiredFetchContext.newPage();
+  fetchAdmin.setDefaultTimeout(30000);
+  await goto(fetchAdmin, routes.settings);
   console.log('Waiting for the real 60-second step-up window to expire.');
   await delay(61000);
   const denied = admin.waitForResponse((response) => response.url().includes('/mpadmin2fa/security') && response.request().method() === 'POST');
@@ -149,6 +171,18 @@ try {
   await admin.waitForURL((url) => url.pathname.endsWith('/challenge') && url.searchParams.get('step_up') === '1');
   check(await admin.getByRole('heading', {name: 'Confirm it is you to continue', exact: true, level: 3}).isVisible(),
     'the packaged XHR listener navigates to the visible step-up form');
+  const fetchDenied = fetchAdmin.waitForResponse((candidate) => candidate.url().includes('/mpadmin2fa/security')
+    && candidate.request().method() === 'POST');
+  await fetchAdmin.evaluate((url) => {
+    fetch(url, {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}});
+  }, routes.policy);
+  const fetchResponse = await fetchDenied;
+  check(fetchResponse.status() === 403 && (fetchResponse.headers()['x-mpadmin2fa-redirect'] || '').includes('step_up=1'),
+    'expired sensitive fetch receives the server step-up contract');
+  await fetchAdmin.waitForURL((url) => url.pathname.endsWith('/challenge') && url.searchParams.get('step_up') === '1');
+  check(await fetchAdmin.getByRole('heading', {name: 'Confirm it is you to continue', exact: true, level: 3}).isVisible(),
+    'the packaged fetch listener navigates to the visible step-up form');
+  await expiredFetchContext.close();
 
   phase = 'JavaScript-disabled legacy enforcement';
   const noJs = await newContext({javaScriptEnabled: false, storageState: savedSession});
@@ -184,17 +218,22 @@ try {
   await goto(recoveryPage, routes.challenge);
   const recoveryField = recoveryPage.locator('[name="recovery_code_challenge[recovery_code]"]');
   await recoveryPage.getByText('Use a recovery code', {exact: true}).click();
-  const background = await recoveryPage.evaluate((url) => new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open('GET', url);
-    request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    request.onloadend = () => resolve(request.status);
-    request.onerror = reject;
-    request.send();
-  }), routes.settings);
+  const background = await recoveryPage.evaluate(async (url) => {
+    const xhrStatus = await new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('GET', url);
+      request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      request.onloadend = () => resolve(request.status);
+      request.onerror = reject;
+      request.send();
+    });
+    const fetchResponse = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+
+    return {xhrStatus, fetchStatus: fetchResponse.status};
+  }, routes.settings);
   await delay(500);
-  check(background === 403 && await recoveryField.isVisible(),
-    'background MFA redirects preserve the expanded recovery form when step_up=0 is omitted');
+  check(background.xhrStatus === 403 && background.fetchStatus === 403 && await recoveryField.isVisible(),
+    'background XHR and fetch preserve the expanded recovery form when step_up=0 is omitted');
   await recoveryField.fill(recovery);
   await recoveryPage.getByRole('button', {name: 'Use recovery code', exact: true}).click();
   await recoveryPage.waitForURL((url) => url.pathname.endsWith('/enroll'));
