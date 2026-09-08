@@ -257,7 +257,7 @@ browserProcess.stderr.on('data', (chunk) => {
 let socket;
 try {
   const portFile = join(profile, 'DevToolsActivePort');
-  const portDeadline = Date.now() + 20000;
+  const portDeadline = Date.now() + 60000;
   let devToolsPort = 0;
   while (Date.now() < portDeadline) {
     try {

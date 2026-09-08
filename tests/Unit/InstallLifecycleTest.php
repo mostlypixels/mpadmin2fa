@@ -54,7 +54,7 @@ final class InstallLifecycleTest extends TestCase
     {
         self::assertStringContainsString(
             "public function postInstall(): bool\n    {\n        return \$this->reconcileAdminTabs();",
-            $this->module
+            str_replace("\r\n", "\n", $this->module)
         );
         self::assertGreaterThanOrEqual(3, substr_count($this->module, 'reconcileAdminTabs()'));
     }
