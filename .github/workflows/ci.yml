@@ -290,9 +290,11 @@ jobs:
 
       - name: Install isolated HTTPS request-test runtime
         run: |
-          if [ -f /etc/apt/sources.list.d/google-chrome.list ]; then
-            sudo sed -i '/dl.google.com\/linux\/chrome-stable/d' /etc/apt/sources.list.d/google-chrome.list
-          fi
+          for source in /etc/apt/sources.list.d/*; do
+            if [ -f "$source" ] && grep -qF 'dl.google.com/linux/chrome-stable' "$source"; then
+              sudo mv -- "$source" "$source.disabled"
+            fi
+          done
           sudo add-apt-repository --yes ppa:ondrej/php
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php${{ matrix.php }}
