@@ -1,8 +1,8 @@
 # Release readiness review — amended
 
-Review date: 2026-09-08
+Review date: 2026-09-09
 
-This is the second amended review of the PS9, PS8, and PS1.7 release lines.
+This is the third amended review of the PS9, PS8, and PS1.7 release lines.
 It incorporates the GitHub issues raised by the independent `main` branch audit,
 the cross-branch comparison, the remediation commits, and the final
 non-publishing release-workflow runs.
@@ -14,32 +14,29 @@ Each branch now produces one RC archive, installs that exact archive throughout
 its compatibility matrix, and verifies the same artifact at the publication
 handoff. No tag or release was created.
 
-- **PS8 is ready to circulate as an RC.** It has the complete installed-browser,
-  genuine historical-upgrade, database, rollback, packaging, and release-flow
-  evidence requested for this review.
-- **PS9 and PS1.7 remain conditional RCs.** Their security, HTTPS, database,
-  rollback, packaging, and release-flow suites are green. Real Chrome verifies
-  the installed JavaScript listener, but neither line yet drives the complete
-  enrollment and challenge journey through the installed PrestaShop UI as PS8
-  does. Issue #39 remains open for this gap.
+- **PS9, PS8, and PS1.7 are ready to circulate as RCs.** Every line now drives
+  the complete 25-check enrollment, challenge, recovery/replacement, and
+  step-up journey through the installed PrestaShop Back Office. The journeys
+  install and exercise the same checksummed candidate used by the HTTPS,
+  database, rollback, packaging, and release-flow suites.
 - **No line is declared stable-release ready.** The unfinished shared timezone
   corpus and hardening gates (#28 and #29), plus the P2 issues, remain explicit
   follow-up work.
 
 ## Exact branch inventory
 
-Remote references were refreshed before the final review. The tested code
-commits were synchronized with `origin`, and all six worktrees were clean under
-native Git after the documentation updates were committed. The commit containing
-this report and the PS9 plan deletion, and the separate PS1.7 plan-deletion
-commit, are documentation-only follow-ups. They do not replace the exact tested
-code commits below and contain no product, test, package, or workflow changes.
+Remote references were refreshed before the final review. The three module
+release worktrees were synchronized with `origin` at the tested code commits.
+The commit containing this report is a documentation-only follow-up; it does not
+replace the exact tested code commits below and contains no product, test,
+package, or workflow changes. Unrelated changes in the surrounding PrestaShop
+checkouts were preserved and are outside this review.
 
 | Release line | Branch | Exact tested code commit | Post-test branch change |
 |---|---|---|---|
-| PS9 / 3.x | `main` | `95466902598bce332e5449e6b7963046dfd739b8` | Report and obsolete-plan deletion only |
+| PS9 / 3.x | `main` | `1b060ef114ca064b58b9810f8028ad62a0140de8` | This report only |
 | PS8 / 2.x | `2.x-ps8` | `1d06806320fbc9b63d7bd23e777480e3a4c3a24a` | None; tested commit remains the branch tip |
-| PS1.7 / 1.x | `1.x-ps17` | `322a4c20af243253f20b4472ea75241825b28763` | Obsolete-plan deletion only |
+| PS1.7 / 1.x | `1.x-ps17` | `2895f91949e6ab9097d4af2b00d5afb831f748ee` | None; tested commit remains the branch tip |
 
 The only auxiliary branches are local. Each is clean, is already an ancestor of
 its release branch, and has no unique work remaining.
@@ -57,15 +54,15 @@ No additional local or remote branch was found. The obsolete
 
 | Line | Candidate | SHA-256 | Release dry run |
 |---|---|---|---|
-| PS9 | `mpadmin2fa-v3.0.0-rc.1.zip` | `d58c248f462553c33232fe0fcafc57d5eedb779294a717dbf658ffd20bc7dac7` | [34251403367](https://github.com/mostlypixels/mpadmin2fa/actions/runs/34251403367) |
+| PS9 | `mpadmin2fa-v3.0.0-rc.1.zip` | `502abcf0761aa2142058829ff5a8dcf2ed6945ba2290cc10dbc6be0e3e779447` | [34388956675](https://github.com/mostlypixels/mpadmin2fa/actions/runs/34388956675) |
 | PS8 | `mpadmin2fa-v2.0.0-rc.1.zip` | `778452ae7743675021f177de5d180de226493a8a0f2b721dec93d0aa6544327f` | [34251406805](https://github.com/mostlypixels/mpadmin2fa/actions/runs/34251406805), attempt 2 |
-| PS1.7 | `mpadmin2fa-v1.0.0-rc.1.zip` | `ab4507243c86a1e32f94119ad6b3fee7446db636362bbbd6c5fe8c5a082de541` | [34251410312](https://github.com/mostlypixels/mpadmin2fa/actions/runs/34251410312), attempt 2 |
+| PS1.7 | `mpadmin2fa-v1.0.0-rc.1.zip` | `8647601ce774b147236d7f53e9b6b3e2aa0e9aa401f30f4a6e7f5e3372d7777c` | [34330031940](https://github.com/mostlypixels/mpadmin2fa/actions/runs/34330031940) |
 
 Downloaded copies are stored under each module worktree:
 
-- PS9: `dist/release-dry-run-34251403367/`
+- PS9: `dist/release-dry-run-34388956675/`
 - PS8: `dist/release-dry-run-34251406805/`
-- PS1.7: `dist/release-dry-run-34251410312/`
+- PS1.7: `dist/release-dry-run-34330031940/`
 
 The first PS8 and PS1.7 attempts encountered GitHub artifact-service HTTP 403
 responses before installation. Re-running the affected jobs at the same commits
@@ -81,7 +78,7 @@ failures rather than product or reproducibility failures.
 | Generated test credentials and password masking | Confirmed | Confirmed | Confirmed |
 | Enrollment/challenge HTTPS behavior | 70 live checks on both lifecycle endpoints | 70 live checks on both lifecycle endpoints | 114 live checks on all four lifecycle combinations |
 | Background XHR/fetch and same-form behavior | Confirmed in real Chrome with installed listener | Confirmed in installed-browser suite | Confirmed in real Chrome with installed listener |
-| Full installed PrestaShop browser journey | Partial; HTTP and browser evidence are split | Confirmed; 25 checks per endpoint | Partial; HTTP and browser evidence are split |
+| Full installed PrestaShop browser journey | Confirmed; 25 checks on both lifecycle endpoints | Confirmed; 25 checks per endpoint | Confirmed; 25 checks on all four lifecycle combinations |
 | Database behavior | 2 tests / 30 assertions on both lifecycle endpoints | 2 tests / 30 assertions on both lifecycle endpoints | 7 tests / 194 assertions, repeated 10 times on every lifecycle combination |
 | Genuine historical upgrades | Not applicable; pinned packages are PS8-only | Direct 0.2.7 to RC and chained 0.2.7 to 0.2.8 to RC confirmed | Not applicable; pinned packages are PS8-only |
 | Legacy `date_upd` and partial migration repair | Migration code and simulated repair fixture confirmed; no genuine PS9 predecessor exists | Confirmed through both genuine paths, strict SQL writes, failure/retry, and repeat execution | Migration code retained; no genuine PS1.7 predecessor exists |
@@ -97,10 +94,12 @@ failures rather than product or reproducibility failures.
 ### PS9
 
 - Unit suite: 134 tests, 549 assertions, 3 database-only skips.
+- Exact-code CI run [34387217281](https://github.com/mostlypixels/mpadmin2fa/actions/runs/34387217281)
+  passed at `1b060ef114ca064b58b9810f8028ad62a0140de8`.
 - Four static compatibility jobs passed, including PS 9.1.5 on PHP 8.5.
 - Both lifecycle endpoints installed the same candidate and passed 70 HTTPS
-  checks, the installed-listener Chrome check, 2 database tests with 30
-  assertions, duplicate installation, and all five rollback stages.
+  checks, 25 complete installed-package browser checks, 2 database tests with
+  30 assertions, duplicate installation, and all five rollback stages.
 - CI verifies the exact historical commits and their declared PS8-only range.
 
 ### PS8
@@ -119,10 +118,12 @@ failures rather than product or reproducibility failures.
 ### PS1.7
 
 - Unit suite: 129 tests, 490 assertions.
+- Exact-code CI run [34327847706](https://github.com/mostlypixels/mpadmin2fa/actions/runs/34327847706)
+  passed at `2895f91949e6ab9097d4af2b00d5afb831f748ee`.
 - All four lifecycle combinations installed the same candidate and passed 114
-  HTTPS checks, the installed-listener Chrome check, the database suite at 7
-  tests and 194 assertions repeated 10 times, duplicate installation, and all
-  five rollback stages.
+  HTTPS checks, 25 complete installed-package browser checks, the database suite
+  at 7 tests and 194 assertions repeated 10 times, duplicate installation, and
+  all five rollback stages.
 - Runtime validation is on PHP 7.1 and 7.4. PHP 8.1 is used only as an isolated
   build environment for dependency scoping; the resulting archive is tested on
   the lower runtime versions.
@@ -163,31 +164,28 @@ for a tag-push event and was skipped in all reviewed runs. The final
 
 ## Prioritized remaining work
 
-1. **P1 — complete native browser journeys on PS9 and PS1.7 (#39).** Drive
-   enrollment, challenge, recovery/replacement, delegated permissions, and
-   step-up through the installed Back Office UI. Current HTTP and Chrome tests
-   prove the pieces separately, not the full browser journey.
-2. **P1 — finish the cross-version timezone corpus (#28).** PS9 and PS8 have
+1. **P2-A — stable-release security and reliability (#6, #10, #17, #23).**
+   Decide the verified-session lifetime, record alert-delivery failures, add
+   branch-compatible static checks, and make legacy container failure handling
+   explicit.
+2. **P2-A — finish the cross-version timezone corpus (#28).** PS9 and PS8 have
    PHP/SQL timezone matrices and DST alert checks. PS1.7 still needs the same
    extreme-timezone and SQL-session matrix, and the broader database/PHP seam
    list remains incomplete.
-3. **P1 — finish deterministic hardening gates (#29).** The release work added
+3. **P2-A — finish deterministic hardening gates (#29).** The release work added
    several concrete gates, but the single `composer harden` entry point,
    exhaustive forbidden-pattern checks, route/audit completeness checks, and
    agreed static-analysis gate are not complete.
-4. **P2 — make explicit security/product decisions.** Address or deliberately
-   defer absolute verified-session lifetime (#6), alert-delivery failure audit
-   visibility (#10), flexible recovery-code entry (#11), recovery-code plaintext
-   lifetime (#12), the pre-challenge allow-list asymmetry (#13), backslash/control
-   rejection in return targets (#14), and legacy container failure handling
-   (#23).
-5. **P2 — stable-release maintenance.** Static analysis (#17), author metadata
-   (#18), duplicate/dead key initialization (#20), request-local key memoization
-   (#21), translation catalogs (#24), and documentation cleanup (#27) remain.
+4. **P2-B — bounded stable-release polish.** Flexible recovery-code entry
+   (#11), recovery-code plaintext lifetime (#12), return-target hardening (#14),
+   author metadata (#18), duplicate/dead key initialization (#20), translation
+   catalogs (#24), and documentation cleanup (#27) remain.
+5. **P2 — measure before changing (#21).** Benchmark request-local key-unlock
+   cost, then implement memoization or close the issue with evidence.
 
-Issue #1 is a broad threat model rather than a verified single defect. Its
-recommendations should be evaluated as product-policy work; they are not all
-claims about the current implementation.
+Issues #1, #7, and #13 were closed as non-actionable rather than carried as
+release work. Issue #1 is a broad threat model rather than a verified single
+defect; its recommendations can be revisited as product-policy work.
 
 ## Confirmed versus untested
 
@@ -195,7 +193,8 @@ Confirmed claims above come from executable checks at the exact tested commits
 and from archive checksum verification. The following remain assumptions or
 deliberately unexecuted actions:
 
-- PS9 and PS1.7 full native browser journeys are not yet tested end to end.
+- The installed-browser journeys do not create or publish releases; they test
+  the exact candidate inside disposable shops.
 - Historical upgrades on PS9 and PS1.7 are not claimed; changing the original
   PS8-only packages to force such a test would make the evidence false.
 - The actual GitHub publication command was not run. The artifact handoff and
