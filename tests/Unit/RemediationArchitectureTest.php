@@ -29,24 +29,6 @@ final class RemediationArchitectureTest extends TestCase
         self::assertStringContainsString('LegacyAdminMfaAdapter::class', $module);
     }
 
-    public function testPs9SymfonyPagesReceiveTheBrowserListener(): void
-    {
-        $module = (string) file_get_contents(dirname(__DIR__, 2) . '/mpadmin2fa.php');
-        $upgrade = (string) file_get_contents(dirname(__DIR__, 2) . '/upgrade/upgrade-3.0.0rc1.php');
-
-        self::assertStringContainsString("'displayBackOfficeHeader'", $module);
-        self::assertStringContainsString('function hookDisplayBackOfficeHeader', $module);
-        self::assertStringContainsString("registerHook('displayBackOfficeHeader')", $upgrade);
-
-        foreach (glob(dirname(__DIR__, 2) . '/views/templates/admin/*.html.twig') ?: [] as $template) {
-            self::assertStringContainsString(
-                "asset('../modules/mpadmin2fa/views/js/admin-step-up.js')",
-                (string) file_get_contents($template),
-                basename($template) . ' must load the listener without depending on legacy media collection.',
-            );
-        }
-    }
-
     public function testUpgradeReusesIdempotentTabReconciliation(): void
     {
         $module = (string) file_get_contents(dirname(__DIR__, 2) . '/mpadmin2fa.php');

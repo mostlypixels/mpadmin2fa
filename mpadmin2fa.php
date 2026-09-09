@@ -229,20 +229,6 @@ class Mpadmin2fa extends Module
     }
 
     /**
-     * Load the listener on PS9 Symfony pages where the legacy media collector is unavailable.
-     *
-     * @param array<string, mixed> $params
-     */
-    public function hookDisplayBackOfficeHeader(array $params): void
-    {
-        if (!method_exists($this->context->controller, 'addJS')) {
-            return;
-        }
-
-        $this->context->controller->addJS($this->_path . 'views/js/admin-step-up.js');
-    }
-
-    /**
      * Stop legacy back-office requests before their controller action runs.
      *
      * @param array<string, mixed> $params
@@ -488,7 +474,6 @@ class Mpadmin2fa extends Module
             'actionDispatcherBefore',
             'actionObjectProfileDeleteAfter',
             'dashboardZoneOne',
-            'displayBackOfficeHeader',
             'displayAdminDashboardZoneOne',
             ThemeCatalogInterface::LIST_MAIL_THEMES_HOOK,
         ] as $hook) {

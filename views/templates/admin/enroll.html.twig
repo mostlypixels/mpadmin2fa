@@ -1,10 +1,5 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
-{% block javascripts %}
-  {{ parent() }}
-  <script src="{{ asset('../modules/mpadmin2fa/views/js/admin-step-up.js') }}"></script>
-{% endblock %}
-
 {% form_theme confirmation_form '@PrestaShop/Admin/TwigTemplateForm/prestashop_ui_kit.html.twig' %}
 
 {% block content %}
