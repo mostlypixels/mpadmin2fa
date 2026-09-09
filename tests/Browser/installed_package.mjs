@@ -41,7 +41,8 @@ const login = async (page) => {
   await page.locator('#email').fill(process.env.MP2FA_TEST_EMAIL);
   await page.locator('#passwd').fill(process.env.MP2FA_TEST_PASSWORD);
   await page.locator('#submit_login').click();
-  await page.waitForURL((url) => !url.searchParams.has('controller') || url.searchParams.get('controller') !== 'AdminLogin');
+  await page.waitForURL((url) => !url.pathname.endsWith('/login')
+    && url.searchParams.get('controller') !== 'AdminLogin');
 };
 let lastCounter = -1;
 const code = async (secret) => {
