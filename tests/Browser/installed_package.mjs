@@ -59,10 +59,15 @@ const code = async (secret) => {
   return String((hmac.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(6, '0');
 };
 const verify = async (page, secret) => {
-  await page.locator('[name="one_time_code[code]"]').fill(await code(secret));
-  const verification = page.waitForResponse((r) => r.request().method() === 'POST' && /\/(challenge|enroll)$/.test(new URL(r.url()).pathname));
-  await page.locator('[name="one_time_code[submit]"]').click();
-  const submitted = await verification;
+  let submitted;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await page.locator('[name="one_time_code[code]"]').fill(await code(secret));
+    const verification = page.waitForResponse((r) => r.request().method() === 'POST' && /\/(challenge|enroll)$/.test(new URL(r.url()).pathname));
+    await page.locator('[name="one_time_code[submit]"]').click();
+    submitted = await verification;
+    if (submitted.status() === 302) break;
+    assert.equal(submitted.status(), 200, 'A rejected authenticator form remains available for one boundary retry');
+  }
   assert.equal(submitted.status(), 302, 'Valid authenticator form submission redirects');
   await page.waitForURL((url) => !url.pathname.endsWith('/challenge') && !url.pathname.endsWith('/enroll'));
 };
@@ -246,7 +251,9 @@ try {
   check(recoveryPage.url().includes('/enroll'), 'recovery browser session cannot bypass replacement via the dashboard');
   console.log('Installed-package browser checks passed: ' + count + '; candidate SHA-256: ' + candidateSha256);
 } catch (error) {
-  await writeFile(join(runtime, 'browser-error.log'), String(error.stack), {mode: 0o600});
+  const sanitizedError = String(error.stack).replace(/([?&]token=)[^&\s)]+/gi, '$1[redacted]');
+  await writeFile(join(runtime, 'browser-error.log'), sanitizedError, {mode: 0o600});
+  console.error(sanitizedError);
   // Never print Playwright call logs: fill arguments and tokenized URLs contain secrets.
   console.error('Installed-package browser checks failed during: ' + phase);
   process.exitCode = 1;
