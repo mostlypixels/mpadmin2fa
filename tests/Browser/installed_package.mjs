@@ -42,12 +42,24 @@ const tokenized = (path, token) => {
   return url.pathname + url.search;
 };
 const login = async (page) => {
-  await goto(page, routes.login);
-  await page.locator('#email').fill(process.env.MP2FA_TEST_EMAIL);
-  await page.locator('#passwd').fill(process.env.MP2FA_TEST_PASSWORD);
-  await page.locator('#submit_login').click();
-  await page.waitForURL((url) => !url.pathname.endsWith('/login')
-    && url.searchParams.get('controller') !== 'AdminLogin');
+  let sessionToken = null;
+  const captureToken = (request) => {
+    if (!request.isNavigationRequest()) return;
+    const candidate = new URL(request.url()).searchParams.get('token');
+    if (candidate) sessionToken = candidate;
+  };
+  page.on('request', captureToken);
+  try {
+    await goto(page, routes.login);
+    await page.locator('#email').fill(process.env.MP2FA_TEST_EMAIL);
+    await page.locator('#passwd').fill(process.env.MP2FA_TEST_PASSWORD);
+    await page.locator('#submit_login').click();
+    await page.waitForURL((url) => !url.pathname.endsWith('/login')
+      && url.searchParams.get('controller') !== 'AdminLogin');
+  } finally {
+    page.off('request', captureToken);
+  }
+  return sessionToken;
 };
 let lastCounter = -1;
 const code = async (secret) => {
@@ -128,8 +140,7 @@ try {
   const admin = await loginContext.newPage();
   admin.setDefaultTimeout(30000);
   admin.on('pageerror', (error) => console.error('Browser page error: ' + error.message));
-  await login(admin);
-  const loginToken = new URL(admin.url()).searchParams.get('token');
+  const loginToken = await login(admin);
   assert.ok(loginToken, 'Fresh login must expose the PS9 session URL token');
   await goto(admin, tokenized(routes.settings, loginToken));
   check(admin.url().includes('/challenge'), 'a new browser session is blocked at MFA after password login');
@@ -240,8 +251,7 @@ try {
   phase = 'recovery interaction';
   const recoveryContext = await newContext();
   const recoveryPage = await recoveryContext.newPage();
-  await login(recoveryPage);
-  const recoveryToken = new URL(recoveryPage.url()).searchParams.get('token');
+  const recoveryToken = await login(recoveryPage);
   assert.ok(recoveryToken, 'Recovery login must expose the PS9 session URL token');
   await goto(recoveryPage, tokenized(routes.challenge, recoveryToken));
   const recoveryField = recoveryPage.locator('[name="recovery_code_challenge[recovery_code]"]');
