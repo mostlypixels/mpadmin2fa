@@ -38,14 +38,14 @@ const goto = async (page, path) => {
 };
 const tokenized = (path, token) => {
   const url = new URL(path, 'https://localhost:8443');
-  url.searchParams.set('token', token);
+  url.searchParams.set('_token', token);
   return url.pathname + url.search;
 };
 const login = async (page) => {
   let sessionToken = null;
   const captureToken = (request) => {
     if (!request.isNavigationRequest()) return;
-    const candidate = new URL(request.url()).searchParams.get('token');
+    const candidate = new URL(request.url()).searchParams.get('_token');
     if (candidate) sessionToken = candidate;
   };
   page.on('request', captureToken);
@@ -281,7 +281,7 @@ try {
   check(recoveryPage.url().includes('/enroll'), 'recovery browser session cannot bypass replacement via the dashboard');
   console.log('Installed-package browser checks passed: ' + count + '; candidate SHA-256: ' + candidateSha256);
 } catch (error) {
-  const sanitizedError = String(error.stack).replace(/([?&]token=)[^&\s)]+/gi, '$1[redacted]');
+  const sanitizedError = String(error.stack).replace(/([?&](?:_token|token)=)[^&\s)]+/gi, '$1[redacted]');
   await writeFile(join(runtime, 'browser-error.log'), sanitizedError, {mode: 0o600});
   console.error(sanitizedError);
   // Never print Playwright call logs: fill arguments and tokenized URLs contain secrets.
