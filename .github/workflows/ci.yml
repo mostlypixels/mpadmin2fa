@@ -178,6 +178,7 @@ jobs:
       - name: Verify and install only the candidate ZIP
         run: |
           (cd dist && sha256sum --check --strict *.zip.sha256)
+          printf 'MP2FA_CANDIDATE_SHA256=%s\n' "$(sha256sum dist/*.zip | cut -d' ' -f1)" >> "$GITHUB_ENV"
           rm -rf prestashop/modules/mpadmin2fa
           unzip -q dist/*.zip -d prestashop/modules
           (cd prestashop/modules/mpadmin2fa && sha256sum --check --quiet SHA256SUMS)
@@ -192,6 +193,12 @@ jobs:
         env:
           MP2FA_LISTENER_PATH: ${{ github.workspace }}/prestashop/modules/mpadmin2fa/views/js/admin-step-up.js
         run: node tests/Browser/admin_step_up_browser_test.mjs
+
+      - name: Install isolated installed-package browser tools
+        working-directory: tests/Browser
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
 
       - name: Generate masked disposable test credentials
         run: |
@@ -221,7 +228,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php${{ matrix.php }}
 
-      - name: Verify packaged lifecycle, requests, database races, alerts, and upgrades
+      - name: Verify packaged lifecycle, browser journeys, database races, alerts, and upgrades
         env:
           MP2FA_INTEGRATION: '1'
           MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop

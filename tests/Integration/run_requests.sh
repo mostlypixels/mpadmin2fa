@@ -70,3 +70,5 @@ for attempt in $(seq 1 30); do
 done
 [[ "$server_ready" == true ]] || { echo 'Disposable HTTPS server did not become ready'; exit 1; }
 php "$module_root/tests/Integration/request_checks.php"
+php "$module_root/tests/Integration/browser_state.php"
+node "$module_root/tests/Browser/installed_package.mjs"
