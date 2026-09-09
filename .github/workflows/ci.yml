@@ -278,7 +278,7 @@ jobs:
         working-directory: tests/Browser
         run: |
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          test -x /usr/bin/google-chrome
 
       - name: Verify upgrade migration and atomic counting
         run: |
@@ -290,12 +290,16 @@ jobs:
 
       - name: Install isolated HTTPS request-test runtime
         run: |
+          if [ -f /etc/apt/sources.list.d/google-chrome.list ]; then
+            sudo sed -i '/dl.google.com\/linux\/chrome-stable/d' /etc/apt/sources.list.d/google-chrome.list
+          fi
           sudo add-apt-repository --yes ppa:ondrej/php
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y apache2 libapache2-mod-php${{ matrix.php }}
 
       - name: Verify real HTTPS login and installed-browser journeys
         env:
+          CHROME_BIN: /usr/bin/google-chrome
           MP2FA_INTEGRATION: '1'
           MP2FA_PS_ROOT: ${{ github.workspace }}/prestashop
           MP2FA_APACHE_PHP_MODULE: /usr/lib/apache2/modules/libphp${{ matrix.php }}.so
