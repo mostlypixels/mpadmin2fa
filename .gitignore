@@ -1,4 +1,5 @@
 /vendor/
+/tests/Browser/node_modules/
 /tools/vendor/
 /build/
 /dist/

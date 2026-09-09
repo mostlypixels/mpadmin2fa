@@ -84,3 +84,5 @@ if [[ "$server_ready" != true ]]; then
 fi
 
 php "$module_root/tests/Integration/request_checks.php"
+php "$module_root/tests/Integration/browser_state.php"
+node "$module_root/tests/Browser/installed_package.mjs"

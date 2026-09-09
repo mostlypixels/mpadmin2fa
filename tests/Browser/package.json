@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "Isolated installed-package browser tests; excluded from releases",
+  "devDependencies": {"playwright": "1.58.2"}
+}
