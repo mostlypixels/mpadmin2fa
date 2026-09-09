@@ -36,6 +36,11 @@ const goto = async (page, path) => {
   if (response && response.status() >= 500) await writeFile(join(runtime, 'browser-page.html'), await page.content(), {mode: 0o600});
   assert.ok(response && response.status() < 500, 'Admin page must render without a server error: ' + await page.title());
 };
+const tokenized = (path, token) => {
+  const url = new URL(path, 'https://localhost:8443');
+  url.searchParams.set('token', token);
+  return url.pathname + url.search;
+};
 const login = async (page) => {
   await goto(page, routes.login);
   await page.locator('#email').fill(process.env.MP2FA_TEST_EMAIL);
@@ -124,10 +129,12 @@ try {
   admin.setDefaultTimeout(30000);
   admin.on('pageerror', (error) => console.error('Browser page error: ' + error.message));
   await login(admin);
-  await goto(admin, routes.settings);
+  const loginToken = new URL(admin.url()).searchParams.get('token');
+  assert.ok(loginToken, 'Fresh login must expose the PS9 session URL token');
+  await goto(admin, tokenized(routes.settings, loginToken));
   check(admin.url().includes('/challenge'), 'a new browser session is blocked at MFA after password login');
   await verify(admin, secret);
-  await goto(admin, routes.settings);
+  await goto(admin, tokenized(routes.settings, loginToken));
   const listenerDiagnostic = await admin.evaluate(async () => {
     const assetPath = '/modules/mpadmin2fa/views/js/admin-step-up.js';
     const assetResponse = await fetch(assetPath, {cache: 'no-store'});
@@ -166,14 +173,14 @@ try {
     const fetchBody = await fetchResponse.text();
 
     return {xhrStatus, fetchStatus: fetchResponse.status, fetchBodyLength: fetchBody.length};
-  }, routes.settings);
+  }, tokenized(routes.settings, loginToken));
   check(normalStatus.xhrStatus === 200 && normalStatus.fetchStatus === 200 && normalStatus.fetchBodyLength > 0
       && admin.url() === currentUrl, 'ordinary XHR and fetch responses remain available without redirecting the page');
   const savedSession = await loginContext.storageState();
   const expiredFetchContext = await newContext({storageState: savedSession});
   const fetchAdmin = await expiredFetchContext.newPage();
   fetchAdmin.setDefaultTimeout(30000);
-  await goto(fetchAdmin, routes.settings);
+  await goto(fetchAdmin, tokenized(routes.settings, loginToken));
   console.log('Waiting for the real 60-second step-up window to expire.');
   await delay(61000);
   const denied = admin.waitForResponse((response) => response.url().includes('/mpadmin2fa/security') && response.request().method() === 'POST');
@@ -183,7 +190,7 @@ try {
     request.open('POST', url);
     request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     request.send();
-  }, routes.policy);
+  }, tokenized(routes.policy, loginToken));
   const response = await denied;
   check(response.status() === 403 && (response.headers()['x-mpadmin2fa-redirect'] || '').includes('step_up=1'),
     'expired sensitive XHR receives the server step-up contract');
@@ -194,7 +201,7 @@ try {
     && candidate.request().method() === 'POST');
   await fetchAdmin.evaluate((url) => {
     fetch(url, {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}});
-  }, routes.policy);
+  }, tokenized(routes.policy, loginToken));
   const fetchResponse = await fetchDenied;
   check(fetchResponse.status() === 403 && (fetchResponse.headers()['x-mpadmin2fa-redirect'] || '').includes('step_up=1'),
     'expired sensitive fetch receives the server step-up contract');
@@ -206,20 +213,20 @@ try {
   phase = 'JavaScript-disabled legacy enforcement';
   const noJs = await newContext({javaScriptEnabled: false, storageState: savedSession});
   const plain = await noJs.newPage();
-  await goto(plain, routes.legacySensitive);
+  await goto(plain, tokenized(routes.legacySensitive, loginToken));
   check(plain.url().includes('/challenge') && plain.url().includes('step_up=1'),
     'legacy sensitive navigation requires step-up with JavaScript disabled');
   await verify(plain, secret);
-  await goto(plain, routes.dashboard);
+  await goto(plain, tokenized(routes.dashboard, loginToken));
   check(new URL(plain.url()).searchParams.get('controller') === 'AdminDashboard',
     'native challenge form submission succeeds with JavaScript disabled');
   await noJs.close();
 
   phase = 'browser step-up completion';
   // Both contexts shared the same authenticated session; request a new explicit challenge.
-  await goto(admin, routes.challenge + '&step_up=1');
+  await goto(admin, tokenized(routes.challenge, loginToken) + '&step_up=1');
   await verify(admin, secret);
-  await goto(admin, routes.policy);
+  await goto(admin, tokenized(routes.policy, loginToken));
   const admitted = await admin.evaluate((url) => new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open('POST', url);
@@ -227,14 +234,16 @@ try {
     request.onload = () => resolve({status: request.status, redirect: request.getResponseHeader('X-Mpadmin2fa-Redirect')});
     request.onerror = reject;
     request.send();
-  }), routes.policy);
+  }), tokenized(routes.policy, loginToken));
   check(admitted.status === 200 && !admitted.redirect, 'fresh browser step-up admits an invalid, non-mutating policy POST');
 
   phase = 'recovery interaction';
   const recoveryContext = await newContext();
   const recoveryPage = await recoveryContext.newPage();
   await login(recoveryPage);
-  await goto(recoveryPage, routes.challenge);
+  const recoveryToken = new URL(recoveryPage.url()).searchParams.get('token');
+  assert.ok(recoveryToken, 'Recovery login must expose the PS9 session URL token');
+  await goto(recoveryPage, tokenized(routes.challenge, recoveryToken));
   const recoveryField = recoveryPage.locator('[name="recovery_code_challenge[recovery_code]"]');
   await recoveryPage.getByText('Use a recovery code', {exact: true}).click();
   const background = await recoveryPage.evaluate(async (url) => {
@@ -249,7 +258,7 @@ try {
     const fetchResponse = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
 
     return {xhrStatus, fetchStatus: fetchResponse.status};
-  }, routes.settings);
+  }, tokenized(routes.settings, recoveryToken));
   await delay(500);
   check(background.xhrStatus === 403 && background.fetchStatus === 403 && await recoveryField.isVisible(),
     'background XHR and fetch preserve the expanded recovery form when step_up=0 is omitted');
@@ -258,7 +267,7 @@ try {
   await recoveryPage.waitForURL((url) => url.pathname.endsWith('/enroll'));
   check(await recoveryPage.getByRole('heading', {name: 'Set up an authenticator app', exact: true, level: 3}).isVisible(),
     'expanding and submitting the recovery form requires authenticator replacement');
-  await goto(recoveryPage, routes.dashboard);
+  await goto(recoveryPage, tokenized(routes.dashboard, recoveryToken));
   check(recoveryPage.url().includes('/enroll'), 'recovery browser session cannot bypass replacement via the dashboard');
   console.log('Installed-package browser checks passed: ' + count + '; candidate SHA-256: ' + candidateSha256);
 } catch (error) {
