@@ -233,11 +233,13 @@ class Mpadmin2fa extends Module
      *
      * @param array<string, mixed> $params
      */
-    public function hookDisplayBackOfficeHeader(array $params): string
+    public function hookDisplayBackOfficeHeader(array $params): void
     {
-        return '<script src="'
-            . htmlspecialchars($this->_path . 'views/js/admin-step-up.js', ENT_QUOTES, 'UTF-8')
-            . '" defer></script>';
+        if (!method_exists($this->context->controller, 'addJS')) {
+            return;
+        }
+
+        $this->context->controller->addJS($this->_path . 'views/js/admin-step-up.js');
     }
 
     /**
