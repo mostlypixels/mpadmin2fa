@@ -122,11 +122,22 @@ try {
   const loginContext = await newContext();
   const admin = await loginContext.newPage();
   admin.setDefaultTimeout(30000);
+  admin.on('pageerror', (error) => console.error('Browser page error: ' + error.message));
   await login(admin);
   await goto(admin, routes.settings);
   check(admin.url().includes('/challenge'), 'a new browser session is blocked at MFA after password login');
   await verify(admin, secret);
   await goto(admin, routes.settings);
+  const listenerDiagnostic = await admin.evaluate(async () => {
+    const assetPath = '/modules/mpadmin2fa/views/js/admin-step-up.js';
+    const assetResponse = await fetch(assetPath, {cache: 'no-store'});
+    return {
+      assetStatus: assetResponse.status,
+      pathname: window.location.pathname,
+      scripts: [...document.scripts].map((script) => script.src).filter((src) => src.includes('mpadmin2fa')),
+    };
+  });
+  console.log('Installed-listener diagnostic: ' + JSON.stringify(listenerDiagnostic));
   check(await admin.evaluate(() => window.mpadmin2faStepUpListenerInstalled === true),
     'native admin pages load the packaged step-up listener');
   check(await admin.evaluate(() => window.mpadmin2faSecureSubmitListenerInstalled === true),
