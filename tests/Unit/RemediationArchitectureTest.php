@@ -37,6 +37,14 @@ final class RemediationArchitectureTest extends TestCase
         self::assertStringContainsString("'displayBackOfficeHeader'", $module);
         self::assertStringContainsString('function hookDisplayBackOfficeHeader', $module);
         self::assertStringContainsString("registerHook('displayBackOfficeHeader')", $upgrade);
+
+        foreach (glob(dirname(__DIR__, 2) . '/views/templates/admin/*.html.twig') ?: [] as $template) {
+            self::assertStringContainsString(
+                "asset('../modules/mpadmin2fa/views/js/admin-step-up.js')",
+                (string) file_get_contents($template),
+                basename($template) . ' must load the listener without depending on legacy media collection.',
+            );
+        }
     }
 
     public function testUpgradeReusesIdempotentTabReconciliation(): void
