@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Security;
 
-use Configuration;
+use Context;
 use Language;
 use Mail;
 use Mpadmin2fa\Repository\SecurityRepository;
@@ -13,6 +13,7 @@ use Throwable;
 
 final class SecurityAlertService
 {
+    private const TEMPLATE = 'mpadmin2fa_alert';
 
     /** @var SecurityRepository */
     private $repository;
@@ -66,20 +67,16 @@ final class SecurityAlertService
                 return;
             }
 
-            $message = $this->messages->create(
+            list($languageId, $messages) = $this->localizedMessages();
+            $message = $messages->create(
                 $event,
                 null === $employeeId ? null : $this->repository->employeeIdentity($employeeId),
                 $metadata
             );
 
-            $languageId = (int) Language::getIdByIso('en');
-            if ($languageId <= 0) {
-                $languageId = (int) Configuration::get('PS_LANG_DEFAULT');
-            }
-
             Mail::send(
                 $languageId,
-                'mpadmin2fa_alert',
+                self::TEMPLATE,
                 $message['subject'],
                 [
                     '{event}' => $event,
@@ -92,10 +89,44 @@ final class SecurityAlertService
                 null,
                 null,
                 null,
-                dirname(__DIR__, 2) . '/mails/'
+                $this->mailDirectory()
             );
         } catch (Throwable $exception) {
             // Authentication must remain deterministic even if the merchant mail transport is unavailable.
         }
+    }
+
+    /**
+     * Use the shop language when its alert template exists; otherwise keep the English alert.
+     *
+     * @return array{0: int, 1: SecurityAlertMessageFactory}
+     */
+    private function localizedMessages(): array
+    {
+        $defaultLanguageId = (int) $this->configuration->get('PS_LANG_DEFAULT');
+        $iso = $defaultLanguageId > 0 ? (string) Language::getIsoById($defaultLanguageId) : '';
+        if ('' !== $iso && 'en' !== $iso
+            && is_file($this->mailDirectory() . $iso . '/' . self::TEMPLATE . '.txt')
+            && is_file($this->mailDirectory() . $iso . '/' . self::TEMPLATE . '.html')
+        ) {
+            try {
+                $translator = Context::getContext()->getTranslatorFromLocale(
+                    (string) Language::getLocaleById($defaultLanguageId)
+                );
+
+                return [$defaultLanguageId, $this->messages->withTranslator($translator)];
+            } catch (Throwable $exception) {
+                // A missing catalog must not suppress the alert itself.
+            }
+        }
+
+        $englishLanguageId = (int) Language::getIdByIso('en');
+
+        return [$englishLanguageId > 0 ? $englishLanguageId : $defaultLanguageId, $this->messages];
+    }
+
+    private function mailDirectory(): string
+    {
+        return dirname(__DIR__, 2) . '/mails/';
     }
 }

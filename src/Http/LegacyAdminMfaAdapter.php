@@ -13,6 +13,7 @@ use Mpadmin2fa\Security\ReturnTargetPolicy;
 use Mpadmin2fa\Security\SecurityAlertService;
 use Mpadmin2fa\Security\SessionState;
 use Mpadmin2fa\Security\SensitiveActions;
+use Mpadmin2fa\Translation\TranslatesMessages;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,9 +22,12 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class LegacyAdminMfaAdapter
 {
+    use TranslatesMessages;
+
     /** @var RequestStack */
     private $requestStack;
 
@@ -66,6 +70,9 @@ final class LegacyAdminMfaAdapter
     /** @var SecurityAlertService */
     private $alerts;
 
+    /** @var TranslatorInterface|null */
+    private $translator;
+
     public function __construct(
         RequestStack $requestStack,
         SessionInterface $session,
@@ -80,7 +87,8 @@ final class LegacyAdminMfaAdapter
         StepUpResponseFactory $responses,
         SecurityRepository $repository,
         SecurityAlertService $alerts,
-        LoginHttpsGuard $loginHttpsGuard
+        LoginHttpsGuard $loginHttpsGuard,
+        ?TranslatorInterface $translator = null
     ) {
         $this->requestStack = $requestStack;
         $this->session = $session;
@@ -96,6 +104,7 @@ final class LegacyAdminMfaAdapter
         $this->repository = $repository;
         $this->alerts = $alerts;
         $this->loginHttpsGuard = $loginHttpsGuard;
+        $this->translator = $translator;
     }
 
     public function enforce(\Context $context, int $controllerType): ?Response
@@ -155,7 +164,10 @@ final class LegacyAdminMfaAdapter
             if (AdminMfaAccessPolicy::DENY === $decision) {
                 $this->audit($employeeId, 'access.denied', $request, $decision, $controller, $action);
 
-                return new Response('Access denied.', Response::HTTP_FORBIDDEN);
+                return new Response(
+                    $this->trans('Access denied.', [], 'Modules.Mpadmin2fa.Admin'),
+                    Response::HTTP_FORBIDDEN
+                );
             }
 
             if (AdminMfaAccessPolicy::REQUIRE_STEP_UP === $decision) {
@@ -177,7 +189,11 @@ final class LegacyAdminMfaAdapter
             ]);
 
             return new Response(
-                'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+                $this->trans(
+                    'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+                    [],
+                    'Modules.Mpadmin2fa.Admin'
+                ),
                 Response::HTTP_SERVICE_UNAVAILABLE,
                 ['Content-Type' => 'text/plain; charset=UTF-8']
             );
@@ -203,14 +219,17 @@ final class LegacyAdminMfaAdapter
                 return $request->isXmlHttpRequest()
                     ? new \Symfony\Component\HttpFoundation\JsonResponse([
                         'hasErrors' => true,
-                        'errors' => [LoginHttpsGuard::ERROR_MESSAGE],
+                        'errors' => [$this->loginHttpsGuard->errorMessage()],
                     ], Response::HTTP_FORBIDDEN)
                     : $response;
             }
         } catch (MfaSecurityException $exception) {
             $this->loginHttpsGuard->reject($request);
 
-            return new Response('Two-factor authentication is unavailable.', Response::HTTP_SERVICE_UNAVAILABLE);
+            return new Response(
+                $this->trans('Two-factor authentication is unavailable.', [], 'Modules.Mpadmin2fa.Admin'),
+                Response::HTTP_SERVICE_UNAVAILABLE
+            );
         }
 
         return null;

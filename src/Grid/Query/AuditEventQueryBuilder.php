@@ -9,6 +9,7 @@ use Doctrine\DBAL\Query\QueryBuilder;
 use PrestaShop\PrestaShop\Core\Grid\Query\AbstractDoctrineQueryBuilder;
 use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineSearchCriteriaApplicatorInterface;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AuditEventQueryBuilder extends AbstractDoctrineQueryBuilder
 {
@@ -16,12 +17,17 @@ final class AuditEventQueryBuilder extends AbstractDoctrineQueryBuilder
     /** @var DoctrineSearchCriteriaApplicatorInterface */
     private $searchCriteriaApplicator;
 
+    /** @var TranslatorInterface */
+    private $translator;
+
     public function __construct(
         Connection $connection,
         string $dbPrefix,
-        DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator
+        DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator,
+        TranslatorInterface $translator
     ) {
         $this->searchCriteriaApplicator = $searchCriteriaApplicator;
+        $this->translator = $translator;
         parent::__construct($connection, $dbPrefix);
     }
 
@@ -32,26 +38,14 @@ final class AuditEventQueryBuilder extends AbstractDoctrineQueryBuilder
                 'a.id_audit',
                 'a.date_add',
                 'CASE'
-                . ' WHEN a.id_employee IS NULL THEN "System"'
-                . ' WHEN e.id_employee IS NULL THEN CONCAT(a.id_employee, " - Deleted employee")'
+                . ' WHEN a.id_employee IS NULL THEN '
+                . $this->connection->quote($this->translator->trans('System', [], 'Modules.Mpadmin2fa.Admin'))
+                . ' WHEN e.id_employee IS NULL THEN CONCAT(a.id_employee, '
+                . $this->connection->quote(' - ' . $this->translator->trans('Deleted employee', [], 'Modules.Mpadmin2fa.Admin'))
+                . ')'
                 . ' ELSE CONCAT(a.id_employee, " - ", e.firstname, " ", e.lastname)'
                 . ' END AS employee',
-                'CASE a.event'
-                . ' WHEN "enrollment.failed" THEN "Authenticator setup failed"'
-                . ' WHEN "enrollment.confirmed" THEN "Authenticator set up"'
-                . ' WHEN "enrollment.approved" THEN "2FA setup approved"'
-                . ' WHEN "challenge.failed" THEN "Sign-in 2FA failed"'
-                . ' WHEN "challenge.verified" THEN "Sign-in 2FA confirmed"'
-                . ' WHEN "step_up.failed" THEN "Security-change 2FA failed"'
-                . ' WHEN "step_up.verified" THEN "Security-change 2FA confirmed"'
-                . ' WHEN "factor_change.failed" THEN "Authenticator-settings check failed"'
-                . ' WHEN "factor_change.verified" THEN "Authenticator settings confirmed"'
-                . ' WHEN "recovery.failed" THEN "Recovery code rejected"'
-                . ' WHEN "recovery.used" THEN "Recovery code used"'
-                . ' WHEN "recovery.regenerated" THEN "Recovery codes replaced"'
-                . ' WHEN "factor.reset" THEN "Two-factor authentication reset"'
-                . ' WHEN "policy.updated" THEN "Two-factor authentication settings changed"'
-                . ' ELSE a.event END AS event_label',
+                $this->eventLabelSelect(),
                 'a.ip'
             );
 
@@ -65,6 +59,34 @@ final class AuditEventQueryBuilder extends AbstractDoctrineQueryBuilder
     public function getCountQueryBuilder(SearchCriteriaInterface $searchCriteria): QueryBuilder
     {
         return $this->baseQuery($searchCriteria)->select('COUNT(DISTINCT a.id_audit)');
+    }
+
+    private function eventLabelSelect(): string
+    {
+        // Labels are resolved in SQL so the grid can still sort by the displayed text.
+        $labels = [
+            'enrollment.failed' => $this->translator->trans('Authenticator setup failed', [], 'Modules.Mpadmin2fa.Admin'),
+            'enrollment.confirmed' => $this->translator->trans('Authenticator set up', [], 'Modules.Mpadmin2fa.Admin'),
+            'enrollment.approved' => $this->translator->trans('2FA setup approved', [], 'Modules.Mpadmin2fa.Admin'),
+            'challenge.failed' => $this->translator->trans('Sign-in 2FA failed', [], 'Modules.Mpadmin2fa.Admin'),
+            'challenge.verified' => $this->translator->trans('Sign-in 2FA confirmed', [], 'Modules.Mpadmin2fa.Admin'),
+            'step_up.failed' => $this->translator->trans('Security-change 2FA failed', [], 'Modules.Mpadmin2fa.Admin'),
+            'step_up.verified' => $this->translator->trans('Security-change 2FA confirmed', [], 'Modules.Mpadmin2fa.Admin'),
+            'factor_change.failed' => $this->translator->trans('Authenticator-settings check failed', [], 'Modules.Mpadmin2fa.Admin'),
+            'factor_change.verified' => $this->translator->trans('Authenticator settings confirmed', [], 'Modules.Mpadmin2fa.Admin'),
+            'recovery.failed' => $this->translator->trans('Recovery code rejected', [], 'Modules.Mpadmin2fa.Admin'),
+            'recovery.used' => $this->translator->trans('Recovery code used', [], 'Modules.Mpadmin2fa.Admin'),
+            'recovery.regenerated' => $this->translator->trans('Recovery codes replaced', [], 'Modules.Mpadmin2fa.Admin'),
+            'factor.reset' => $this->translator->trans('Two-factor authentication reset', [], 'Modules.Mpadmin2fa.Admin'),
+            'policy.updated' => $this->translator->trans('Two-factor authentication settings changed', [], 'Modules.Mpadmin2fa.Admin'),
+        ];
+
+        $select = 'CASE a.event';
+        foreach ($labels as $event => $label) {
+            $select .= ' WHEN ' . $this->connection->quote($event) . ' THEN ' . $this->connection->quote($label);
+        }
+
+        return $select . ' ELSE a.event END AS event_label';
     }
 
     private function baseQuery(SearchCriteriaInterface $searchCriteria): QueryBuilder

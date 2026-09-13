@@ -130,7 +130,7 @@ class Mpadmin2fa extends Module
 
         // A repeated install must never roll back an existing installation.
         if (Module::isInstalled($this->name)) {
-            $this->_errors[] = 'Admin 2FA is already installed.';
+            $this->_errors[] = $this->trans('Admin 2FA is already installed.', [], 'Modules.Mpadmin2fa.Admin');
 
             return false;
         }
@@ -139,19 +139,19 @@ class Mpadmin2fa extends Module
         try {
             $parentAttempted = true;
             if (!parent::install()) {
-                throw new RuntimeException('PrestaShop could not install the module.');
+                throw new RuntimeException($this->trans('PrestaShop could not install the module.', [], 'Modules.Mpadmin2fa.Admin'));
             }
             if (!(new SchemaInstaller())->install()) {
-                throw new RuntimeException('The 2FA database schema could not be installed.');
+                throw new RuntimeException($this->trans('The 2FA database schema could not be installed.', [], 'Modules.Mpadmin2fa.Admin'));
             }
             if (!$this->installConfiguration()) {
-                throw new RuntimeException('The 2FA configuration could not be installed.');
+                throw new RuntimeException($this->trans('The 2FA configuration could not be installed.', [], 'Modules.Mpadmin2fa.Admin'));
             }
             if (!$this->registerRequiredHooks()) {
-                throw new RuntimeException('The 2FA hooks could not be registered.');
+                throw new RuntimeException($this->trans('The 2FA hooks could not be registered.', [], 'Modules.Mpadmin2fa.Admin'));
             }
             if (!$this->reconcileAdminTabs()) {
-                throw new RuntimeException('The 2FA admin tabs or profile access could not be installed.');
+                throw new RuntimeException($this->trans('The 2FA admin tabs or profile access could not be installed.', [], 'Modules.Mpadmin2fa.Admin'));
             }
 
             return true;
@@ -398,6 +398,14 @@ class Mpadmin2fa extends Module
             $windowHours = $window->hours($now);
             $securityEvents = $repository->importantDashboardEventsSince($window->since($now));
             foreach ($securityEvents as &$event) {
+                // The repository returns English source labels; the module catalog translates them here.
+                $event['event_label'] = $this->trans($event['event_label'], [], 'Modules.Mpadmin2fa.Admin');
+                if ('System' === $event['employee']) {
+                    $event['employee'] = $this->trans('System', [], 'Modules.Mpadmin2fa.Admin');
+                } elseif (' - Deleted employee' === substr($event['employee'], -strlen(' - Deleted employee'))) {
+                    $event['employee'] = substr($event['employee'], 0, -strlen('Deleted employee'))
+                        . $this->trans('Deleted employee', [], 'Modules.Mpadmin2fa.Admin');
+                }
                 $event['occurrence_label'] = $event['occurrences'] > 1
                     ? $this->trans(
                         '%count% times',

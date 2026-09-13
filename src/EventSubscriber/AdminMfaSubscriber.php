@@ -14,6 +14,7 @@ use Mpadmin2fa\Security\ReturnTargetPolicy;
 use Mpadmin2fa\Security\SecurityAlertService;
 use Mpadmin2fa\Security\SessionState;
 use Mpadmin2fa\Security\SensitiveActions;
+use Mpadmin2fa\Translation\TranslatesMessages;
 use PrestaShopBundle\Security\Admin\Employee;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,9 +24,12 @@ use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Event\InteractiveLoginEvent;
 use Symfony\Component\Security\Http\SecurityEvents;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AdminMfaSubscriber implements EventSubscriberInterface
 {
+    use TranslatesMessages;
+
     /** @var TokenStorageInterface */
     private $tokenStorage;
 
@@ -56,6 +60,9 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
     /** @var AdminMfaAccessPolicy */
     private $accessPolicy;
 
+    /** @var TranslatorInterface|null */
+    private $translator;
+
     public function __construct(
         TokenStorageInterface $tokenStorage,
         RouterInterface $router,
@@ -66,7 +73,8 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         SecurityAlertService $alerts,
         StepUpResponseFactory $stepUpResponses,
         LoginHttpsGuard $loginHttpsGuard,
-        AdminMfaAccessPolicy $accessPolicy
+        AdminMfaAccessPolicy $accessPolicy,
+        ?TranslatorInterface $translator = null
     ) {
         $this->tokenStorage = $tokenStorage;
         $this->router = $router;
@@ -78,6 +86,7 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         $this->stepUpResponses = $stepUpResponses;
         $this->loginHttpsGuard = $loginHttpsGuard;
         $this->accessPolicy = $accessPolicy;
+        $this->translator = $translator;
     }
 
     public static function getSubscribedEvents(): array
@@ -151,7 +160,10 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
             }
 
             if (AdminMfaAccessPolicy::DENY === $decision) {
-                $event->setResponse(new Response('Access denied.', Response::HTTP_FORBIDDEN));
+                $event->setResponse(new Response(
+                    $this->trans('Access denied.', [], 'Modules.Mpadmin2fa.Admin'),
+                    Response::HTTP_FORBIDDEN
+                ));
 
                 return;
             }
@@ -172,7 +184,11 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
                 'message' => $exception->getMessage(),
             ]);
             $event->setResponse(new Response(
-                'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+                $this->trans(
+                    'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+                    [],
+                    'Modules.Mpadmin2fa.Admin'
+                ),
                 Response::HTTP_SERVICE_UNAVAILABLE,
                 ['Content-Type' => 'text/plain; charset=UTF-8']
             ));

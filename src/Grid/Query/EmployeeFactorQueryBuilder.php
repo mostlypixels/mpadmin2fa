@@ -9,6 +9,7 @@ use Doctrine\DBAL\Query\QueryBuilder;
 use PrestaShop\PrestaShop\Core\Grid\Query\AbstractDoctrineQueryBuilder;
 use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineSearchCriteriaApplicatorInterface;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class EmployeeFactorQueryBuilder extends AbstractDoctrineQueryBuilder
 {
@@ -22,16 +23,21 @@ final class EmployeeFactorQueryBuilder extends AbstractDoctrineQueryBuilder
     /** @var int */
     private $currentEmployeeId;
 
+    /** @var TranslatorInterface */
+    private $translator;
+
     public function __construct(
         Connection $connection,
         string $dbPrefix,
         DoctrineSearchCriteriaApplicatorInterface $searchCriteriaApplicator,
         int $languageId,
-        int $currentEmployeeId
+        int $currentEmployeeId,
+        TranslatorInterface $translator
     ) {
         $this->searchCriteriaApplicator = $searchCriteriaApplicator;
         $this->languageId = $languageId;
         $this->currentEmployeeId = $currentEmployeeId;
+        $this->translator = $translator;
         parent::__construct($connection, $dbPrefix);
     }
 
@@ -42,12 +48,18 @@ final class EmployeeFactorQueryBuilder extends AbstractDoctrineQueryBuilder
                 'e.id_employee',
                 'CONCAT(e.firstname, " ", e.lastname) AS employee',
                 'e.email',
-                'COALESCE(pl.name, "Unknown profile") AS profile_name',
+                'COALESCE(pl.name, '
+                    . $this->connection->quote($this->translator->trans('Unknown profile', [], 'Modules.Mpadmin2fa.Admin'))
+                    . ') AS profile_name',
                 'COALESCE(f.status, "not_enrolled") AS status',
                 'CASE COALESCE(f.status, "not_enrolled")'
-                    . ' WHEN "active" THEN "Active"'
-                    . ' WHEN "pending" THEN "Waiting for approval"'
-                    . ' ELSE "Not set up" END AS status_label',
+                    . ' WHEN "active" THEN '
+                    . $this->connection->quote($this->translator->trans('Active', [], 'Modules.Mpadmin2fa.Admin'))
+                    . ' WHEN "pending" THEN '
+                    . $this->connection->quote($this->translator->trans('Waiting for approval', [], 'Modules.Mpadmin2fa.Admin'))
+                    . ' ELSE '
+                    . $this->connection->quote($this->translator->trans('Not set up', [], 'Modules.Mpadmin2fa.Admin'))
+                    . ' END AS status_label',
                 'f.confirmed_at',
                 'CASE WHEN f.id_employee IS NULL THEN 0 ELSE 1 END AS has_factor',
                 'CASE WHEN e.id_employee = :current_employee_id THEN 1 ELSE 0 END AS is_current_employee'

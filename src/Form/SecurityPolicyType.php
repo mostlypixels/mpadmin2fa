@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Form;
 
+use Mpadmin2fa\Translation\TranslatesMessages;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -21,9 +22,11 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\Range;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class SecurityPolicyType extends AbstractType
 {
+    use TranslatesMessages;
 
     /** @var ProfileChoicesProvider|null */
     private $profileChoicesProvider;
@@ -31,12 +34,17 @@ final class SecurityPolicyType extends AbstractType
     /** @var AuthorizationCheckerInterface|null */
     private $authorizationChecker;
 
+    /** @var TranslatorInterface|null */
+    private $translator;
+
     public function __construct(
         ?ProfileChoicesProvider $profileChoicesProvider = null,
-        ?AuthorizationCheckerInterface $authorizationChecker = null
+        ?AuthorizationCheckerInterface $authorizationChecker = null,
+        ?TranslatorInterface $translator = null
     ) {
         $this->profileChoicesProvider = $profileChoicesProvider;
         $this->authorizationChecker = $authorizationChecker;
+        $this->translator = $translator;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -47,70 +55,73 @@ final class SecurityPolicyType extends AbstractType
 
         $builder
             ->add('mode', ChoiceType::class, [
-                'label' => 'Who must use two-factor authentication',
-                'help' => 'Choose which employees must set up and use two-factor authentication to access the back office.',
+                'label' => $this->trans('Who must use two-factor authentication', [], 'Modules.Mpadmin2fa.Admin'),
+                'help' => $this->trans('Choose which employees must set up and use two-factor authentication to access the back office.', [], 'Modules.Mpadmin2fa.Admin'),
                 'choices' => [
-                    'SuperAdmins' => 'superadmins',
-                    'Selected profiles' => 'profiles',
-                    'All employees' => 'all',
+                    $this->trans('SuperAdmins', [], 'Modules.Mpadmin2fa.Admin') => 'superadmins',
+                    $this->trans('Selected profiles', [], 'Modules.Mpadmin2fa.Admin') => 'profiles',
+                    $this->trans('All employees', [], 'Modules.Mpadmin2fa.Admin') => 'all',
                 ],
+                'choice_translation_domain' => false,
                 'constraints' => [new NotBlank()],
             ])
             ->add('profiles', ChoiceType::class, [
-                'label' => 'Profiles required to use two-factor authentication',
+                'label' => $this->trans('Profiles required to use two-factor authentication', [], 'Modules.Mpadmin2fa.Admin'),
                 'choices' => $profileChoices,
+                'choice_translation_domain' => false,
                 'multiple' => true,
                 'expanded' => true,
                 'required' => false,
-                'help' => 'Used only when "Selected profiles" is chosen above. Employees in these profiles must set up and use two-factor authentication to access the back office.',
+                'help' => $this->trans('Used only when "Selected profiles" is chosen above. Employees in these profiles must set up and use two-factor authentication to access the back office.', [], 'Modules.Mpadmin2fa.Admin'),
             ])
             ->add('step_up_seconds', IntegerType::class, [
-                'label' => 'How long a 2FA check stays valid (seconds)',
-                'help' => 'How long a successful 2FA check stays valid for important security changes. For example, 300 seconds is 5 minutes.',
+                'label' => $this->trans('How long a 2FA check stays valid (seconds)', [], 'Modules.Mpadmin2fa.Admin'),
+                'help' => $this->trans('How long a successful 2FA check stays valid for important security changes. For example, 300 seconds is 5 minutes.', [], 'Modules.Mpadmin2fa.Admin'),
                 'attr' => ['min' => 60],
                 'constraints' => [new NotBlank(), new Range(['min' => 60])],
             ])
             ->add('password_max_age', IntegerType::class, [
-                'label' => 'How long a recent sign-in counts (seconds)',
-                'help' => 'How long employees can manage their own two-factor authentication after signing in without entering their password again. For example, 900 seconds is 15 minutes.',
+                'label' => $this->trans('How long a recent sign-in counts (seconds)', [], 'Modules.Mpadmin2fa.Admin'),
+                'help' => $this->trans('How long employees can manage their own two-factor authentication after signing in without entering their password again. For example, 900 seconds is 15 minutes.', [], 'Modules.Mpadmin2fa.Admin'),
                 'attr' => ['min' => 60],
                 'constraints' => [new NotBlank(), new Range(['min' => 60])],
             ])
             ->add('approval_profiles', ChoiceType::class, [
-                'label' => 'Profiles whose first 2FA setup needs approval',
+                'label' => $this->trans('Profiles whose first 2FA setup needs approval', [], 'Modules.Mpadmin2fa.Admin'),
                 'choices' => $profileChoices,
+                'choice_translation_domain' => false,
                 'multiple' => true,
                 'expanded' => true,
                 'required' => false,
-                'help' => 'Employees in these profiles need approval from another SuperAdmin who recently confirmed their own 2FA. SuperAdmin accounts also use this approval.',
+                'help' => $this->trans('Employees in these profiles need approval from another SuperAdmin who recently confirmed their own 2FA. SuperAdmin accounts also use this approval.', [], 'Modules.Mpadmin2fa.Admin'),
             ])
             ->add('audit_days', IntegerType::class, [
-                'label' => 'Keep security activity for (days)',
-                'help' => 'How many days to keep 2FA security activity in the log. For example, enter 90 to keep three months of activity.',
+                'label' => $this->trans('Keep security activity for (days)', [], 'Modules.Mpadmin2fa.Admin'),
+                'help' => $this->trans('How many days to keep 2FA security activity in the log. For example, enter 90 to keep three months of activity.', [], 'Modules.Mpadmin2fa.Admin'),
                 'attr' => ['min' => 1],
                 'constraints' => [new NotBlank(), new Positive()],
             ])
             ->add('security_recipients', TextType::class, [
-                'label' => 'Security alert recipients',
+                'label' => $this->trans('Security alert recipients', [], 'Modules.Mpadmin2fa.Admin'),
                 'required' => false,
-                'help' => 'Enter the people who should receive 2FA security alerts. Separate multiple email addresses with commas, for example owner@example.com, security@example.com.',
+                'help' => $this->trans('Enter the people who should receive 2FA security alerts. Separate multiple email addresses with commas, for example owner@example.com, security@example.com.', [], 'Modules.Mpadmin2fa.Admin'),
                 'constraints' => [
                     new Length(['max' => 1000]),
                     new Callback([self::class, 'validateCommaSeparatedEmails']),
                 ],
             ])
-            ->addEventListener(FormEvents::POST_SUBMIT, static function (FormEvent $event): void {
+            ->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
                 $data = $event->getData();
                 if (is_array($data) && 'profiles' === ($data['mode'] ?? null) && empty($data['profiles'])) {
                     $event->getForm()->get('profiles')->addError(new FormError(
-                        'Select at least one profile when "Selected profiles" is chosen.'
+                        $this->trans('Select at least one profile when "Selected profiles" is chosen.', [], 'Modules.Mpadmin2fa.Admin')
                     ));
                 }
             });
 
         if ($options['show_submit']) {
             $builder->add('save', SubmitType::class, [
-                'label' => 'Save security settings',
+                'label' => $this->trans('Save security settings', [], 'Modules.Mpadmin2fa.Admin'),
                 'attr' => ['class' => 'btn-primary'],
             ]);
         }
@@ -142,6 +153,7 @@ final class SecurityPolicyType extends AbstractType
             $email = trim($email);
             if ('' === $email || false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $context->buildViolation('Enter valid email addresses separated by commas.')
+                    ->setTranslationDomain('Modules.Mpadmin2fa.Admin')
                     ->addViolation();
 
                 return;

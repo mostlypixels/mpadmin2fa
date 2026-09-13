@@ -1,12 +1,12 @@
 {% extends '@MailThemes/classic/components/layout.html.twig' %}
 
-{% block title %}{{ 'PrestaShop back-office security alert'|trans({}, 'Emails.Body', locale) }}{% endblock %}
+{% block title %}{{ 'PrestaShop back-office security alert'|trans({}, 'Modules.Mpadmin2fa.Emails', locale) }}{% endblock %}
 
 {% block content %}
 <tr>
   <td align="center" class="titleblock">
     <font size="2" face="{{ languageDefaultFont }}Open-sans, sans-serif" color="#555454">
-      <span class="title">{{ 'Back-office security alert'|trans({}, 'Emails.Body', locale) }}</span>
+      <span class="title">{{ 'Back-office security alert'|trans({}, 'Modules.Mpadmin2fa.Emails', locale) }}</span>
     </font>
   </td>
 </tr>
@@ -20,7 +20,7 @@
         <td width="10">&nbsp;</td>
         <td>
           <font size="2" face="{{ languageDefaultFont }}Open-sans, sans-serif" color="#555454">
-            <p><strong>{{ 'Event:'|trans({}, 'Emails.Body', locale) }}</strong> {event}</p>
+            <p><strong>{{ 'Event:'|trans({}, 'Modules.Mpadmin2fa.Emails', locale) }}</strong> {event}</p>
             <div style="font-family:{{ languageDefaultFont }}Open-sans, sans-serif;font-size:14px;line-height:21px;">{details_html}</div>
           </font>
         </td>
@@ -35,7 +35,7 @@
 <tr>
   <td class="linkbelow">
     <font size="2" face="{{ languageDefaultFont }}Open-sans, sans-serif" color="#555454">
-      {{ 'Review the Admin 2FA security activity log in the back office.'|trans({}, 'Emails.Body', locale) }}
+      {{ 'Review the Admin 2FA security activity log in the back office.'|trans({}, 'Modules.Mpadmin2fa.Emails', locale) }}
     </font>
   </td>
 </tr>

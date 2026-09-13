@@ -79,7 +79,7 @@ final class MfaController extends FrameworkBundleAdminController
                     return $this->redirectToRoute('mpadmin2fa_enroll');
                 }
 
-                $this->addFlash('error', 'That recovery code is incorrect or has already been used.');
+                $this->addFlash('error', $this->trans('That recovery code is incorrect or has already been used.', 'Modules.Mpadmin2fa.Admin'));
             }
 
             if ($totpForm->isSubmitted() && $totpForm->isValid()) {
@@ -95,14 +95,14 @@ final class MfaController extends FrameworkBundleAdminController
                         ?? $this->dashboardUrl($router));
                 }
 
-                $this->addFlash('error', 'That authenticator code is incorrect or has already been used.');
+                $this->addFlash('error', $this->trans('That authenticator code is incorrect or has already been used.', 'Modules.Mpadmin2fa.Admin'));
             }
         } catch (MfaSecurityException|RuntimeException $exception) {
-            $this->addFlash('error', $exception->getMessage());
+            $this->addFlash('error', $this->trans($exception->getMessage(), 'Modules.Mpadmin2fa.Admin'));
         }
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/challenge.html.twig', [
-            'layoutTitle' => 'Two-factor authentication',
+            'layoutTitle' => $this->trans('Two-factor authentication', 'Modules.Mpadmin2fa.Admin'),
             'recovery_form' => $recoveryForm->createView(),
             'step_up' => $request->query->getBoolean('step_up'),
             'totp_form' => $totpForm->createView(),
@@ -124,7 +124,7 @@ final class MfaController extends FrameworkBundleAdminController
             || $sessionState->isEnrollmentReplacementAuthorized($employee->getId());
 
         if ($mfa->active($employee->getId()) && !$recoveryReplacement) {
-            $this->addFlash('info', 'Your authenticator is already active.');
+            $this->addFlash('info', $this->trans('Your authenticator is already active.', 'Modules.Mpadmin2fa.Admin'));
 
             return $this->redirectToRoute('mpadmin2fa_authenticator');
         }
@@ -137,7 +137,7 @@ final class MfaController extends FrameworkBundleAdminController
             $repository->requestEnrollmentApproval($employee->getId());
 
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/approval_pending.html.twig', [
-                'layoutTitle' => 'Waiting for approval',
+                'layoutTitle' => $this->trans('Waiting for approval', 'Modules.Mpadmin2fa.Admin'),
             ]);
         }
 
@@ -149,9 +149,9 @@ final class MfaController extends FrameworkBundleAdminController
             }
 
             $form = $this->createForm(OneTimeCodeType::class, null, [
-                'code_label' => 'Six-digit code',
+                'code_label' => $this->trans('Six-digit code', 'Modules.Mpadmin2fa.Admin'),
                 'csrf_token_id' => 'mp2fa_enroll',
-                'submit_label' => 'Confirm and activate',
+                'submit_label' => $this->trans('Confirm and activate', 'Modules.Mpadmin2fa.Admin'),
             ]);
             $form->handleRequest($request);
             if ($form->isSubmitted() && $form->isValid()) {
@@ -167,7 +167,7 @@ final class MfaController extends FrameworkBundleAdminController
                 return $this->redirectToRoute('mpadmin2fa_recovery_codes');
             }
         } catch (MfaSecurityException|RuntimeException $exception) {
-            $this->addFlash('error', $exception->getMessage());
+            $this->addFlash('error', $this->trans($exception->getMessage(), 'Modules.Mpadmin2fa.Admin'));
 
             return $this->redirectToRoute('mpadmin2fa_enroll');
         }
@@ -176,7 +176,7 @@ final class MfaController extends FrameworkBundleAdminController
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enroll.html.twig', [
             'confirmation_form' => $form->createView(),
-            'layoutTitle' => 'Set up two-factor authentication',
+            'layoutTitle' => $this->trans('Set up two-factor authentication', 'Modules.Mpadmin2fa.Admin'),
             'qr_data_uri' => $totp->qrDataUri($uri),
             'secret' => $secret,
         ]);
@@ -199,7 +199,7 @@ final class MfaController extends FrameworkBundleAdminController
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/recovery_codes.html.twig', [
             'acknowledgement_form' => $form->createView(),
-            'layoutTitle' => 'Save your recovery codes',
+            'layoutTitle' => $this->trans('Save your recovery codes', 'Modules.Mpadmin2fa.Admin'),
             'recovery_codes' => $codes,
         ]);
     }
@@ -229,7 +229,7 @@ final class MfaController extends FrameworkBundleAdminController
 
             return $this->redirectToRoute('mpadmin2fa_enroll');
         } catch (MfaSecurityException|RuntimeException $exception) {
-            $this->addFlash('error', $exception->getMessage());
+            $this->addFlash('error', $this->trans($exception->getMessage(), 'Modules.Mpadmin2fa.Admin'));
 
             return $this->renderAuthenticator($employee, $confirmation, ['replace_form' => $form]);
         }
@@ -244,7 +244,7 @@ final class MfaController extends FrameworkBundleAdminController
     ): Response {
         $employee = $this->employee();
         if ($policy->requiresLoginMfa($employee)) {
-            $this->addFlash('error', "Your shop's security settings require two-factor authentication, so you cannot turn it off.");
+            $this->addFlash('error', $this->trans("Your shop's security settings require two-factor authentication, so you cannot turn it off.", 'Modules.Mpadmin2fa.Admin'));
 
             return $this->redirectToRoute('mpadmin2fa_authenticator');
         }
@@ -267,7 +267,7 @@ final class MfaController extends FrameworkBundleAdminController
             return new RedirectResponse($this->get('prestashop.adapter.legacy.context')
                 ->getAdminLink('AdminLogin', true, ['logout' => 1]));
         } catch (MfaSecurityException|RuntimeException $exception) {
-            $this->addFlash('error', $exception->getMessage());
+            $this->addFlash('error', $this->trans($exception->getMessage(), 'Modules.Mpadmin2fa.Admin'));
 
             return $this->renderAuthenticator($employee, $confirmation, ['disable_form' => $form]);
         }
@@ -298,7 +298,7 @@ final class MfaController extends FrameworkBundleAdminController
 
             return $this->redirectToRoute('mpadmin2fa_recovery_codes');
         } catch (MfaSecurityException|RuntimeException $exception) {
-            $this->addFlash('error', $exception->getMessage());
+            $this->addFlash('error', $this->trans($exception->getMessage(), 'Modules.Mpadmin2fa.Admin'));
 
             return $this->renderAuthenticator($employee, $confirmation, ['recovery_form' => $form]);
         }
@@ -316,7 +316,7 @@ final class MfaController extends FrameworkBundleAdminController
         $employee = $this->employee();
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/settings.html.twig', [
-            'layoutTitle' => 'Admin 2FA',
+            'layoutTitle' => $this->trans('Admin 2FA', 'Modules.Mpadmin2fa.Admin'),
             'authenticator_active' => $mfa->active($employee->getId()),
             'can_open_authenticator' => $this->isGranted('read', 'AdminMpAdmin2faAuthenticator'),
             'can_open_enrollment' => $this->isGranted('read', 'AdminMpAdmin2faEnrollment'),
@@ -338,7 +338,7 @@ final class MfaController extends FrameworkBundleAdminController
         if (!$mfa->active($employee->getId())) {
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/authenticator.html.twig', [
                 'active' => false,
-                'layoutTitle' => 'Your authenticator',
+                'layoutTitle' => $this->trans('Your authenticator', 'Modules.Mpadmin2fa.Admin'),
             ]);
         }
 
@@ -354,7 +354,7 @@ final class MfaController extends FrameworkBundleAdminController
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/employees.html.twig', [
             'employeeFactorGrid' => $this->presentGrid($employeeFactorGridFactory->getGrid($filters)),
-            'layoutTitle' => 'Employee 2FA',
+            'layoutTitle' => $this->trans('Employee 2FA', 'Modules.Mpadmin2fa.Admin'),
         ]);
     }
 
@@ -366,7 +366,7 @@ final class MfaController extends FrameworkBundleAdminController
         GridFactoryInterface $pendingApprovalGridFactory
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/enrollment/approvals.html.twig', [
-            'layoutTitle' => 'Employee 2FA',
+            'layoutTitle' => $this->trans('Employee 2FA', 'Modules.Mpadmin2fa.Admin'),
             'pendingApprovalGrid' => $this->presentGrid($pendingApprovalGridFactory->getGrid($filters)),
         ]);
     }
@@ -380,7 +380,7 @@ final class MfaController extends FrameworkBundleAdminController
         $form = $securityPolicyFormHandler->getForm();
 
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
-            'layoutTitle' => 'Security',
+            'layoutTitle' => $this->trans('Security', 'Modules.Mpadmin2fa.Admin'),
             'policy_form' => $form->createView(),
             'can_update' => $this->isGranted('update', 'AdminMpAdmin2faSecurity'),
         ]);
@@ -403,7 +403,7 @@ final class MfaController extends FrameworkBundleAdminController
         $form->handleRequest($request);
         if (!$form->isSubmitted() || !$form->isValid()) {
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
-                'layoutTitle' => 'Security',
+                'layoutTitle' => $this->trans('Security', 'Modules.Mpadmin2fa.Admin'),
                 'policy_form' => $form->createView(),
                 'can_update' => true,
             ]);
@@ -416,14 +416,14 @@ final class MfaController extends FrameworkBundleAdminController
             }
 
             return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/policy.html.twig', [
-                'layoutTitle' => 'Security',
+                'layoutTitle' => $this->trans('Security', 'Modules.Mpadmin2fa.Admin'),
                 'policy_form' => $form->createView(),
                 'can_update' => true,
             ]);
         }
 
         $repository->audit($employee->getId(), 'policy.updated', $request->getClientIp());
-        $this->addFlash('success', 'Two-factor authentication settings saved.');
+        $this->addFlash('success', $this->trans('Two-factor authentication settings saved.', 'Modules.Mpadmin2fa.Admin'));
 
         return $this->redirectToRoute('mpadmin2fa_security_policy');
     }
@@ -437,7 +437,7 @@ final class MfaController extends FrameworkBundleAdminController
     ): Response {
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/security/activity.html.twig', [
             'auditEventGrid' => $this->presentGrid($auditEventGridFactory->getGrid($filters)),
-            'layoutTitle' => 'Security',
+            'layoutTitle' => $this->trans('Security', 'Modules.Mpadmin2fa.Admin'),
         ]);
     }
 
@@ -469,14 +469,14 @@ final class MfaController extends FrameworkBundleAdminController
                 'target_employee_id' => $employeeId,
             ]);
 
-            throw $this->createAccessDeniedException($denialReason);
+            throw $this->createAccessDeniedException($this->trans($denialReason, 'Modules.Mpadmin2fa.Admin'));
         }
 
         $repository->approveEnrollment($employeeId, $actor->getId());
         $repository->audit($actor->getId(), 'enrollment.approved', $request->getClientIp(), [
             'target_employee_id' => $employeeId,
         ]);
-        $this->addFlash('success', "The employee's 2FA setup was approved.");
+        $this->addFlash('success', $this->trans("The employee's 2FA setup was approved.", 'Modules.Mpadmin2fa.Admin'));
 
         return $this->redirectToRoute('mpadmin2fa_enrollment_approvals');
     }
@@ -510,11 +510,11 @@ final class MfaController extends FrameworkBundleAdminController
                 'target_employee_id' => $employeeId,
             ]);
 
-            throw $this->createAccessDeniedException($denialReason);
+            throw $this->createAccessDeniedException($this->trans($denialReason, 'Modules.Mpadmin2fa.Admin'));
         }
 
         $mfa->reset($employeeId, $actor->getId(), $request->getClientIp(), 'superadmin-reset');
-        $this->addFlash('success', 'Two-factor authentication was reset for this employee.');
+        $this->addFlash('success', $this->trans('Two-factor authentication was reset for this employee.', 'Modules.Mpadmin2fa.Admin'));
 
         return $this->redirectToRoute('mpadmin2fa_enrollment_employees');
     }
@@ -538,7 +538,7 @@ final class MfaController extends FrameworkBundleAdminController
         return $this->render('@Modules/mpadmin2fa/views/templates/admin/authenticator.html.twig', [
             'active' => true,
             'disable_form' => $disableForm->createView(),
-            'layoutTitle' => 'Your authenticator',
+            'layoutTitle' => $this->trans('Your authenticator', 'Modules.Mpadmin2fa.Admin'),
             'recovery_form' => $recoveryForm->createView(),
             'replace_form' => $replaceForm->createView(),
         ]);
@@ -569,7 +569,7 @@ final class MfaController extends FrameworkBundleAdminController
     private function requireHttps(Request $request): void
     {
         if (!$request->isSecure()) {
-            throw $this->createAccessDeniedException('You need a secure HTTPS connection to set up an authenticator.');
+            throw $this->createAccessDeniedException($this->trans('You need a secure HTTPS connection to set up an authenticator.', 'Modules.Mpadmin2fa.Admin'));
         }
     }
 
@@ -581,7 +581,7 @@ final class MfaController extends FrameworkBundleAdminController
                 (string) $request->request->get('mp2fa_csrf_token')
             )
         ) {
-            throw $this->createAccessDeniedException('Invalid request.');
+            throw $this->createAccessDeniedException($this->trans('Invalid request.', 'Modules.Mpadmin2fa.Admin'));
         }
     }
 
@@ -591,7 +591,7 @@ final class MfaController extends FrameworkBundleAdminController
         Policy $policy
     ): void {
         if (!$sessionState->hasFreshVerification($employee->getId(), $policy->stepUpSeconds())) {
-            throw $this->createAccessDeniedException('Confirm your identity with two-factor authentication again before continuing.');
+            throw $this->createAccessDeniedException($this->trans('Confirm your identity with two-factor authentication again before continuing.', 'Modules.Mpadmin2fa.Admin'));
         }
     }
 }
