@@ -1,0 +1,839 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file original="modules/mpadmin2fa" source-language="en-US" target-language="fr-FR" datatype="plaintext">
+    <body>
+      <trans-unit id="7d38c558b4a0ce3664d6fa355792f300">
+        <source>%count% times</source>
+        <target>%count% fois</target>
+      </trans-unit>
+      <trans-unit id="30f947aa710993141b5ed76414e84561">
+        <source>%not_enrolled% out of your %total% employees are not enrolled in the</source>
+        <target>%not_enrolled% de vos %total% employés ne sont pas inscrits au</target>
+      </trans-unit>
+      <trans-unit id="a7cd616b57c0b656a19d2096b880e631">
+        <source>1. Protect your account</source>
+        <target>1. Protégez votre compte</target>
+      </trans-unit>
+      <trans-unit id="b5deacf72b9cb1e9cbab1eac795488b4">
+        <source>1. Your account is protected</source>
+        <target>1. Votre compte est protégé</target>
+      </trans-unit>
+      <trans-unit id="31d4a300881fb201d5226d798a865c71">
+        <source>2. Prepare the rollout</source>
+        <target>2. Préparez le déploiement</target>
+      </trans-unit>
+      <trans-unit id="f42c1661eb8beb467bd94fef113252d1">
+        <source>2FA reset</source>
+        <target>2FA réinitialisée</target>
+      </trans-unit>
+      <trans-unit id="78e09e96f3375fcc43ebb76353bb98e1">
+        <source>2FA setup approved</source>
+        <target>Configuration de la 2FA approuvée</target>
+      </trans-unit>
+      <trans-unit id="4ccc6e6424a07947101b0d0c12f8f714">
+        <source>2FA setups waiting for approval</source>
+        <target>Configurations de la 2FA en attente d&apos;approbation</target>
+      </trans-unit>
+      <trans-unit id="8ade66b07794c805a6197850405bdc98">
+        <source>2FA was disabled by the employee, reset by a SuperAdmin, or reset from the command line.</source>
+        <target>La 2FA a été désactivée par l&apos;employé, réinitialisée par un SuperAdmin ou réinitialisée en ligne de commande.</target>
+      </trans-unit>
+      <trans-unit id="d33bac9ec3e8eaf115d009cceb151c00">
+        <source>3. Set the security rules</source>
+        <target>3. Définissez les règles de sécurité</target>
+      </trans-unit>
+      <trans-unit id="c5ca779eafed5a5f1a2782aa86d392c0">
+        <source>A secure HTTPS connection is required to log in with two-factor authentication.</source>
+        <target>Une connexion HTTPS sécurisée est requise pour se connecter avec l&apos;authentification à deux facteurs.</target>
+      </trans-unit>
+      <trans-unit id="652122103181aa2752efaecab300edf0">
+        <source>Access denied.</source>
+        <target>Accès refusé.</target>
+      </trans-unit>
+      <trans-unit id="4d3d769b812b6faa6b76e1a8abaece2d">
+        <source>Active</source>
+        <target>Activée</target>
+      </trans-unit>
+      <trans-unit id="d1e66f011e1a9303c54185a94883c120">
+        <source>Activity log</source>
+        <target>Journal d&apos;activité</target>
+      </trans-unit>
+      <trans-unit id="17d28bc3b0598fcde3574841adda60fe">
+        <source>Add an authenticator app to protect your account with a code in addition to your password.</source>
+        <target>Ajoutez une application d&apos;authentification pour protéger votre compte avec un code en plus de votre mot de passe.</target>
+      </trans-unit>
+      <trans-unit id="17ef0ea7a96d8eb7a98d0d0e658452a5">
+        <source>Admin 2FA</source>
+        <target>Admin 2FA</target>
+      </trans-unit>
+      <trans-unit id="60fb57c9535045a942c22b296090cb6b">
+        <source>After entering their password, protected employees also enter the current six-digit code from their authenticator app. Important module and theme changes may ask for another 2FA code. These checks appear in the security activity log.</source>
+        <target>Après avoir saisi leur mot de passe, les employés protégés saisissent aussi le code à six chiffres affiché dans leur application d&apos;authentification. Les modifications importantes de modules et de thèmes peuvent demander un nouveau code 2FA. Ces vérifications apparaissent dans le journal d&apos;activité de sécurité.</target>
+      </trans-unit>
+      <trans-unit id="90e5ce9f48467a6a382c8e667540db55">
+        <source>All employees</source>
+        <target>Tous les employés</target>
+      </trans-unit>
+      <trans-unit id="c697851b1b556ae5f6f26c3e2ae8a71c">
+        <source>An authenticated employee is required.</source>
+        <target>Vous devez être connecté en tant qu&apos;employé.</target>
+      </trans-unit>
+      <trans-unit id="b8f82a91c0bbd2d313729758024c7290">
+        <source>An employee finished setting up 2FA.</source>
+        <target>Un employé a terminé la configuration de la 2FA.</target>
+      </trans-unit>
+      <trans-unit id="9a77c591506d35da3f9b315dae3eee68">
+        <source>An employee replaced all their recovery codes.</source>
+        <target>Un employé a remplacé tous ses codes de récupération.</target>
+      </trans-unit>
+      <trans-unit id="4164704b4e5ba083acaf7303357be766">
+        <source>An employee signed in with a one-use recovery code instead of their authenticator.</source>
+        <target>Un employé s&apos;est connecté avec un code de récupération à usage unique au lieu du code de son application d&apos;authentification.</target>
+      </trans-unit>
+      <trans-unit id="b91b1a1ddeb20476319cbafd6a03e9e2">
+        <source>An employee successfully signed in after at least five failed 2FA attempts.</source>
+        <target>Un employé s&apos;est connecté avec succès après au moins cinq tentatives 2FA échouées.</target>
+      </trans-unit>
+      <trans-unit id="50fa02e229ee686ad1b9b147e32ee057">
+        <source>Another SuperAdmin must approve your first 2FA setup. They may be asked to confirm their own 2FA first. You cannot access other back-office pages until they approve it.</source>
+        <target>Un autre SuperAdmin doit approuver votre première configuration 2FA. Il peut lui être demandé de confirmer d&apos;abord sa propre 2FA. Vous ne pouvez pas accéder aux autres pages du back-office tant qu&apos;il ne l&apos;a pas approuvée.</target>
+      </trans-unit>
+      <trans-unit id="e6133c07b0392a8590ff09b29ac352c9">
+        <source>Ask your hosting provider to keep the server time automatic and accurate; authenticator codes depend on it.</source>
+        <target>Demandez à votre hébergeur de garder l&apos;heure du serveur synchronisée et exacte : les codes d&apos;authentification en dépendent.</target>
+      </trans-unit>
+      <trans-unit id="7bcb443cc44bfce6d95449751054cd2d">
+        <source>Authenticator app code</source>
+        <target>Code de l&apos;application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="ae947f87a330370515d982a334b1a26b">
+        <source>Authenticator set up</source>
+        <target>Application d&apos;authentification configurée</target>
+      </trans-unit>
+      <trans-unit id="daec33dc46f42d2670161ee89a907577">
+        <source>Authenticator settings confirmed</source>
+        <target>Paramètres de l&apos;application d&apos;authentification confirmés</target>
+      </trans-unit>
+      <trans-unit id="9f256f893c80e847995022f7db7fba52">
+        <source>Authenticator setup failed</source>
+        <target>Échec de la configuration de l&apos;application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="f34d2cd2edc1068f42eaa025bf919a8e">
+        <source>Authenticator-settings check failed</source>
+        <target>Échec de la vérification des paramètres de l&apos;application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="50afff7823d9a88d45afe5a97f2e6bb8">
+        <source>Before requiring 2FA</source>
+        <target>Avant de rendre la 2FA obligatoire</target>
+      </trans-unit>
+      <trans-unit id="7cf37d1bcfb5bc39aed23c66c5e4c892">
+        <source>Check again</source>
+        <target>Vérifier à nouveau</target>
+      </trans-unit>
+      <trans-unit id="65b09a4d7e4c04d419f16ea371fefd96">
+        <source>Check the reason in the security activity log. Investigate immediately if nobody authorized it.</source>
+        <target>Vérifiez le motif dans le journal d&apos;activité de sécurité. Enquêtez immédiatement si personne ne l&apos;a autorisé.</target>
+      </trans-unit>
+      <trans-unit id="8e798c822ac48b0d152b2d483d454ae9">
+        <source>Choose another employee whose two-factor authentication should be reset.</source>
+        <target>Choisissez un autre employé dont l&apos;authentification à deux facteurs doit être réinitialisée.</target>
+      </trans-unit>
+      <trans-unit id="69820baf7722072dd5bf427a47c4b037">
+        <source>Choose which employees must set up and use two-factor authentication to access the back office.</source>
+        <target>Choisissez les employés qui doivent configurer et utiliser l&apos;authentification à deux facteurs pour accéder au back-office.</target>
+      </trans-unit>
+      <trans-unit id="0308960970dbee11f54aa5fda6a83021">
+        <source>Code from your authenticator app</source>
+        <target>Code de votre application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="c1ba9afefc21d2e67c34e9d56b13011b">
+        <source>Configure 2FA rules</source>
+        <target>Configurer les règles 2FA</target>
+      </trans-unit>
+      <trans-unit id="0e1a7d2600d9d85f17dff0562eef7fc8">
+        <source>Confirm and activate</source>
+        <target>Confirmer et activer</target>
+      </trans-unit>
+      <trans-unit id="7b405e8e56c2add199345a9470ed2c62">
+        <source>Confirm it is you to continue</source>
+        <target>Confirmez qu&apos;il s&apos;agit bien de vous pour continuer</target>
+      </trans-unit>
+      <trans-unit id="585a28f349f2cb1f3921580adec54b59">
+        <source>Confirm that the employee used it. If not, secure the account and review the security activity log.</source>
+        <target>Vérifiez que l&apos;employé l&apos;a bien utilisé. Sinon, sécurisez le compte et consultez le journal d&apos;activité de sécurité.</target>
+      </trans-unit>
+      <trans-unit id="983c0d133c3c7065a4601fda26e85e9c">
+        <source>Confirm that the recovery codes were saved before continuing.</source>
+        <target>Confirmez que les codes de récupération ont été enregistrés avant de continuer.</target>
+      </trans-unit>
+      <trans-unit id="6e990af0ccd463776887afdf375d60cd">
+        <source>Confirm your identity with two-factor authentication again before continuing.</source>
+        <target>Confirmez à nouveau votre identité avec l&apos;authentification à deux facteurs avant de continuer.</target>
+      </trans-unit>
+      <trans-unit id="428ac6721ab13aceae00c7ff1556ceef">
+        <source>Connect an authenticator app, verify the first code, and save the recovery codes when they are shown.</source>
+        <target>Connectez une application d&apos;authentification, vérifiez le premier code et enregistrez les codes de récupération lorsqu&apos;ils s&apos;affichent.</target>
+      </trans-unit>
+      <trans-unit id="199c84405fce81764d1574ccb227bc72">
+        <source>Contact the employee immediately. If they do not recognize it, change their password, reset 2FA, end active back-office sessions, and investigate.</source>
+        <target>Contactez immédiatement l&apos;employé. S&apos;il ne reconnaît pas cette connexion, changez son mot de passe, réinitialisez sa 2FA, fermez les sessions actives du back-office et menez l&apos;enquête.</target>
+      </trans-unit>
+      <trans-unit id="8aad3c67b8180cf2d45de706e02e9820">
+        <source>Contact your hosting provider or technical team immediately. Do not delete 2FA setups until they check whether the encryption key can be restored.</source>
+        <target>Contactez immédiatement votre hébergeur ou votre équipe technique. Ne supprimez aucune configuration 2FA avant que la possibilité de restaurer la clé de chiffrement ait été vérifiée.</target>
+      </trans-unit>
+      <trans-unit id="a0bfb8e59e6c13fc8d990781f77694fe">
+        <source>Continue</source>
+        <target>Continuer</target>
+      </trans-unit>
+      <trans-unit id="5bae6a8e0b47316d0de0748fcc7e7ce5">
+        <source>Continue to new authenticator setup</source>
+        <target>Configurer une nouvelle application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="ca9fe7927f0a0b70e12c1508d561d7e9">
+        <source>Copy these codes to a secure place, such as a password manager. Each code works once, and they will not be shown again.</source>
+        <target>Copiez ces codes dans un endroit sûr, comme un gestionnaire de mots de passe. Chaque code ne fonctionne qu&apos;une fois et ils ne seront plus affichés.</target>
+      </trans-unit>
+      <trans-unit id="99f47ad0fb7faf04a693ba8632c77989">
+        <source>Create new recovery codes</source>
+        <target>Créer de nouveaux codes de récupération</target>
+      </trans-unit>
+      <trans-unit id="30b6a7f00ccdfe5ef2d6def2358e7ced">
+        <source>Creating new recovery codes immediately invalidates all existing recovery codes.</source>
+        <target>Créer de nouveaux codes de récupération invalide immédiatement tous les codes existants.</target>
+      </trans-unit>
+      <trans-unit id="278d01e5af56273bae1bb99a98b370cd">
+        <source>Critical</source>
+        <target>Critique</target>
+      </trans-unit>
+      <trans-unit id="9c44ad50b21ecb070f8128db1f5891d3">
+        <source>Decide who must use 2FA, choose how long confirmations stay valid, and review the security activity log.</source>
+        <target>Décidez qui doit utiliser la 2FA, choisissez la durée de validité des confirmations et consultez le journal d&apos;activité de sécurité.</target>
+      </trans-unit>
+      <trans-unit id="95607cc3f1d2dc178af6b2960f7d587e">
+        <source>Deleted employee</source>
+        <target>Employé supprimé</target>
+      </trans-unit>
+      <trans-unit id="ce8ae9da5b7cd6c3df2929543a9af92d">
+        <source>Email</source>
+        <target>E-mail</target>
+      </trans-unit>
+      <trans-unit id="ae050c33ec5f3bda4bfe2f09e6f104ee">
+        <source>Employee 2FA</source>
+        <target>2FA des employés</target>
+      </trans-unit>
+      <trans-unit id="feb925b58dcee32d43138b954475ecd2">
+        <source>Employee 2FA sections</source>
+        <target>Sections 2FA des employés</target>
+      </trans-unit>
+      <trans-unit id="c9909d91468530d5bb57ab709a62dd87">
+        <source>Employee two-factor authentication</source>
+        <target>Authentification à deux facteurs des employés</target>
+      </trans-unit>
+      <trans-unit id="eb626c94531ec554f93b2b78a77c8b1b">
+        <source>Employees</source>
+        <target>Employés</target>
+      </trans-unit>
+      <trans-unit id="6a3501b4203c782323f08c2c8fd63db1">
+        <source>Employees cannot approve their own 2FA setup.</source>
+        <target>Les employés ne peuvent pas approuver leur propre configuration 2FA.</target>
+      </trans-unit>
+      <trans-unit id="5f5e6ad86278ad45a63954b2233e706e">
+        <source>Employees in these profiles need approval from another SuperAdmin who recently confirmed their own 2FA. SuperAdmin accounts also use this approval.</source>
+        <target>Les employés de ces profils doivent obtenir l&apos;approbation d&apos;un autre SuperAdmin ayant récemment confirmé sa propre 2FA. Les comptes SuperAdmin sont aussi soumis à cette approbation.</target>
+      </trans-unit>
+      <trans-unit id="21399c07962f26fd48fd039506f8dc57">
+        <source>Encryption key failure</source>
+        <target>Défaillance de la clé de chiffrement</target>
+      </trans-unit>
+      <trans-unit id="3f8128a9865707b36d27de2f9540fea5">
+        <source>Enter a recovery code in the format XXXXX-XXXXX-XXXXX-XXXXX.</source>
+        <target>Saisissez un code de récupération au format XXXXX-XXXXX-XXXXX-XXXXX.</target>
+      </trans-unit>
+      <trans-unit id="f28e574b3c5faaf69561413c39b35d3d">
+        <source>Enter the current code from your authenticator app to finish signing in.</source>
+        <target>Saisissez le code actuel de votre application d&apos;authentification pour terminer la connexion.</target>
+      </trans-unit>
+      <trans-unit id="8662ec8a5e71f80f9193cf2950e9e65f">
+        <source>Enter the people who should receive 2FA security alerts. Separate multiple email addresses with commas, for example owner@example.com, security@example.com.</source>
+        <target>Saisissez les adresses e-mail des personnes qui doivent recevoir les alertes de sécurité 2FA. Séparez plusieurs adresses par des virgules, par exemple owner@example.com, security@example.com.</target>
+      </trans-unit>
+      <trans-unit id="6bd7684dc6c4c73280cbe4676e45c72b">
+        <source>Enter the six-digit code shown by your authenticator app.</source>
+        <target>Saisissez le code à six chiffres affiché par votre application d&apos;authentification.</target>
+      </trans-unit>
+      <trans-unit id="d3ef47a37e8a3f3307ffe1a3c0a8d461">
+        <source>Enter valid email addresses separated by commas.</source>
+        <target>Saisissez des adresses e-mail valides séparées par des virgules.</target>
+      </trans-unit>
+      <trans-unit id="be11c74c1dd7f307bb80183a90dc2067">
+        <source>Get started</source>
+        <target>Premiers pas</target>
+      </trans-unit>
+      <trans-unit id="411c2ca29265e1baae1625cb9411c75a">
+        <source>HTTPS is enabled in PrestaShop, but this back-office page is not secure. Ask your hosting provider or technical contact to check the web server or proxy before requiring 2FA.</source>
+        <target>HTTPS est activé dans PrestaShop, mais cette page du back-office n&apos;est pas sécurisée. Demandez à votre hébergeur ou à votre contact technique de vérifier le serveur web ou le proxy avant de rendre la 2FA obligatoire.</target>
+      </trans-unit>
+      <trans-unit id="e4086ef95f4edfd6ca729b4ad32aea3f">
+        <source>HTTPS is not enabled in PrestaShop settings. Enable SSL under Shop Parameters &gt; General before requiring 2FA.</source>
+        <target>HTTPS n&apos;est pas activé dans les paramètres de PrestaShop. Activez le SSL dans Paramètres de la boutique &gt; Paramètres généraux avant de rendre la 2FA obligatoire.</target>
+      </trans-unit>
+      <trans-unit id="ddb6c33c5594400e0521ea7d9171fa86">
+        <source>HTTPS needs attention</source>
+        <target>Configuration HTTPS à vérifier</target>
+      </trans-unit>
+      <trans-unit id="947c11558f7d755f5e9b2fbc98d0b183">
+        <source>How long a 2FA check stays valid (seconds)</source>
+        <target>Durée de validité d&apos;une vérification 2FA (secondes)</target>
+      </trans-unit>
+      <trans-unit id="2290f680e82ff929debb9b866be2f535">
+        <source>How long a recent sign-in counts (seconds)</source>
+        <target>Durée pendant laquelle une connexion est considérée comme récente (secondes)</target>
+      </trans-unit>
+      <trans-unit id="3eadf6316b9de54e82fc6cde5619fdb1">
+        <source>How long a successful 2FA check stays valid for important security changes. For example, 300 seconds is 5 minutes.</source>
+        <target>Durée pendant laquelle une vérification 2FA réussie reste valable pour les modifications de sécurité importantes. Par exemple, 300 secondes correspondent à 5 minutes.</target>
+      </trans-unit>
+      <trans-unit id="b7863aaed5c39e0afa824cad008a9355">
+        <source>How long employees can manage their own two-factor authentication after signing in without entering their password again. For example, 900 seconds is 15 minutes.</source>
+        <target>Durée pendant laquelle les employés peuvent gérer leur propre authentification à deux facteurs après s&apos;être connectés, sans ressaisir leur mot de passe. Par exemple, 900 secondes correspondent à 15 minutes.</target>
+      </trans-unit>
+      <trans-unit id="46ab7d30c25fdc3fd05a72ae960a51f6">
+        <source>How many days to keep 2FA security activity in the log. For example, enter 90 to keep three months of activity.</source>
+        <target>Nombre de jours de conservation de l&apos;activité de sécurité 2FA dans le journal. Par exemple, saisissez 90 pour conserver trois mois d&apos;activité.</target>
+      </trans-unit>
+      <trans-unit id="6aa1d3a85dc72360f70f5fcf211b1f32">
+        <source>I saved these codes securely.</source>
+        <target>J&apos;ai enregistré ces codes en lieu sûr.</target>
+      </trans-unit>
+      <trans-unit id="0ab984d91ab0a037bdf692bf0e73c349">
+        <source>Important</source>
+        <target>Importante</target>
+      </trans-unit>
+      <trans-unit id="69810406f8deb546d843ec168241d534">
+        <source>Important security activity from the last %hours% hours</source>
+        <target>Activité de sécurité importante au cours des %hours% dernières heures</target>
+      </trans-unit>
+      <trans-unit id="777f9e90cf251ec077f633406368c632">
+        <source>Invalid request.</source>
+        <target>Requête invalide.</target>
+      </trans-unit>
+      <trans-unit id="219e2efe86e7e5c67db6724f25375036">
+        <source>Keep security activity for (days)</source>
+        <target>Durée de conservation de l&apos;activité de sécurité (jours)</target>
+      </trans-unit>
+      <trans-unit id="4394c8d8e63c470de62ced3ae85de5ae">
+        <source>Log out</source>
+        <target>Se déconnecter</target>
+      </trans-unit>
+      <trans-unit id="a2bb1d9d327bc6a3f7f2f0941a827771">
+        <source>Login after repeated failures</source>
+        <target>Connexion après des échecs répétés</target>
+      </trans-unit>
+      <trans-unit id="354b0ec35941b5a44dab9517855c9cf4">
+        <source>Manage and strengthen 2FA</source>
+        <target>Gérer et renforcer la 2FA</target>
+      </trans-unit>
+      <trans-unit id="76dfc6e803b7e6a71778741322bc1f01">
+        <source>Manage your authenticator</source>
+        <target>Gérer votre application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="cab29052b44afabf7753e4d31dcd24c9">
+        <source>Manual setup key:</source>
+        <target>Clé de configuration manuelle :</target>
+      </trans-unit>
+      <trans-unit id="e27742605f634784778b9bb8f52e6160">
+        <source>Most security emails go to the affected employee and the addresses entered under Security alert recipients. The urgent successful-login alert goes only to the Security alert recipients.</source>
+        <target>La plupart des e-mails de sécurité sont envoyés à l&apos;employé concerné et aux adresses indiquées dans Destinataires des alertes de sécurité. L&apos;alerte urgente de connexion réussie est envoyée uniquement aux destinataires des alertes de sécurité.</target>
+      </trans-unit>
+      <trans-unit id="16662e922d98a4a7b811d8f92428b811">
+        <source>Native delete permission is required to reset two-factor authentication.</source>
+        <target>L&apos;autorisation native de suppression est requise pour réinitialiser l&apos;authentification à deux facteurs.</target>
+      </trans-unit>
+      <trans-unit id="cc20d0db4f35b022eacabc200f84779b">
+        <source>Native update permission is required to approve 2FA setup.</source>
+        <target>L&apos;autorisation native de modification est requise pour approuver la configuration 2FA.</target>
+      </trans-unit>
+      <trans-unit id="17320c0dfdf6b90036737a1b5dddf1d7">
+        <source>No 2FA setup waiting for approval was found.</source>
+        <target>Aucune configuration 2FA en attente d&apos;approbation n&apos;a été trouvée.</target>
+      </trans-unit>
+      <trans-unit id="56b7267770d0eb08f8c12b797b681b8f">
+        <source>No action if expected. If not, contact the employee and secure the account.</source>
+        <target>Aucune action si c&apos;était prévu. Sinon, contactez l&apos;employé et sécurisez le compte.</target>
+      </trans-unit>
+      <trans-unit id="b79726ea4a1e5abe5dbd7995d044a8e9">
+        <source>No action if expected. If the employee did not do this, reset their 2FA and investigate.</source>
+        <target>Aucune action si c&apos;était prévu. Si l&apos;employé n&apos;en est pas à l&apos;origine, réinitialisez sa 2FA et menez l&apos;enquête.</target>
+      </trans-unit>
+      <trans-unit id="f93fe3962ed3e5b339d47107fac46d78">
+        <source>No authenticator setup is waiting to be confirmed. Start the setup again.</source>
+        <target>Aucune configuration d&apos;application d&apos;authentification n&apos;est en attente de confirmation. Recommencez la configuration.</target>
+      </trans-unit>
+      <trans-unit id="6b7fb820bfdee9fffdc3c7858f19a3dc">
+        <source>No important security events occurred during this period.</source>
+        <target>Aucun événement de sécurité important n&apos;a eu lieu pendant cette période.</target>
+      </trans-unit>
+      <trans-unit id="054e4238086138307a8e707764c489ec">
+        <source>No key rotation has been prepared.</source>
+        <target>Aucune rotation de clé n&apos;a été préparée.</target>
+      </trans-unit>
+      <trans-unit id="852e2a87557586def02c6e3750554d68">
+        <source>No prepared key rotation was available to commit.</source>
+        <target>Aucune rotation de clé préparée n&apos;était disponible pour validation.</target>
+      </trans-unit>
+      <trans-unit id="6b0b3a8d3756f7020a0c08b209d5c01b">
+        <source>Not set up</source>
+        <target>Non configurée</target>
+      </trans-unit>
+      <trans-unit id="e52e6aa1a43a0187e44f048f658db5f9">
+        <source>Occurrences</source>
+        <target>Occurrences</target>
+      </trans-unit>
+      <trans-unit id="5f93913975c23d1642c404af9d1cfe6f">
+        <source>Only a SuperAdmin can approve 2FA setup.</source>
+        <target>Seul un SuperAdmin peut approuver la configuration 2FA.</target>
+      </trans-unit>
+      <trans-unit id="b17e90b726cdfa6aebe8b27c81233a14">
+        <source>Only a SuperAdmin can reset another employee&apos;s two-factor authentication.</source>
+        <target>Seul un SuperAdmin peut réinitialiser l&apos;authentification à deux facteurs d&apos;un autre employé.</target>
+      </trans-unit>
+      <trans-unit id="6a4a9af3335338a7b7498deb85ceb351">
+        <source>Open your authenticator app and scan this QR code. If you cannot scan it, enter the setup key shown below.</source>
+        <target>Ouvrez votre application d&apos;authentification et scannez ce QR code. Si vous ne pouvez pas le scanner, saisissez la clé de configuration affichée ci-dessous.</target>
+      </trans-unit>
+      <trans-unit id="b7a4fbd204a2fd8773b859465edcabcf">
+        <source>Other security settings</source>
+        <target>Autres paramètres de sécurité</target>
+      </trans-unit>
+      <trans-unit id="8c027985c6563caae4138e67d55feed5">
+        <source>Pending approvals</source>
+        <target>Approbations en attente</target>
+      </trans-unit>
+      <trans-unit id="57c52b8b162adf9d58a9f2944aa9a44b">
+        <source>PrestaShop cannot safely read the stored 2FA secrets.</source>
+        <target>PrestaShop ne peut pas lire en toute sécurité les secrets 2FA enregistrés.</target>
+      </trans-unit>
+      <trans-unit id="f77011b52839160abe7fae3b111f95eb">
+        <source>PrestaShop could not install the module.</source>
+        <target>PrestaShop n&apos;a pas pu installer le module.</target>
+      </trans-unit>
+      <trans-unit id="502996d9790340c5fd7b86a5b93b1c9f">
+        <source>Priority</source>
+        <target>Priorité</target>
+      </trans-unit>
+      <trans-unit id="a67039b232bb7b38258dccda52df6039">
+        <source>Profiles required to use two-factor authentication</source>
+        <target>Profils devant utiliser l&apos;authentification à deux facteurs</target>
+      </trans-unit>
+      <trans-unit id="c6c0e5a448d0cab8619387d77b57f7ad">
+        <source>Profiles whose first 2FA setup needs approval</source>
+        <target>Profils dont la première configuration 2FA doit être approuvée</target>
+      </trans-unit>
+      <trans-unit id="ece09499f272cee08c89652ef446b62a">
+        <source>Protect back-office accounts with an authenticator app, recovery codes, and another 2FA check before important security changes.</source>
+        <target>Protégez les comptes du back-office avec une application d&apos;authentification, des codes de récupération et une nouvelle vérification 2FA avant les modifications de sécurité importantes.</target>
+      </trans-unit>
+      <trans-unit id="5433974744d5e09a136f62c985a35b78">
+        <source>QR code for setting up your authenticator app</source>
+        <target>QR code de configuration de votre application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="b13ef50aebd7b461d84e260cc6fad5a1">
+        <source>Recovery code</source>
+        <target>Code de récupération</target>
+      </trans-unit>
+      <trans-unit id="042f7703b6eef984c92a3856575c0ee0">
+        <source>Recovery code rejected</source>
+        <target>Code de récupération refusé</target>
+      </trans-unit>
+      <trans-unit id="b30792d4102e14719fcee10ec3bc49c2">
+        <source>Recovery code used</source>
+        <target>Code de récupération utilisé</target>
+      </trans-unit>
+      <trans-unit id="5fb0e256588a7b9acea17113528032c0">
+        <source>Recovery codes regenerated</source>
+        <target>Codes de récupération régénérés</target>
+      </trans-unit>
+      <trans-unit id="d83b4088eec900f2f0a763dfbb723265">
+        <source>Recovery codes replaced</source>
+        <target>Codes de récupération remplacés</target>
+      </trans-unit>
+      <trans-unit id="bae08b2a8ec33d1325e0318023511939">
+        <source>Repeated failed attempts</source>
+        <target>Échecs répétés</target>
+      </trans-unit>
+      <trans-unit id="fcdf8a82eba24e303b63b2e49a507ecb">
+        <source>Requested</source>
+        <target>Demandée le</target>
+      </trans-unit>
+      <trans-unit id="d4d19e3f72ebcb1d56b7c9faed38d0fd">
+        <source>Reset two-factor authentication</source>
+        <target>Réinitialiser l&apos;authentification à deux facteurs</target>
+      </trans-unit>
+      <trans-unit id="977c136dba29294e1d46c2b049a24a30">
+        <source>Reset two-factor authentication for this employee? They will need to set it up again.</source>
+        <target>Réinitialiser l&apos;authentification à deux facteurs de cet employé ? Il devra la configurer à nouveau.</target>
+      </trans-unit>
+      <trans-unit id="a14f617a38c08eb893bdbf0b175b6b12">
+        <source>Review employee 2FA</source>
+        <target>Vérifier la 2FA des employés</target>
+      </trans-unit>
+      <trans-unit id="d01b4e5d448d247490b9ebb77841bd32">
+        <source>Review employee 2FA setup, approve requests when required, and make sure another trusted administrator can recover access.</source>
+        <target>Vérifiez la configuration 2FA des employés, approuvez les demandes si nécessaire et assurez-vous qu&apos;un autre administrateur de confiance peut rétablir l&apos;accès.</target>
+      </trans-unit>
+      <trans-unit id="a8a77a6082448b6af95dad558b7a1f43">
+        <source>Review the employee, check type, count, and IP address in the security activity log, and contact the employee if unexpected.</source>
+        <target>Vérifiez l&apos;employé, le type de vérification, le nombre de tentatives et l&apos;adresse IP dans le journal d&apos;activité de sécurité, et contactez l&apos;employé si ce n&apos;était pas prévu.</target>
+      </trans-unit>
+      <trans-unit id="0eded4c20517f36e44e66cf33fd5951e">
+        <source>Routine</source>
+        <target>Courante</target>
+      </trans-unit>
+      <trans-unit id="1069bbb00e552e5140b0fe11c91bd5d0">
+        <source>Save security settings</source>
+        <target>Enregistrer les paramètres de sécurité</target>
+      </trans-unit>
+      <trans-unit id="394571361faa17db21bc3390fa371f72">
+        <source>Save your recovery codes</source>
+        <target>Enregistrez vos codes de récupération</target>
+      </trans-unit>
+      <trans-unit id="2fae32629d4ef4fc6341f1751b405e45">
+        <source>Security</source>
+        <target>Sécurité</target>
+      </trans-unit>
+      <trans-unit id="79ce0ef896dc5df8d8f9a20815af81b3">
+        <source>Security activity</source>
+        <target>Activité de sécurité</target>
+      </trans-unit>
+      <trans-unit id="929dee3959fd227cd718864de7409f43">
+        <source>Security alert recipients</source>
+        <target>Destinataires des alertes de sécurité</target>
+      </trans-unit>
+      <trans-unit id="91d76ad53e9b3ce23307a0d6807951cf">
+        <source>Security emails: what to do</source>
+        <target>E-mails de sécurité : que faire</target>
+      </trans-unit>
+      <trans-unit id="2ce1519008e76aebe08029a0ac9bdc04">
+        <source>Security event</source>
+        <target>Événement de sécurité</target>
+      </trans-unit>
+      <trans-unit id="9513660bbf4fdcf61d8feb99abed609b">
+        <source>Security-change 2FA confirmed</source>
+        <target>Vérification 2FA de modification de sécurité confirmée</target>
+      </trans-unit>
+      <trans-unit id="738c621ec2c643e0dbed4af18677ea6f">
+        <source>Security-change 2FA failed</source>
+        <target>Échec de la vérification 2FA de modification de sécurité</target>
+      </trans-unit>
+      <trans-unit id="453d11d297e3318a9112039e9a41ef3d">
+        <source>See all</source>
+        <target>Tout voir</target>
+      </trans-unit>
+      <trans-unit id="c20a56b4ba53c4e890029a8f7c25ace6">
+        <source>Select at least one profile when &quot;Selected profiles&quot; is chosen.</source>
+        <target>Sélectionnez au moins un profil lorsque « Profils sélectionnés » est choisi.</target>
+      </trans-unit>
+      <trans-unit id="ea54094bc9d1cf2e25fa60ff87cef985">
+        <source>Selected profiles</source>
+        <target>Profils sélectionnés</target>
+      </trans-unit>
+      <trans-unit id="1e214b2eaa35aa4f20406b28966ba7c0">
+        <source>Set up 2FA for at least two trusted SuperAdmins so one person can recover the other.</source>
+        <target>Configurez la 2FA pour au moins deux SuperAdmins de confiance afin que l&apos;un puisse rétablir l&apos;accès de l&apos;autre.</target>
+      </trans-unit>
+      <trans-unit id="286e30cddced7c12f9024192d6f12835">
+        <source>Set up a new authenticator</source>
+        <target>Configurer une nouvelle application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="7989547f70139bc6a6cc706f88a2f152">
+        <source>Set up an authenticator app</source>
+        <target>Configurer une application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="458457a4bc519ff79bea6a1b3b080dd3">
+        <source>Set up authenticator</source>
+        <target>Configurer l&apos;application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="66f94fe6b87696e8f46c8d6f0da5fce6">
+        <source>Set up on</source>
+        <target>Configurée le</target>
+      </trans-unit>
+      <trans-unit id="8e69929e72c74a799c61bcd9f2d926c7">
+        <source>Set up two-factor authentication</source>
+        <target>Configurer l&apos;authentification à deux facteurs</target>
+      </trans-unit>
+      <trans-unit id="4aa5abb9f0b9100e765f557efe9cc0a8">
+        <source>Set up your authenticator</source>
+        <target>Configurer votre application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="6c708321b8fc0d069547639109f439d6">
+        <source>Sign-in 2FA confirmed</source>
+        <target>Vérification 2FA de connexion confirmée</target>
+      </trans-unit>
+      <trans-unit id="20ebce11c2e514450320ddb295a6e482">
+        <source>Sign-in 2FA failed</source>
+        <target>Échec de la vérification 2FA de connexion</target>
+      </trans-unit>
+      <trans-unit id="7437f7117568c9a7e7dcc65bf10faf07">
+        <source>Six-digit code</source>
+        <target>Code à six chiffres</target>
+      </trans-unit>
+      <trans-unit id="08da7ce142a240a4edee5ada7cc3b373">
+        <source>Someone entered several incorrect 2FA or recovery codes.</source>
+        <target>Quelqu&apos;un a saisi plusieurs codes 2FA ou de récupération incorrects.</target>
+      </trans-unit>
+      <trans-unit id="24a23d787190f2c4812ff9ab11847a72">
+        <source>Status:</source>
+        <target>Statut :</target>
+      </trans-unit>
+      <trans-unit id="ca4b1711233c2eee0344d18bae88c0f8">
+        <source>Store recovery codes somewhere secure outside PrestaShop. They are shown only once.</source>
+        <target>Conservez les codes de récupération en lieu sûr en dehors de PrestaShop. Ils ne sont affichés qu&apos;une seule fois.</target>
+      </trans-unit>
+      <trans-unit id="664cf0a5e6570873daac80e977a4decf">
+        <source>SuperAdmins</source>
+        <target>SuperAdmins</target>
+      </trans-unit>
+      <trans-unit id="a45da96d0bf6575970f2d27af22be28a">
+        <source>System</source>
+        <target>Système</target>
+      </trans-unit>
+      <trans-unit id="397ecec369c6fc5670d1393bf815bb8b">
+        <source>TOTP two-factor authentication and step-up protection for sensitive back-office operations.</source>
+        <target>Authentification à deux facteurs TOTP et vérification renforcée pour les opérations sensibles du back-office.</target>
+      </trans-unit>
+      <trans-unit id="407f57b8b1e8429c85e717a9f47e9620">
+        <source>Test a complete sign-in in a private browser window before requiring 2FA for employees.</source>
+        <target>Testez une connexion complète dans une fenêtre de navigation privée avant de rendre la 2FA obligatoire pour les employés.</target>
+      </trans-unit>
+      <trans-unit id="20166931562201e0b5ebcac37b4b9398">
+        <source>That authenticator code is incorrect or has already been used.</source>
+        <target>Ce code d&apos;authentification est incorrect ou a déjà été utilisé.</target>
+      </trans-unit>
+      <trans-unit id="ee301e8bbffa60ac2299bfdf0223b120">
+        <source>That authenticator code is incorrect. Check the app and try again.</source>
+        <target>Ce code d&apos;authentification est incorrect. Vérifiez l&apos;application et réessayez.</target>
+      </trans-unit>
+      <trans-unit id="b31d7702e260ccbe0c6dfc976e84d085">
+        <source>That recovery code is incorrect or has already been used.</source>
+        <target>Ce code de récupération est incorrect ou a déjà été utilisé.</target>
+      </trans-unit>
+      <trans-unit id="8918eaad17459f6baa3317fb097bdc17">
+        <source>The 2FA admin tabs or profile access could not be installed.</source>
+        <target>Les onglets d&apos;administration 2FA ou les accès des profils n&apos;ont pas pu être installés.</target>
+      </trans-unit>
+      <trans-unit id="551ad84cd902b806b0fb807bbb9a4687">
+        <source>The 2FA configuration could not be installed.</source>
+        <target>La configuration 2FA n&apos;a pas pu être installée.</target>
+      </trans-unit>
+      <trans-unit id="c777a8f8ca76268e008f1364f66b32eb">
+        <source>The 2FA database schema could not be installed.</source>
+        <target>Le schéma de base de données 2FA n&apos;a pas pu être installé.</target>
+      </trans-unit>
+      <trans-unit id="e7fc6969df99c7fc580952ca650b851b">
+        <source>The 2FA hooks could not be registered.</source>
+        <target>Les hooks 2FA n&apos;ont pas pu être enregistrés.</target>
+      </trans-unit>
+      <trans-unit id="8ec35468a42ef65934cf29c22299840e">
+        <source>The configured cookie key does not match the prepared rotation.</source>
+        <target>La clé de cookie configurée ne correspond pas à la rotation préparée.</target>
+      </trans-unit>
+      <trans-unit id="2ed6385f0e9e438e7f878388d5196a3c">
+        <source>The employee&apos;s 2FA setup was approved.</source>
+        <target>La configuration 2FA de l&apos;employé a été approuvée.</target>
+      </trans-unit>
+      <trans-unit id="4656f4c61f6a960ebecd445947375666">
+        <source>The encrypted TOTP secret could not be authenticated.</source>
+        <target>Le secret TOTP chiffré n&apos;a pas pu être authentifié.</target>
+      </trans-unit>
+      <trans-unit id="1a99765d380ff2abc1d854ef5bad17b2">
+        <source>The module data-encryption key cannot be unlocked.</source>
+        <target>La clé de chiffrement des données du module ne peut pas être déverrouillée.</target>
+      </trans-unit>
+      <trans-unit id="cce7f464459a019e20a76d55ef53672f">
+        <source>The module data-encryption key is missing.</source>
+        <target>La clé de chiffrement des données du module est absente.</target>
+      </trans-unit>
+      <trans-unit id="3b85948d9e7768db902a14c69f5917f3">
+        <source>The new cookie key is too short.</source>
+        <target>La nouvelle clé de cookie est trop courte.</target>
+      </trans-unit>
+      <trans-unit id="f49f55341062c027629fc2a0dbc803bb">
+        <source>The production dependencies are missing.</source>
+        <target>Les dépendances de production sont manquantes.</target>
+      </trans-unit>
+      <trans-unit id="82ff29922101199b1b89775083db7ffd">
+        <source>The requested data-encryption key version is unavailable.</source>
+        <target>La version demandée de la clé de chiffrement des données n&apos;est pas disponible.</target>
+      </trans-unit>
+      <trans-unit id="66b198723d7e7f69ac110d4c40949b2d">
+        <source>This 2FA setup is no longer waiting for approval.</source>
+        <target>Cette configuration 2FA n&apos;est plus en attente d&apos;approbation.</target>
+      </trans-unit>
+      <trans-unit id="fad67ca7c156624d271a6a4fc49cf680">
+        <source>This important security change needs another 2FA check. Enter the current code from your authenticator app.</source>
+        <target>Cette modification de sécurité importante nécessite une nouvelle vérification 2FA. Saisissez le code actuel de votre application d&apos;authentification.</target>
+      </trans-unit>
+      <trans-unit id="ec18d84af06d1b7acf8df5d31deac5d7">
+        <source>This removes the extra sign-in protection and signs you out. You cannot turn it off when your shop&apos;s security settings require 2FA.</source>
+        <target>Cette action supprime la protection supplémentaire à la connexion et vous déconnecte. Vous ne pouvez pas la désactiver si les paramètres de sécurité de votre boutique exigent la 2FA.</target>
+      </trans-unit>
+      <trans-unit id="46f3f0754ec3ffcc2669f2a4b1020ee3">
+        <source>This section is not available to your profile.</source>
+        <target>Cette section n&apos;est pas disponible pour votre profil.</target>
+      </trans-unit>
+      <trans-unit id="9ccca331144b63087dae18841e9f0c65">
+        <source>Too many attempts. Try again later.</source>
+        <target>Trop de tentatives. Réessayez plus tard.</target>
+      </trans-unit>
+      <trans-unit id="4f0ae1c99348986057bb5e470f19d5c1">
+        <source>Turn off two-factor authentication</source>
+        <target>Désactiver l&apos;authentification à deux facteurs</target>
+      </trans-unit>
+      <trans-unit id="8b10281154afa6312e3e8448c14f7134">
+        <source>Two-factor authentication</source>
+        <target>Authentification à deux facteurs</target>
+      </trans-unit>
+      <trans-unit id="8359813c3a73c044676b27b03132bd8c">
+        <source>Two-factor authentication is not active for this employee.</source>
+        <target>L&apos;authentification à deux facteurs n&apos;est pas active pour cet employé.</target>
+      </trans-unit>
+      <trans-unit id="4c5b8fff6bdefff2a7d4907f26b8e68f">
+        <source>Two-factor authentication is required to continue.</source>
+        <target>L&apos;authentification à deux facteurs est requise pour continuer.</target>
+      </trans-unit>
+      <trans-unit id="32a02e9f0f54351c86d721e04dfc6285">
+        <source>Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.</source>
+        <target>L&apos;authentification à deux facteurs est indisponible, car sa clé de chiffrement n&apos;a pas pu être validée. Contactez l&apos;administrateur du site.</target>
+      </trans-unit>
+      <trans-unit id="a35297c8c6683ca30d5cab93e3062ebe">
+        <source>Two-factor authentication reset</source>
+        <target>Authentification à deux facteurs réinitialisée</target>
+      </trans-unit>
+      <trans-unit id="ded1c8a2d44a1edadbe430cee8df2f95">
+        <source>Two-factor authentication settings changed</source>
+        <target>Paramètres d&apos;authentification à deux facteurs modifiés</target>
+      </trans-unit>
+      <trans-unit id="8fb128e76cdc35ae84c68a9358d4fa0f">
+        <source>Two-factor authentication settings saved.</source>
+        <target>Paramètres d&apos;authentification à deux facteurs enregistrés.</target>
+      </trans-unit>
+      <trans-unit id="ee06356598203935e2dea83e8c549f58">
+        <source>Two-factor authentication was reset for this employee.</source>
+        <target>L&apos;authentification à deux facteurs de cet employé a été réinitialisée.</target>
+      </trans-unit>
+      <trans-unit id="0bb1837b5fa04a09c13d889d73c88fbe">
+        <source>Unable to record the authentication failure atomically.</source>
+        <target>Impossible d&apos;enregistrer l&apos;échec d&apos;authentification de façon atomique.</target>
+      </trans-unit>
+      <trans-unit id="4138eb2f22b33fa2809e7c986163dc14">
+        <source>Uninstalling permanently removes all enrolled factors, recovery codes, encryption keys, policy, and audit records.</source>
+        <target>La désinstallation supprime définitivement toutes les méthodes 2FA configurées, les codes de récupération, les clés de chiffrement, les règles et les journaux d&apos;audit.</target>
+      </trans-unit>
+      <trans-unit id="f6eca4e8eac346f2b90167ff095649d5">
+        <source>Unknown profile</source>
+        <target>Profil inconnu</target>
+      </trans-unit>
+      <trans-unit id="2708565083321423b1a3244979bade9b">
+        <source>Urgent</source>
+        <target>Urgente</target>
+      </trans-unit>
+      <trans-unit id="4ad62e417151c0bb48058c1c3a318fcb">
+        <source>Use a recovery code</source>
+        <target>Utiliser un code de récupération</target>
+      </trans-unit>
+      <trans-unit id="2caf3c41191ede3d43e3828804af130c">
+        <source>Use recovery code</source>
+        <target>Utiliser le code de récupération</target>
+      </trans-unit>
+      <trans-unit id="661949828d3e8ceb54b4eeef71ac31a6">
+        <source>Use this to move to a new phone or authenticator app. Confirm your identity, then connect the new authenticator.</source>
+        <target>Utilisez cette option pour passer à un nouveau téléphone ou à une nouvelle application d&apos;authentification. Confirmez votre identité, puis associez la nouvelle application.</target>
+      </trans-unit>
+      <trans-unit id="d00003febad7265d93e3f26daea71dc6">
+        <source>Used only when &quot;Selected profiles&quot; is chosen above. Employees in these profiles must set up and use two-factor authentication to access the back office.</source>
+        <target>Utilisé uniquement lorsque « Profils sélectionnés » est choisi ci-dessus. Les employés de ces profils doivent configurer et utiliser l&apos;authentification à deux facteurs pour accéder au back-office.</target>
+      </trans-unit>
+      <trans-unit id="5a750f86ef41f22f852c43351e3ff383">
+        <source>Verify</source>
+        <target>Vérifier</target>
+      </trans-unit>
+      <trans-unit id="aa542f2fdd46d02964592afdb5e950ee">
+        <source>Waiting for approval</source>
+        <target>En attente d&apos;approbation</target>
+      </trans-unit>
+      <trans-unit id="92838a7051060f2fc4e2b1163b751e0e">
+        <source>What changes after 2FA is set up?</source>
+        <target>Qu&apos;est-ce qui change une fois la 2FA configurée ?</target>
+      </trans-unit>
+      <trans-unit id="f3e73021e16b55f66e4919c04d046bb5">
+        <source>What happened</source>
+        <target>Ce qui s&apos;est passé</target>
+      </trans-unit>
+      <trans-unit id="504fca75d6482ca6250fc2ee37a26e54">
+        <source>What it means</source>
+        <target>Ce que cela signifie</target>
+      </trans-unit>
+      <trans-unit id="a18bb1dfc38a5f8bdbcc37d7ddf92320">
+        <source>What to do</source>
+        <target>Que faire</target>
+      </trans-unit>
+      <trans-unit id="9b2e91930382d0f2c4d7ba908f9522fd">
+        <source>Who must use two-factor authentication</source>
+        <target>Qui doit utiliser l&apos;authentification à deux facteurs</target>
+      </trans-unit>
+      <trans-unit id="fef6c3d597f16fcf3474ba5e7cf28e82">
+        <source>You can view these settings, but your employee profile cannot change them.</source>
+        <target>Vous pouvez consulter ces paramètres, mais votre profil employé ne permet pas de les modifier.</target>
+      </trans-unit>
+      <trans-unit id="b25760d77d09e650fc233464c0796510">
+        <source>You do not need to enter it again because you signed in recently.</source>
+        <target>Vous n&apos;avez pas besoin de le ressaisir, car vous vous êtes connecté récemment.</target>
+      </trans-unit>
+      <trans-unit id="c745f16973ebd68acb62f3e91a34ba02">
+        <source>You need a secure HTTPS connection to set up an authenticator.</source>
+        <target>Une connexion HTTPS sécurisée est nécessaire pour configurer une application d&apos;authentification.</target>
+      </trans-unit>
+      <trans-unit id="7924f9e9ec8db6eb7f7841bd98aaeee0">
+        <source>Your PrestaShop password</source>
+        <target>Votre mot de passe PrestaShop</target>
+      </trans-unit>
+      <trans-unit id="c8df59d31fbf252850b7b12fdd381886">
+        <source>Your PrestaShop password (optional)</source>
+        <target>Votre mot de passe PrestaShop (facultatif)</target>
+      </trans-unit>
+      <trans-unit id="f53833ae55d957a20cdfc24b3e1887c6">
+        <source>Your account asks for a code from your authenticator app when you sign in.</source>
+        <target>Votre compte demande un code de votre application d&apos;authentification lors de la connexion.</target>
+      </trans-unit>
+      <trans-unit id="f548556942c3c40595a9a0ed2d54e387">
+        <source>Your authenticator</source>
+        <target>Votre application d&apos;authentification</target>
+      </trans-unit>
+      <trans-unit id="7b312ff966159ef77258f2e5e54f5882">
+        <source>Your authenticator is already active.</source>
+        <target>Votre application d&apos;authentification est déjà active.</target>
+      </trans-unit>
+      <trans-unit id="c99dbec1f038babed7785adda68e0667">
+        <source>Your authenticator is connected. Open it to manage your authenticator and recovery codes.</source>
+        <target>Votre application d&apos;authentification est associée. Ouvrez cette section pour gérer l&apos;application et vos codes de récupération.</target>
+      </trans-unit>
+      <trans-unit id="6f277edbc58e3d1d05dbac87cc7128d4">
+        <source>Your request is waiting for approval. Select &quot;Check again&quot; after a SuperAdmin approves it.</source>
+        <target>Votre demande est en attente d&apos;approbation. Sélectionnez « Vérifier à nouveau » après l&apos;approbation d&apos;un SuperAdmin.</target>
+      </trans-unit>
+      <trans-unit id="34af104590a5c4807941e46fc6d9fa75">
+        <source>Your shop&apos;s security settings require two-factor authentication, so you cannot turn it off.</source>
+        <target>Les paramètres de sécurité de votre boutique exigent l&apos;authentification à deux facteurs : vous ne pouvez pas la désactiver.</target>
+      </trans-unit>
+      <trans-unit id="23d8f6cc2c4171ed84c29a030b5f0617">
+        <source>_NEW_COOKIE_KEY_ is missing or too short.</source>
+        <target>_NEW_COOKIE_KEY_ est absente ou trop courte.</target>
+      </trans-unit>
+      <trans-unit id="5b844f2693977390de0be50963c0ec4c">
+        <source>two factor system</source>
+        <target>système d&apos;authentification à deux facteurs</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -28,34 +28,53 @@ services:
 
   Mpadmin2fa\EventSubscriber\AdminMfaSubscriber:
     class: Mpadmin2fa\EventSubscriber\AdminMfaSubscriber
+    arguments:
+      $translator: '@translator'
     tags: [kernel.event_subscriber]
 
   Mpadmin2fa\Exception\MfaSecurityException:
     class: Mpadmin2fa\Exception\MfaSecurityException
 
+  # Optional translator arguments are explicit so a missing autowiring alias cannot silently disable translations.
   Mpadmin2fa\Form\DisableFactorType:
     class: Mpadmin2fa\Form\DisableFactorType
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Form\FactorConfirmationType:
     class: Mpadmin2fa\Form\FactorConfirmationType
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Form\OneTimeCodeType:
     class: Mpadmin2fa\Form\OneTimeCodeType
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Form\RecoveryCodeAcknowledgementType:
     class: Mpadmin2fa\Form\RecoveryCodeAcknowledgementType
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Form\RecoveryCodeChallengeType:
     class: Mpadmin2fa\Form\RecoveryCodeChallengeType
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Form\RegenerateRecoveryCodesType:
     class: Mpadmin2fa\Form\RegenerateRecoveryCodesType
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Form\ReplaceFactorType:
     class: Mpadmin2fa\Form\ReplaceFactorType
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Form\SecurityPolicyType:
     class: Mpadmin2fa\Form\SecurityPolicyType
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Grid\Data\Factory\CsrfTokenGridDataFactory:
     class: Mpadmin2fa\Grid\Data\Factory\CsrfTokenGridDataFactory
@@ -73,6 +92,7 @@ services:
     class: Mpadmin2fa\Http\LoginHttpsGuard
     arguments:
       $legacyContext: '@prestashop.adapter.legacy.context'
+      $translator: '@translator'
 
   Mpadmin2fa\Http\LegacyAdminMfaAdapter:
     class: Mpadmin2fa\Http\LegacyAdminMfaAdapter
@@ -80,12 +100,15 @@ services:
     arguments:
       $session: '@session'
       $userProvider: '@prestashop.security.admin.provider'
+      $translator: '@translator'
 
   Mpadmin2fa\Http\LegacyAdminRequestNormalizer:
     class: Mpadmin2fa\Http\LegacyAdminRequestNormalizer
 
   Mpadmin2fa\Http\StepUpResponseFactory:
     class: Mpadmin2fa\Http\StepUpResponseFactory
+    arguments:
+      $translator: '@translator'
 
   Mpadmin2fa\Mail\MailThemeLayoutRegistrar:
     class: Mpadmin2fa\Mail\MailThemeLayoutRegistrar
@@ -230,6 +253,7 @@ services:
       $searchCriteriaApplicator: '@prestashop.core.query.doctrine_search_criteria_applicator'
       $languageId: '@=service("prestashop.adapter.legacy.context").getContext().language.id'
       $currentEmployeeId: '@=service("prestashop.adapter.legacy.context").getContext().employee.id'
+      $translator: '@translator'
 
   Mpadmin2fa\Grid\Query\PendingApprovalQueryBuilder:
     class: Mpadmin2fa\Grid\Query\PendingApprovalQueryBuilder
@@ -245,6 +269,7 @@ services:
       $connection: '@doctrine.dbal.default_connection'
       $dbPrefix: '%database_prefix%'
       $searchCriteriaApplicator: '@prestashop.core.query.doctrine_search_criteria_applicator'
+      $translator: '@translator'
 
   mpadmin2fa.grid.data_factory.employee_factor.inner:
     class: 'PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory'

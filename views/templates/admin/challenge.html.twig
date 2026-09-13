@@ -6,16 +6,16 @@
 {% block content %}
 <div class="row justify-content-center"><div class="col-xl-6">
   <div class="card">
-    <h3 class="card-header">{{ step_up ? 'Confirm it is you to continue' : 'Two-factor authentication' }}</h3>
+    <h3 class="card-header">{{ step_up ? 'Confirm it is you to continue'|trans({}, 'Modules.Mpadmin2fa.Admin') : 'Two-factor authentication'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
     <div class="card-body">
-      <p>{{ step_up ? 'This important security change needs another 2FA check. Enter the current code from your authenticator app.' : 'Enter the current code from your authenticator app to finish signing in.' }}</p>
+      <p>{{ step_up ? 'This important security change needs another 2FA check. Enter the current code from your authenticator app.'|trans({}, 'Modules.Mpadmin2fa.Admin') : 'Enter the current code from your authenticator app to finish signing in.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
       {{ form_start(totp_form) }}
         <div class="form-wrapper">{{ form_widget(totp_form) }}</div>
       {{ form_end(totp_form) }}
 
       <hr>
       <details>
-        <summary>Use a recovery code</summary>
+        <summary>{{ 'Use a recovery code'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</summary>
         <div class="mt-3">
           {{ form_start(recovery_form) }}
             <div class="form-wrapper">{{ form_widget(recovery_form) }}</div>

@@ -15,7 +15,7 @@ final class DisableFactorType extends FactorConfirmationType
         $resolver->setDefaults([
             'csrf_token_id' => 'mp2fa_disable',
             'submit_class' => 'btn-outline-danger',
-            'submit_label' => 'Turn off two-factor authentication',
+            'submit_label' => $this->trans('Turn off two-factor authentication', [], 'Modules.Mpadmin2fa.Admin'),
         ]);
     }
 }

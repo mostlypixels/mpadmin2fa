@@ -4,38 +4,38 @@
 
 {% block security_content %}
   {% if not can_update %}
-    <div class="alert alert-info">You can view these settings, but your employee profile cannot change them.</div>
+    <div class="alert alert-info">{{ 'You can view these settings, but your employee profile cannot change them.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</div>
   {% endif %}
 
   {{ form_start(policy_form, {action: path('mpadmin2fa_security_policy_update')}) }}
     {{ form_errors(policy_form) }}
 
     <div class="card mb-3">
-      <h3 class="card-header">Who must use two-factor authentication</h3>
+      <h3 class="card-header">{{ 'Who must use two-factor authentication'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
       <div class="card-body">
         <div class="form-wrapper">
           {{ form_row(policy_form.mode) }}
-          <p class="form-text text-muted">Choose which employees must set up and use two-factor authentication to access the back office.</p>
+          <p class="form-text text-muted">{{ 'Choose which employees must set up and use two-factor authentication to access the back office.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
           {{ form_row(policy_form.profiles) }}
-          <p class="form-text text-muted">Used only when "Selected profiles" is chosen above. Employees in these profiles must set up and use two-factor authentication to access the back office.</p>
+          <p class="form-text text-muted">{{ 'Used only when "Selected profiles" is chosen above. Employees in these profiles must set up and use two-factor authentication to access the back office.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
           {{ form_row(policy_form.approval_profiles) }}
-          <p class="form-text text-muted">Employees in these profiles need approval from another SuperAdmin who recently confirmed their own 2FA. SuperAdmin accounts also use this approval.</p>
+          <p class="form-text text-muted">{{ 'Employees in these profiles need approval from another SuperAdmin who recently confirmed their own 2FA. SuperAdmin accounts also use this approval.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h3 class="card-header">Other security settings</h3>
+      <h3 class="card-header">{{ 'Other security settings'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
       <div class="card-body">
         <div class="form-wrapper">
           {{ form_row(policy_form.step_up_seconds) }}
-          <p class="form-text text-muted">How long a successful 2FA check stays valid for important security changes. For example, 300 seconds is 5 minutes.</p>
+          <p class="form-text text-muted">{{ 'How long a successful 2FA check stays valid for important security changes. For example, 300 seconds is 5 minutes.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
           {{ form_row(policy_form.password_max_age) }}
-          <p class="form-text text-muted">How long employees can manage their own two-factor authentication after signing in without entering their password again. For example, 900 seconds is 15 minutes.</p>
+          <p class="form-text text-muted">{{ 'How long employees can manage their own two-factor authentication after signing in without entering their password again. For example, 900 seconds is 15 minutes.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
           {{ form_row(policy_form.audit_days) }}
-          <p class="form-text text-muted">How many days to keep 2FA security activity in the log. For example, enter 90 to keep three months of activity.</p>
+          <p class="form-text text-muted">{{ 'How many days to keep 2FA security activity in the log. For example, enter 90 to keep three months of activity.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
           {{ form_row(policy_form.security_recipients) }}
-          <p class="form-text text-muted">Enter the people who should receive 2FA security alerts. Separate multiple email addresses with commas, for example owner@example.com, security@example.com.</p>
+          <p class="form-text text-muted">{{ 'Enter the people who should receive 2FA security alerts. Separate multiple email addresses with commas, for example owner@example.com, security@example.com.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
         </div>
       </div>
       {% if policy_form.save is defined %}

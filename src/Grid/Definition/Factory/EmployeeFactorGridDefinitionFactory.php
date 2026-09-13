@@ -113,11 +113,12 @@ final class EmployeeFactorGridDefinitionFactory extends AbstractGridDefinitionFa
             ->add((new Filter('status', ChoiceType::class))
                 ->setTypeOptions([
                     'choices' => [
-                        'Active' => 'active',
-                        'Waiting for approval' => 'pending',
-                        'Not set up' => 'not_enrolled',
+                        $this->trans('Active', [], 'Modules.Mpadmin2fa.Admin') => 'active',
+                        $this->trans('Waiting for approval', [], 'Modules.Mpadmin2fa.Admin') => 'pending',
+                        $this->trans('Not set up', [], 'Modules.Mpadmin2fa.Admin') => 'not_enrolled',
                     ],
-                    'placeholder' => 'All',
+                    'choice_translation_domain' => false,
+                    'placeholder' => $this->trans('All', [], 'Admin.Global'),
                     'required' => false,
                 ])
                 ->setAssociatedColumn('status'))

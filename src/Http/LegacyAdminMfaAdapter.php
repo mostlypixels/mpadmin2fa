@@ -16,13 +16,17 @@ use Mpadmin2fa\Security\MfaManager;
 use Mpadmin2fa\Security\Policy;
 use Mpadmin2fa\Security\ReturnTargetPolicy;
 use Mpadmin2fa\Security\SessionState;
+use Mpadmin2fa\Translation\TranslatesMessages;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 final class LegacyAdminMfaAdapter
 {
+    use TranslatesMessages;
+
     /** @var AdminMfaAccessPolicy */
     private $accessPolicy;
 
@@ -61,6 +65,8 @@ final class LegacyAdminMfaAdapter
     private $userProvider;
     /** @var LoginHttpsGuard */
     private $loginHttpsGuard;
+    /** @var TranslatorInterface|null */
+    private $translator;
 
     public function __construct(
         AdminMfaAccessPolicy $accessPolicy,
@@ -76,7 +82,8 @@ final class LegacyAdminMfaAdapter
         SessionInterface $session,
         TokenStorageInterface $tokenStorage,
         UserProviderInterface $userProvider,
-        LoginHttpsGuard $loginHttpsGuard
+        LoginHttpsGuard $loginHttpsGuard,
+        ?TranslatorInterface $translator = null
     ) {
         $this->accessPolicy = $accessPolicy;
         $this->mfa = $mfa;
@@ -92,6 +99,7 @@ final class LegacyAdminMfaAdapter
         $this->tokenStorage = $tokenStorage;
         $this->userProvider = $userProvider;
         $this->loginHttpsGuard = $loginHttpsGuard;
+        $this->translator = $translator;
     }
 
     public function enforce(): ?Response
@@ -145,7 +153,7 @@ final class LegacyAdminMfaAdapter
         ]);
 
         if (AdminMfaAccessPolicy::DENY === $decision) {
-            return new Response('Access denied.', Response::HTTP_FORBIDDEN, [
+            return new Response($this->trans('Access denied.', [], 'Modules.Mpadmin2fa.Admin'), Response::HTTP_FORBIDDEN, [
                 'Content-Type' => 'text/plain; charset=UTF-8',
             ]);
         }
@@ -183,7 +191,7 @@ final class LegacyAdminMfaAdapter
             $response = $this->loginHttpsGuard->reject($request);
 
             return $request->isXmlHttpRequest()
-                ? new JsonResponse(['hasErrors' => true, 'errors' => [LoginHttpsGuard::ERROR_MESSAGE]], 403)
+                ? new JsonResponse(['hasErrors' => true, 'errors' => [$this->loginHttpsGuard->errorMessage()]], 403)
                 : $response;
         }
 

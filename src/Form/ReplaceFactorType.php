@@ -14,7 +14,7 @@ final class ReplaceFactorType extends FactorConfirmationType
 
         $resolver->setDefaults([
             'csrf_token_id' => 'mp2fa_replace',
-            'submit_label' => 'Continue to new authenticator setup',
+            'submit_label' => $this->trans('Continue to new authenticator setup', [], 'Modules.Mpadmin2fa.Admin'),
         ]);
     }
 }
