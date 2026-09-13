@@ -135,13 +135,13 @@ final class AdminNavigationSecurityTest extends TestCase
 
         self::assertIsString($template);
         self::assertStringContainsString(
-            "authenticator_active ? 'Manage and strengthen 2FA' : 'Get started'",
+            "authenticator_active ? 'Manage and strengthen 2FA'|trans({}, 'Modules.Mpadmin2fa.Admin') : 'Get started'|trans({}, 'Modules.Mpadmin2fa.Admin')",
             $template
         );
         self::assertStringContainsString('1. Your account is protected', $template);
         self::assertStringContainsString('1. Protect your account', $template);
         self::assertStringContainsString(
-            "authenticator_active ? 'Manage your authenticator' : 'Set up your authenticator'",
+            "authenticator_active ? 'Manage your authenticator'|trans({}, 'Modules.Mpadmin2fa.Admin') : 'Set up your authenticator'|trans({}, 'Modules.Mpadmin2fa.Admin')",
             $template
         );
     }
@@ -165,9 +165,9 @@ final class AdminNavigationSecurityTest extends TestCase
 
         self::assertIsString($template);
         self::assertSame(3, substr_count($template, 'class="card mb-3"'));
-        self::assertStringContainsString('<h3 class="card-header">Set up a new authenticator</h3>', $template);
-        self::assertStringContainsString('<h3 class="card-header">Create new recovery codes</h3>', $template);
-        self::assertStringContainsString('<h3 class="card-header">Turn off two-factor authentication</h3>', $template);
+        self::assertStringContainsString("<h3 class=\"card-header\">{{ 'Set up a new authenticator'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>", $template);
+        self::assertStringContainsString("<h3 class=\"card-header\">{{ 'Create new recovery codes'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>", $template);
+        self::assertStringContainsString("<h3 class=\"card-header\">{{ 'Turn off two-factor authentication'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>", $template);
     }
 
     public function testEnrollmentUsesNativeHeaderTabs(): void
@@ -186,8 +186,8 @@ final class AdminNavigationSecurityTest extends TestCase
         $template = file_get_contents(dirname(__DIR__, 2) . '/views/templates/admin/security/policy.html.twig');
 
         self::assertIsString($template);
-        self::assertStringContainsString('<h3 class="card-header">Who must use two-factor authentication</h3>', $template);
-        self::assertStringContainsString('<h3 class="card-header">Other security settings</h3>', $template);
+        self::assertStringContainsString("<h3 class=\"card-header\">{{ 'Who must use two-factor authentication'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>", $template);
+        self::assertStringContainsString("<h3 class=\"card-header\">{{ 'Other security settings'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>", $template);
         self::assertLessThan(
             strpos($template, 'policy_form.step_up_seconds'),
             strpos($template, 'policy_form.approval_profiles')

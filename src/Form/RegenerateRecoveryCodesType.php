@@ -14,7 +14,7 @@ final class RegenerateRecoveryCodesType extends FactorConfirmationType
 
         $resolver->setDefaults([
             'csrf_token_id' => 'mp2fa_recovery_regenerate',
-            'submit_label' => 'Create new recovery codes',
+            'submit_label' => $this->trans('Create new recovery codes', [], 'Modules.Mpadmin2fa.Admin'),
         ]);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mpadmin2fa\Form;
 
+use Mpadmin2fa\Translation\TranslatesMessages;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
@@ -12,28 +13,35 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Regex;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class FactorConfirmationType extends AbstractType
 {
+    use TranslatesMessages;
+
+    public function __construct(private readonly ?TranslatorInterface $translator = null)
+    {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $passwordHelp = $options['password_required']
             ? null
-            : 'You do not need to enter it again because you signed in recently.';
+            : $this->trans('You do not need to enter it again because you signed in recently.', [], 'Modules.Mpadmin2fa.Admin');
 
         $builder
             ->add('password', PasswordType::class, [
                 'label' => $options['password_required']
-                    ? 'Your PrestaShop password'
-                    : 'Your PrestaShop password (optional)',
+                    ? $this->trans('Your PrestaShop password', [], 'Modules.Mpadmin2fa.Admin')
+                    : $this->trans('Your PrestaShop password (optional)', [], 'Modules.Mpadmin2fa.Admin'),
                 'required' => $options['password_required'],
                 'help' => $passwordHelp,
                 'attr' => ['autocomplete' => 'current-password'],
                 'constraints' => $options['password_required'] ? [new NotBlank()] : [],
             ])
             ->add('code', TextType::class, [
-                'label' => 'Code from your authenticator app',
-                'help' => 'Enter the six-digit code currently shown in your app.',
+                'label' => $this->trans('Code from your authenticator app', [], 'Modules.Mpadmin2fa.Admin'),
+                'help' => $this->trans('Enter the six-digit code currently shown in your app.', [], 'Modules.Mpadmin2fa.Admin'),
                 'attr' => [
                     'autocomplete' => 'one-time-code',
                     'inputmode' => 'numeric',
@@ -42,7 +50,7 @@ class FactorConfirmationType extends AbstractType
                     new NotBlank(),
                     new Regex(
                         pattern: '/^\d{6}$/',
-                        message: 'Enter the six-digit code shown by your authenticator app.'
+                        message: $this->trans('Enter the six-digit code shown by your authenticator app.', [], 'Modules.Mpadmin2fa.Admin')
                     ),
                 ],
             ])

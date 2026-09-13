@@ -15,14 +15,18 @@ use Mpadmin2fa\Security\ReturnTargetPolicy;
 use Mpadmin2fa\Security\SecurityAlertService;
 use Mpadmin2fa\Security\SessionState;
 use Mpadmin2fa\Security\SensitiveActions;
+use Mpadmin2fa\Translation\TranslatesMessages;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Validate;
 
 final class LegacyAdminMfaAdapter
 {
+    use TranslatesMessages;
+
     public function __construct(
         private readonly RequestStack $requestStack,
         private readonly RouterInterface $router,
@@ -34,6 +38,7 @@ final class LegacyAdminMfaAdapter
         private readonly StepUpResponseFactory $responses,
         private readonly SecurityRepository $repository,
         private readonly SecurityAlertService $alerts,
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -77,7 +82,10 @@ final class LegacyAdminMfaAdapter
             if (AdminMfaAccessPolicy::DENY === $decision) {
                 $this->audit($employeeId, 'access.denied', $request, $decision, $controller, $action);
 
-                return new Response('Access denied.', Response::HTTP_FORBIDDEN);
+                return new Response(
+                    $this->trans('Access denied.', [], 'Modules.Mpadmin2fa.Admin'),
+                    Response::HTTP_FORBIDDEN
+                );
             }
 
             if (AdminMfaAccessPolicy::REQUIRE_STEP_UP === $decision) {
@@ -99,7 +107,11 @@ final class LegacyAdminMfaAdapter
             ]);
 
             return new Response(
-                'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+                $this->trans(
+                    'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+                    [],
+                    'Modules.Mpadmin2fa.Admin'
+                ),
                 Response::HTTP_SERVICE_UNAVAILABLE,
                 ['Content-Type' => 'text/plain; charset=UTF-8'],
             );

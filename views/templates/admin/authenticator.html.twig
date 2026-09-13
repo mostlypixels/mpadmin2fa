@@ -9,22 +9,22 @@
 {% block content %}
 <div class="row"><div class="col-xl-8">
   <div class="card">
-    <h3 class="card-header">Your authenticator</h3>
+    <h3 class="card-header">{{ 'Your authenticator'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
     <div class="card-body">
-      <p class="mb-1">Status: <span class="badge {{ active ? 'badge-success' : 'badge-secondary' }}">{{ active ? 'Active' : 'Not set up' }}</span></p>
+      <p class="mb-1">{{ 'Status:'|trans({}, 'Modules.Mpadmin2fa.Admin') }} <span class="badge {{ active ? 'badge-success' : 'badge-secondary' }}">{{ active ? 'Active'|trans({}, 'Modules.Mpadmin2fa.Admin') : 'Not set up'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</span></p>
       <p class="text-muted">
         {% if active %}
-          Your account asks for a code from your authenticator app when you sign in.
+          {{ 'Your account asks for a code from your authenticator app when you sign in.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}
         {% else %}
-          Add an authenticator app to protect your account with a code in addition to your password.
+          {{ 'Add an authenticator app to protect your account with a code in addition to your password.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}
         {% endif %}
       </p>
 
       {% if active %}
         <div class="card mb-3">
-          <h3 class="card-header">Set up a new authenticator</h3>
+          <h3 class="card-header">{{ 'Set up a new authenticator'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
           <div class="card-body">
-            <p>Use this to move to a new phone or authenticator app. Confirm your identity, then connect the new authenticator.</p>
+            <p>{{ 'Use this to move to a new phone or authenticator app. Confirm your identity, then connect the new authenticator.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
             {{ form_start(replace_form, {action: path('mpadmin2fa_replace')}) }}
               <div class="form-wrapper">{{ form_widget(replace_form) }}</div>
             {{ form_end(replace_form) }}
@@ -32,9 +32,9 @@
         </div>
 
         <div class="card mb-3">
-          <h3 class="card-header">Create new recovery codes</h3>
+          <h3 class="card-header">{{ 'Create new recovery codes'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
           <div class="card-body">
-            <p>Creating new recovery codes immediately invalidates all existing recovery codes.</p>
+            <p>{{ 'Creating new recovery codes immediately invalidates all existing recovery codes.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
             {{ form_start(recovery_form, {action: path('mpadmin2fa_recovery_regenerate')}) }}
               <div class="form-wrapper">{{ form_widget(recovery_form) }}</div>
             {{ form_end(recovery_form) }}
@@ -42,16 +42,16 @@
         </div>
 
         <div class="card mb-3">
-          <h3 class="card-header">Turn off two-factor authentication</h3>
+          <h3 class="card-header">{{ 'Turn off two-factor authentication'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
           <div class="card-body">
-            <p>This removes the extra sign-in protection and signs you out. You cannot turn it off when your shop's security settings require 2FA.</p>
+            <p>{{ "This removes the extra sign-in protection and signs you out. You cannot turn it off when your shop's security settings require 2FA."|trans({}, 'Modules.Mpadmin2fa.Admin') }}</p>
             {{ form_start(disable_form, {action: path('mpadmin2fa_disable')}) }}
               <div class="form-wrapper">{{ form_widget(disable_form) }}</div>
             {{ form_end(disable_form) }}
           </div>
         </div>
       {% else %}
-        <a class="btn btn-primary" href="{{ path('mpadmin2fa_enroll') }}">Set up authenticator</a>
+        <a class="btn btn-primary" href="{{ path('mpadmin2fa_enroll') }}">{{ 'Set up authenticator'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</a>
       {% endif %}
     </div>
   </div>

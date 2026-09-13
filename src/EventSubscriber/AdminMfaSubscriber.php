@@ -14,6 +14,7 @@ use Mpadmin2fa\Security\ReturnTargetPolicy;
 use Mpadmin2fa\Security\SecurityAlertService;
 use Mpadmin2fa\Security\SessionState;
 use Mpadmin2fa\Security\SensitiveActions;
+use Mpadmin2fa\Translation\TranslatesMessages;
 use PrestaShopBundle\Entity\Employee\Employee;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -23,9 +24,12 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AdminMfaSubscriber implements EventSubscriberInterface
 {
+    use TranslatesMessages;
+
     public function __construct(
         private readonly Security $security,
         private readonly RouterInterface $router,
@@ -37,6 +41,7 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         private readonly StepUpResponseFactory $stepUpResponses,
         private readonly LoginHttpsGuard $loginHttpsGuard,
         private readonly AdminMfaAccessPolicy $accessPolicy,
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -122,7 +127,10 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
             }
 
             if (AdminMfaAccessPolicy::DENY === $decision) {
-                $event->setResponse(new Response('Access denied.', Response::HTTP_FORBIDDEN));
+                $event->setResponse(new Response(
+                    $this->trans('Access denied.', [], 'Modules.Mpadmin2fa.Admin'),
+                    Response::HTTP_FORBIDDEN
+                ));
 
                 return;
             }
@@ -150,7 +158,11 @@ final class AdminMfaSubscriber implements EventSubscriberInterface
         ]);
 
         return new Response(
-            'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+            $this->trans(
+                'Two-factor authentication is unavailable because its encryption key failed validation. Contact the site operator.',
+                [],
+                'Modules.Mpadmin2fa.Admin'
+            ),
             Response::HTTP_SERVICE_UNAVAILABLE,
             ['Content-Type' => 'text/plain; charset=UTF-8']
         );

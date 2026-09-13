@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file original="modules/mpadmin2fa" source-language="en-US" target-language="fr-FR" datatype="plaintext">
+    <body>
+      <trans-unit id="99864c7a36f3d900bd6396b72457299b">
+        <source>%count% hour</source>
+        <target>%count% heure</target>
+      </trans-unit>
+      <trans-unit id="47f57f11b9787b2a094e21ae7a720e44">
+        <source>%count% hours</source>
+        <target>%count% heures</target>
+      </trans-unit>
+      <trans-unit id="1da96441d3395d87aadecb06ee2a64fd">
+        <source>%count% minute</source>
+        <target>%count% minute</target>
+      </trans-unit>
+      <trans-unit id="9d525de6a6ecfb4a3f43825ec98dad84">
+        <source>%count% minutes</source>
+        <target>%count% minutes</target>
+      </trans-unit>
+      <trans-unit id="8ade66b07794c805a6197850405bdc98">
+        <source>2FA was disabled by the employee, reset by a SuperAdmin, or reset from the command line.</source>
+        <target>La 2FA a été désactivée par l&apos;employé, réinitialisée par un SuperAdmin ou réinitialisée en ligne de commande.</target>
+      </trans-unit>
+      <trans-unit id="b64da3de58e585e3c31e8aad2c90e72c">
+        <source>An employee</source>
+        <target>Un employé</target>
+      </trans-unit>
+      <trans-unit id="b8f82a91c0bbd2d313729758024c7290">
+        <source>An employee finished setting up 2FA.</source>
+        <target>Un employé a terminé la configuration de la 2FA.</target>
+      </trans-unit>
+      <trans-unit id="9a77c591506d35da3f9b315dae3eee68">
+        <source>An employee replaced all their recovery codes.</source>
+        <target>Un employé a remplacé tous ses codes de récupération.</target>
+      </trans-unit>
+      <trans-unit id="4164704b4e5ba083acaf7303357be766">
+        <source>An employee signed in with a one-use recovery code instead of their authenticator.</source>
+        <target>Un employé s&apos;est connecté avec un code de récupération à usage unique au lieu du code de son application d&apos;authentification.</target>
+      </trans-unit>
+      <trans-unit id="b91b1a1ddeb20476319cbafd6a03e9e2">
+        <source>An employee successfully signed in after at least five failed 2FA attempts.</source>
+        <target>Un employé s&apos;est connecté avec succès après au moins cinq tentatives 2FA échouées.</target>
+      </trans-unit>
+      <trans-unit id="789288f5be9244c0a201e37a1e979aa4">
+        <source>Back-office security alert</source>
+        <target>Alerte de sécurité du back-office</target>
+      </trans-unit>
+      <trans-unit id="65b09a4d7e4c04d419f16ea371fefd96">
+        <source>Check the reason in the security activity log. Investigate immediately if nobody authorized it.</source>
+        <target>Vérifiez le motif dans le journal d&apos;activité de sécurité. Enquêtez immédiatement si personne ne l&apos;a autorisé.</target>
+      </trans-unit>
+      <trans-unit id="585a28f349f2cb1f3921580adec54b59">
+        <source>Confirm that the employee used it. If not, secure the account and review the security activity log.</source>
+        <target>Vérifiez que l&apos;employé l&apos;a bien utilisé. Sinon, sécurisez le compte et consultez le journal d&apos;activité de sécurité.</target>
+      </trans-unit>
+      <trans-unit id="199c84405fce81764d1574ccb227bc72">
+        <source>Contact the employee immediately. If they do not recognize it, change their password, reset 2FA, end active back-office sessions, and investigate.</source>
+        <target>Contactez immédiatement l&apos;employé. S&apos;il ne reconnaît pas cette connexion, changez son mot de passe, réinitialisez sa 2FA, fermez les sessions actives du back-office et menez l&apos;enquête.</target>
+      </trans-unit>
+      <trans-unit id="8aad3c67b8180cf2d45de706e02e9820">
+        <source>Contact your hosting provider or technical team immediately. Do not delete 2FA setups until they check whether the encryption key can be restored.</source>
+        <target>Contactez immédiatement votre hébergeur ou votre équipe technique. Ne supprimez aucune configuration 2FA avant que la possibilité de restaurer la clé de chiffrement ait été vérifiée.</target>
+      </trans-unit>
+      <trans-unit id="3ec365dd533ddb7ef3d1c111186ce872">
+        <source>Details</source>
+        <target>Détails</target>
+      </trans-unit>
+      <trans-unit id="f8c8b903cb2e4f297e4b96d4b9c1e98a">
+        <source>Employee</source>
+        <target>Employé</target>
+      </trans-unit>
+      <trans-unit id="9a3df74001cd4f0c34fee3b2d61cc8ed">
+        <source>Employee email</source>
+        <target>E-mail de l&apos;employé</target>
+      </trans-unit>
+      <trans-unit id="f97546195f54421897247df0dc599563">
+        <source>Event:</source>
+        <target>Événement :</target>
+      </trans-unit>
+      <trans-unit id="8de5dec02727520d8b1215f06862a620">
+        <source>Failed attempts</source>
+        <target>Tentatives échouées</target>
+      </trans-unit>
+      <trans-unit id="a62299522cf413e43d541ba8b99f0179">
+        <source>Failures</source>
+        <target>Échecs</target>
+      </trans-unit>
+      <trans-unit id="f8f5d5c23e8124286163c0bda157a911">
+        <source>First failed attempt</source>
+        <target>Première tentative échouée</target>
+      </trans-unit>
+      <trans-unit id="75ba8d70e3692ba200f0e0df37b4d2ae">
+        <source>IP address</source>
+        <target>Adresse IP</target>
+      </trans-unit>
+      <trans-unit id="4c2a8fe7eaf24721cc7a9f0175115bd4">
+        <source>Message</source>
+        <target>Message</target>
+      </trans-unit>
+      <trans-unit id="bafd7322c6e97d25b6299b5d6fe8920b">
+        <source>No</source>
+        <target>Non</target>
+      </trans-unit>
+      <trans-unit id="56b7267770d0eb08f8c12b797b681b8f">
+        <source>No action if expected. If not, contact the employee and secure the account.</source>
+        <target>Aucune action si c&apos;était prévu. Sinon, contactez l&apos;employé et sécurisez le compte.</target>
+      </trans-unit>
+      <trans-unit id="b79726ea4a1e5abe5dbd7995d044a8e9">
+        <source>No action if expected. If the employee did not do this, reset their 2FA and investigate.</source>
+        <target>Aucune action si c&apos;était prévu. Si l&apos;employé n&apos;en est pas à l&apos;origine, réinitialisez sa 2FA et menez l&apos;enquête.</target>
+      </trans-unit>
+      <trans-unit id="2d25c72c1b18e562f6654fff8e11711e">
+        <source>Not available</source>
+        <target>Non disponible</target>
+      </trans-unit>
+      <trans-unit id="6d412188aa389d5c49dd9fab86e2ad19">
+        <source>PrestaShop back-office security alert</source>
+        <target>Alerte de sécurité du back-office PrestaShop</target>
+      </trans-unit>
+      <trans-unit id="57c52b8b162adf9d58a9f2944aa9a44b">
+        <source>PrestaShop cannot safely read the stored 2FA secrets.</source>
+        <target>PrestaShop ne peut pas lire en toute sécurité les secrets 2FA enregistrés.</target>
+      </trans-unit>
+      <trans-unit id="fffcb4d1e12c96b2f571f77ad25878b8">
+        <source>Reason</source>
+        <target>Motif</target>
+      </trans-unit>
+      <trans-unit id="eebdbe4da8a95ed2502942daeecc2ecb">
+        <source>Reset by</source>
+        <target>Réinitialisé par</target>
+      </trans-unit>
+      <trans-unit id="18a079e38cf1c26811e4a9c929478872">
+        <source>Review the Admin 2FA security activity log in the back office.</source>
+        <target>Consultez le journal d&apos;activité de sécurité d&apos;Admin 2FA dans le back-office.</target>
+      </trans-unit>
+      <trans-unit id="a8a77a6082448b6af95dad558b7a1f43">
+        <source>Review the employee, check type, count, and IP address in the security activity log, and contact the employee if unexpected.</source>
+        <target>Vérifiez l&apos;employé, le type de vérification, le nombre de tentatives et l&apos;adresse IP dans le journal d&apos;activité de sécurité, et contactez l&apos;employé si ce n&apos;était pas prévu.</target>
+      </trans-unit>
+      <trans-unit id="5d113f2038d289f391614c39043629e8">
+        <source>Scope</source>
+        <target>Type de vérification</target>
+      </trans-unit>
+      <trans-unit id="5d4225aa0e7ff96a4f94ded9012d7e70">
+        <source>Security alert: %name% logged in after %count% failed attempt</source>
+        <target>Alerte de sécurité : connexion de %name% après %count% tentative échouée</target>
+      </trans-unit>
+      <trans-unit id="e14fe76768d4f72b429d976259f89d34">
+        <source>Security alert: %name% logged in after %count% failed attempts</source>
+        <target>Alerte de sécurité : connexion de %name% après %count% tentatives échouées</target>
+      </trans-unit>
+      <trans-unit id="08da7ce142a240a4edee5ada7cc3b373">
+        <source>Someone entered several incorrect 2FA or recovery codes.</source>
+        <target>Quelqu&apos;un a saisi plusieurs codes 2FA ou de récupération incorrects.</target>
+      </trans-unit>
+      <trans-unit id="7f920121eff65a1037ea33d160ccc460">
+        <source>Successful login IP</source>
+        <target>IP de la connexion réussie</target>
+      </trans-unit>
+      <trans-unit id="a76d4ef5f3f6a672bbfab2865563e530">
+        <source>Time</source>
+        <target>Date et heure</target>
+      </trans-unit>
+      <trans-unit id="9a4fb7bc400fe5dbccfef2a52bf09598">
+        <source>Time between first failure and login</source>
+        <target>Délai entre le premier échec et la connexion</target>
+      </trans-unit>
+      <trans-unit id="504fca75d6482ca6250fc2ee37a26e54">
+        <source>What it means</source>
+        <target>Ce que cela signifie</target>
+      </trans-unit>
+      <trans-unit id="a18bb1dfc38a5f8bdbcc37d7ddf92320">
+        <source>What to do</source>
+        <target>Que faire</target>
+      </trans-unit>
+      <trans-unit id="93cba07454f06a4a960172bbd6e2a435">
+        <source>Yes</source>
+        <target>Oui</target>
+      </trans-unit>
+      <trans-unit id="6f868bbac8c98a848d1d8cdca1fdcba4">
+        <source>less than a minute</source>
+        <target>moins d&apos;une minute</target>
+      </trans-unit>
+      <trans-unit id="7060e0481896e00b3f7d20f1e8e2749a">
+        <source>unavailable</source>
+        <target>non disponible</target>
+      </trans-unit>
+      <trans-unit id="ad921d60486366258809553a3db49a4a">
+        <source>unknown</source>
+        <target>inconnue</target>
+      </trans-unit>
+      <trans-unit id="90ce1055dd6706c9eebb9092b7701d3d">
+        <source>unknown email</source>
+        <target>e-mail inconnu</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

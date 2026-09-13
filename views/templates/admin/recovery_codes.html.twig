@@ -5,9 +5,9 @@
 {% block content %}
 <div class="row justify-content-center"><div class="col-xl-7">
   <div class="card">
-    <h3 class="card-header">Save your recovery codes</h3>
+    <h3 class="card-header">{{ 'Save your recovery codes'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
     <div class="card-body">
-      <div class="alert alert-warning">Copy these codes to a secure place, such as a password manager. Each code works once, and they will not be shown again.</div>
+      <div class="alert alert-warning">{{ 'Copy these codes to a secure place, such as a password manager. Each code works once, and they will not be shown again.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</div>
       <ul class="list-unstyled">{% for code in recovery_codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul>
 
       {{ form_start(acknowledgement_form) }}

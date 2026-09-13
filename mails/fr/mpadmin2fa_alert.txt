@@ -1,0 +1,1 @@
+Alerte de sécurité du back-office PrestaShop Événement : {event} {details} Consultez le journal d'activité de sécurité d'Admin 2FA dans le back-office.

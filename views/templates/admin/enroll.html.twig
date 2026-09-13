@@ -5,11 +5,11 @@
 {% block content %}
 <div class="row justify-content-center"><div class="col-xl-7">
   <div class="card">
-    <h3 class="card-header">Set up an authenticator app</h3>
+    <h3 class="card-header">{{ 'Set up an authenticator app'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</h3>
     <div class="card-body">
-      <div class="alert alert-info">Open your authenticator app and scan this QR code. If you cannot scan it, enter the setup key shown below.</div>
-      <div class="text-center mb-3"><img src="{{ qr_data_uri }}" alt="QR code for setting up your authenticator app" width="260" height="260"></div>
-      <p><strong>Manual setup key:</strong> <code>{{ secret }}</code></p>
+      <div class="alert alert-info">{{ 'Open your authenticator app and scan this QR code. If you cannot scan it, enter the setup key shown below.'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</div>
+      <div class="text-center mb-3"><img src="{{ qr_data_uri }}" alt="{{ 'QR code for setting up your authenticator app'|trans({}, 'Modules.Mpadmin2fa.Admin') }}" width="260" height="260"></div>
+      <p><strong>{{ 'Manual setup key:'|trans({}, 'Modules.Mpadmin2fa.Admin') }}</strong> <code>{{ secret }}</code></p>
 
       {{ form_start(confirmation_form) }}
         <div class="form-wrapper">{{ form_widget(confirmation_form) }}</div>
