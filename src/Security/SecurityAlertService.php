@@ -13,6 +13,8 @@ use Throwable;
 
 final class SecurityAlertService
 {
+    private const FAILURE_EXCEPTION = 'exception';
+    private const FAILURE_SEND_RETURNED_FALSE = 'send_returned_false';
     private const TEMPLATE = 'mpadmin2fa_alert';
 
     public function __construct(
@@ -62,7 +64,7 @@ final class SecurityAlertService
                 $metadata
             );
 
-            Mail::send(
+            $sent = Mail::send(
                 $languageId,
                 self::TEMPLATE,
                 $message['subject'],
@@ -79,8 +81,25 @@ final class SecurityAlertService
                 null,
                 $this->mailDirectory()
             );
+
+            if (false === $sent) {
+                $this->recordDeliveryFailure($employeeId, $event, self::FAILURE_SEND_RETURNED_FALSE);
+            }
         } catch (Throwable) {
             // Authentication must remain deterministic even if the merchant mail transport is unavailable.
+            $this->recordDeliveryFailure($employeeId, $event, self::FAILURE_EXCEPTION);
+        }
+    }
+
+    private function recordDeliveryFailure(?int $employeeId, string $event, string $category): void
+    {
+        try {
+            $this->repository->audit($employeeId, 'alert.delivery_failed', null, [
+                'original_event' => $event,
+                'failure_category' => $category,
+            ]);
+        } catch (Throwable) {
+            // Audit recording is best effort and must not change authentication or recovery behavior.
         }
     }
 
