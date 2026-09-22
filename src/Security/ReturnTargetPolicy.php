@@ -8,7 +8,7 @@ final class ReturnTargetPolicy
 {
     public function fromReferer(?string $referer, string $expectedHost, string $basePath): ?string
     {
-        if (null === $referer || '' === $referer) {
+        if (null === $referer || '' === $referer || $this->containsUnsafeCharacters($referer)) {
             return null;
         }
 
@@ -26,5 +26,11 @@ final class ReturnTargetPolicy
         }
 
         return $path . (isset($parts['query']) ? '?' . $parts['query'] : '');
+    }
+
+    private function containsUnsafeCharacters(string $value): bool
+    {
+        return 1 === preg_match('/[\\\\\x00-\x1F\x7F]/', $value)
+            || 1 === preg_match('/%(?:25)*(?:5c|0[0-9a-f]|1[0-9a-f]|7f)/i', $value);
     }
 }
