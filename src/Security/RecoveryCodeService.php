@@ -21,7 +21,12 @@ final class RecoveryCodeService
 
     public function normalize(string $code): string
     {
-        return strtoupper(trim($code));
+        $compact = str_replace([' ', '-'], '', $code);
+        if (1 !== preg_match('/^[A-Fa-f0-9]{20}$/D', $compact)) {
+            return '';
+        }
+
+        return implode('-', str_split(strtoupper($compact), 5));
     }
 
     public function hashes(array $codes): array
